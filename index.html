@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#102a52">
+<title>Bright Angels Junior School | If others can, we can</title>
+<meta name="description" content="Bright Angels Junior School, Lukwanga, Wakiso District. Learning, character and opportunity for every child.">
+<link rel="icon" href="/assets/school-logo.jpg">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#home"><img src="/assets/school-logo.jpg" alt="Bright Angels Junior School badge"><span><strong>Bright Angels</strong><small>Junior School</small></span></a>
+  <button class="menu-toggle" id="menuToggle" aria-label="Open navigation">☰</button>
+  <nav id="mainNav">
+    <a href="#home">Home</a><a href="#about">About Us</a><a href="#learning">School Life</a><a href="#news">News</a><a href="#admissions">Admissions</a><a href="#contact">Contact</a>
+    <a class="nav-admin" href="#admin">Admin Login</a>
+  </nav>
+</header>
+<main>
+<section id="home" class="hero">
+ <div class="hero-copy">
+   <p class="eyebrow">WELCOME TO BRIGHT ANGELS</p>
+   <h1>A bright beginning.<br><span>A brighter future.</span></h1>
+   <p class="hero-text">A caring learning community committed to helping every child grow in knowledge, confidence and character.</p>
+   <div class="actions"><a class="btn btn-gold" href="#admissions">Apply for admission</a><a class="btn btn-outline" href="#about">Explore our school</a></div>
+   <div class="motto"><span class="motto-mark">✦</span><span><b>Our motto</b><br>“If others can, we can.”</span></div>
+ </div>
+ <div class="hero-visual">
+  <div class="photo-frame"><img src="/assets/school-logo.jpg" alt="Bright Angels Junior School badge"><div class="photo-caption"><span class="dot"></span> Learning today, leading tomorrow</div></div>
+  <div class="floating-note"><span>★</span><div><b>Every child matters</b><small>Learn • Grow • Shine</small></div></div>
+ </div>
+</section>
+<section class="quick-cards" aria-label="School highlights">
+ <article><span class="card-icon">✦</span><h3>Quality Learning</h3><p>Building strong foundations through engaging, supportive teaching.</p></article>
+ <article><span class="card-icon">♡</span><h3>Care & Character</h3><p>Helping learners grow in confidence, kindness and responsibility.</p></article>
+ <article><span class="card-icon">✧</span><h3>School Community</h3><p>Working together with families for every learner's success.</p></article>
+</section>
+<section id="about" class="section about-grid">
+ <div class="section-art"><img src="/assets/school-logo.jpg" alt="Bright Angels school badge"><div class="art-label">IF OTHERS CAN, WE CAN</div></div>
+ <div><p class="eyebrow">WHO WE ARE</p><h2>A place to learn, belong and <span class="gold-text">become.</span></h2>
+ <p>Bright Angels Junior School is a learning community in Lukwanga, Wakiso District. We aim to nurture curious minds, good character and a love of learning in every child.</p>
+ <p>Our school works hand in hand with parents and guardians to support learners from the early years through primary school.</p>
+ <div class="mini-stats"><div><b>Baby–P7</b><small>Learning stages</small></div><div><b>One team</b><small>School & family</small></div><div><b>Every child</b><small>Matters here</small></div></div>
+ <a class="text-link" href="#contact">Get in touch <span>↗</span></a></div>
+</section>
+<section id="learning" class="section learning-section">
+ <div class="section-heading"><div><p class="eyebrow">LIFE AT BRIGHT ANGELS</p><h2>Learning with purpose.</h2></div><p>We create a welcoming environment where learners can ask questions, discover their strengths and develop skills for life.</p></div>
+ <div class="learning-grid">
+  <article class="learning-card"><div class="learning-symbol">01</div><h3>Strong foundations</h3><p>Supporting literacy, numeracy and the confidence to keep learning.</p></article>
+  <article class="learning-card"><div class="learning-symbol">02</div><h3>Whole-child growth</h3><p>Encouraging respect, teamwork, creativity and personal responsibility.</p></article>
+  <article class="learning-card"><div class="learning-symbol">03</div><h3>Family partnership</h3><p>Keeping parents informed and involved in the learning journey.</p></article>
+ </div>
+</section>
+<section id="news" class="section news-section">
+ <div class="section-heading"><div><p class="eyebrow">SCHOOL UPDATES</p><h2>What's happening?</h2></div><p>Announcements and important dates from our school community.</p></div>
+ <div id="announcementList" class="announcement-list"><div class="empty-state">School announcements will appear here.</div></div>
+</section>
+<section id="admissions" class="section admission-section">
+ <div class="admission-copy"><p class="eyebrow">JOIN OUR SCHOOL</p><h2>Start your child's <span class="gold-text">journey.</span></h2><p>Interested in joining Bright Angels Junior School? Send an application enquiry below. Our school team will follow up using the contact details you provide.</p><div class="admission-points"><span>✓ Friendly learning community</span><span>✓ Supportive home–school partnership</span><span>✓ A place to learn and grow</span></div></div>
+ <form id="admissionForm" class="form-card">
+  <h3>Admission enquiry</h3><p class="form-intro">Fields marked * are required.</p>
+  <label>Child's full name *<input name="child_name" required maxlength="200" placeholder="Enter child's name"></label>
+  <div class="form-row"><label>Class applying for<select name="class_applied"><option value="">Select class</option><option>Baby Class</option><option>Middle Class</option><option>Top Class</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option><option>P5</option><option>P6</option><option>P7</option></select></label><label>Parent/guardian name<input name="parent_name" maxlength="200" placeholder="Your full name"></label></div>
+  <div class="form-row"><label>Phone number *<input name="phone" required type="tel" maxlength="80" placeholder="+256..."></label><label>Email address<input name="email" type="email" maxlength="250" placeholder="you@example.com"></label></div>
+  <label>Message<textarea name="message" rows="3" maxlength="4000" placeholder="Anything you would like us to know?"></textarea></label>
+  <button class="btn btn-navy" type="submit">Send enquiry <span>→</span></button><p class="form-status" id="admissionStatus" role="status"></p>
+ </form>
+</section>
+<section id="contact" class="section contact-section">
+ <div><p class="eyebrow">CONTACT OUR SCHOOL</p><h2>Let's talk about your child's future.</h2><p>Reach out for admissions, school information or general enquiries.</p>
+  <div class="contact-detail"><span>⌖</span><div><b>Visit us</b><p>Wakiso District, Lukwanga–Kataluko Sentema Road, Uganda</p></div></div>
+  <div class="contact-detail"><span>✉</span><div><b>Email</b><p><a href="mailto:brightangels26@gmail.com">brightangels26@gmail.com</a></p></div></div>
+  <div class="contact-detail"><span>☎</span><div><b>Call / WhatsApp</b><p><a href="tel:+256755660550">+256 755 660 550</a> · <a href="tel:+256525136626">+256 525 136 626</a></p></div></div>
+ </div>
+ <form id="contactForm" class="form-card contact-form"><h3>Send us a message</h3><label>Your name<input name="name" required maxlength="200"></label><div class="form-row"><label>Email<input name="email" type="email" maxlength="250"></label><label>Phone<input name="phone" type="tel" maxlength="80"></label></div><label>Message<textarea name="message" required rows="4" maxlength="4000"></textarea></label><button class="btn btn-navy" type="submit">Send message →</button><p class="form-status" id="contactStatus" role="status"></p></form>
+</section>
+<section id="admin" class="section admin-section">
+ <div class="admin-intro"><p class="eyebrow">SCHOOL STAFF</p><h2>School management</h2><p>Authorised staff can sign in to manage learner records, marks, fees, announcements and applications.</p></div>
+ <div class="admin-login-card" id="loginCard"><form id="loginForm"><h3>Administrator login</h3><label>Admin email<input name="email" type="email" value="brightangels26@gmail.com" required></label><label>Password<input name="password" type="password" required autocomplete="current-password"></label><button class="btn btn-navy" type="submit">Sign in securely</button><p class="form-status" id="loginStatus" role="status"></p></form></div>
+ <div id="adminPanel" class="admin-panel" hidden>
+  <div class="admin-top"><div><p class="eyebrow">ADMIN DASHBOARD</p><h3>School records</h3></div><button class="btn btn-outline dark-outline" id="logoutBtn">Sign out</button></div>
+  <div class="admin-tabs" role="tablist"><button class="active" data-tab="students">Students</button><button data-tab="subjects">Subjects</button><button data-tab="marks">Record marks</button><button data-tab="fees">Fees</button><button data-tab="announcements">Announcements</button><button data-tab="applications">Applications</button><button data-tab="messages">Messages</button></div>
+  <div id="adminContent" class="admin-content"><p>Choose a section to manage school records.</p></div>
+ </div>
+</section>
+</main>
+<footer><div class="footer-brand"><img src="/assets/school-logo.jpg" alt=""><div><b>Bright Angels Junior School</b><small>“If others can, we can.”</small></div></div><p>Wakiso District, Lukwanga–Kataluko Sentema Road</p><small>© <span id="year"></span> Bright Angels Junior School. All rights reserved.</small></footer>
+<script src="/app.js" defer></script>
+</body></html>
