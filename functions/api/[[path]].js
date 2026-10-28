@@ -1224,10 +1224,9 @@ export async function onRequest({ request, env }) {
 // ------------------------------------------------------------
 
     if (path === "api/subjects") {
-
       if (method === "GET") {
         const result = await env.DB.prepare(
-          "SELECT * FROM subjects ORDER BY class_name, name"
+          "SELECT * FROM ba_subjects ORDER BY class_name, name"
         ).all();
 
         return json({
@@ -1250,7 +1249,7 @@ export async function onRequest({ request, env }) {
         }
 
         const result = await env.DB.prepare(
-          "INSERT INTO subjects (name, class_name) VALUES (?, ?)"
+          "INSERT INTO ba_subjects (name, class_name) VALUES (?, ?)"
         ).bind(name, className).run();
 
         return json({
@@ -1275,7 +1274,7 @@ export async function onRequest({ request, env }) {
         }
 
         const result = await env.DB.prepare(
-          `UPDATE subjects SET name = ?, class_name = ?
+          `UPDATE ba_subjects SET name = ?, class_name = ?
            WHERE id = ?`
         ).bind(name, className, id).run();
 
@@ -1300,7 +1299,7 @@ export async function onRequest({ request, env }) {
         }
 
         const result = await env.DB.prepare(
-          "DELETE FROM subjects WHERE id = ?"
+          "DELETE FROM ba_subjects WHERE id = ?"
         ).bind(id).run();
 
         if (!result.meta.changes) {
