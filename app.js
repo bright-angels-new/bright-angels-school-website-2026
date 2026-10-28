@@ -491,25 +491,31 @@ async function getSchoolClasses() {
     return DEFAULT_CLASSES;
 }
 
-async function classSelect(
-    name = 'class_name',
-    selected = ''
-) {
-    const classes = await getSchoolClasses();
+async function getSchoolClasses() {
+    try {
+        const result = await api('settings');
 
-    return `
-        <select name="${escapeHTML(name)}" required>
-            <option value="">Select class</option>
+        const classes = result.settings?.school_classes;
 
-            ${classes.map(className => `
-                <option
-                    value="${escapeHTML(className)}"
-                    ${className === selected ? 'selected' : ''}>
-                    ${escapeHTML(className)}
-                </option>
-            `).join('')}
-        </select>
-    `;
+        if (Array.isArray(classes) && classes.length > 0) {
+            return classes;
+        }
+    } catch (error) {
+        console.error('Could not load school classes:', error);
+    }
+
+    return [
+        'Baby Class',
+        'Middle Class',
+        'Top Class',
+        'P1',
+        'P2',
+        'P3',
+        'P4',
+        'P5',
+        'P6',
+        'P7'
+    ];
 }
 
 async function studentSelect(name = 'student_id') {
