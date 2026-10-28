@@ -1096,8 +1096,12 @@ async function renderFees() {
 
 async function renderAdminAnnouncements() {
     const result = await api('announcements');
-    const announcements = result.announcements || [];
 
+const announcements = Array.isArray(result.announcements)
+    ? result.announcements
+    : Array.isArray(result.data)
+        ? result.data
+        : [];
     adminContent.innerHTML = `
         <section class="admin-section">
             <h2>Manage Announcements</h2>
