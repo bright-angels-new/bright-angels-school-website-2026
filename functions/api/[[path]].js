@@ -1511,4 +1511,7 @@ export async function onRequest({ request, env }) {
     // UNKNOWN ROUTE
     // --------------------------------------------------------
 
-    return fail("API route not found.", 404);
+    return fail("API route not found.", 404
+  );
+ }
+}
