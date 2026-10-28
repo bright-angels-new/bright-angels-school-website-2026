@@ -289,8 +289,22 @@ export async function onRequest({ request, env }) {
     str(b.message)
    ).run();
 
-   return json({ ok: true, id: r.meta.last_row_id }, 201);
-  }
+   await sendSchoolEmail(
+  env,
+  'New Admission Application - Bright Angels Junior School',
+  [
+    'A new admission application has been submitted.',
+    '',
+    `Child: ${child}`,
+    `Class applying for: ${str(b.class_applied, 80)}`,
+    `Parent/Guardian: ${str(b.parent_name, 200)}`,
+    `Phone: ${str(b.phone, 80)}`,
+    `Email: ${str(b.email, 250)}`,
+    `Message: ${str(b.message)}`
+  ].join('\n')
+);
+
+return json({ ok: true, id: r.meta.last_row_id }, 201);
 
   if (path === 'messages' && method === 'POST') {
    const b = await readBody(request);
