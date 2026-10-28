@@ -1181,31 +1181,41 @@ const announcements = Array.isArray(result.announcements)
 
             showStatus(status, 'Publishing announcement...');
 
-            try {
-                const values = formValues(form);
+                    try {
+            const values = formValues(form);
 
-                await api('announcements', {
-                    method: 'POST',
-                    body: values
-                });
+            console.log('Announcement data:', values);
 
-                form.reset();
+            const result = await api('announcements', {
+                method: 'POST',
+                body: values
+            });
 
-                await loadAnnouncements();
-                await renderAdminAnnouncements();
+            console.log('Announcement save result:', result);
 
-                showStatus(
-                    $('#announcementStatus'),
-                    'Announcement published successfully.',
-                    'success'
-                );
-            } catch (error) {
-                showStatus(status, error.message, 'error');
+            form.reset();
 
-                if (button) button.disabled = false;
-            }
+            await loadAnnouncements();
+            await renderAdminAnnouncements();
+
+            showStatus(
+                $('#announcementStatus'),
+                'Announcement published successfully.',
+                'success'
+            );
+        } catch (error) {
+            console.error('Announcement save failed:', error);
+
+            showStatus(
+                status,
+                `Could not save announcement: ${error.message}`,
+                'error'
+            );
+        } finally {
+            if (button) button.disabled = false;
         }
-    );
+    }
+);
 }
 /* ---------------------------------------------------------
    15. ADMISSION APPLICATIONS
