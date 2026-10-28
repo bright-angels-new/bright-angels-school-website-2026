@@ -304,7 +304,7 @@ export async function onRequest({ request, env }) {
     `Message: ${str(b.message)}`
   ].join('\n')
 );
-  }
+
 return json({ ok: true, id: r.meta.last_row_id }, 201);
 
   if (path === 'messages' && method === 'POST') {
