@@ -322,7 +322,22 @@ return json({ ok: true, id: r.meta.last_row_id }, 201);
     str(b.message)
    ).run();
 
-   return json({ ok: true, id: r.meta.last_row_id }, 201);
+  await sendSchoolEmail(
+  env,
+  'New Parent Message - Bright Angels Junior School',
+  [
+    'A new message has been submitted through the school website.',
+    '',
+    `Name: ${str(b.name, 200)}`,
+    `Email: ${str(b.email, 250)}`,
+    `Phone: ${str(b.phone, 80)}`,
+    '',
+    'Message:',
+    str(b.message)
+  ].join('\n')
+);
+
+return json({ ok: true, id: r.meta.last_row_id }, 201); 
   }
 
   if (path === 'announcements' && method === 'GET')
