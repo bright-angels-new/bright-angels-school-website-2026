@@ -1,6 +1,6 @@
 // ============================================================
 // BRIGHT ANGELS JUNIOR SCHOOL
-// Cloudflare Pages API
+// CLOUDFARE PAGES API
 // PART 1 OF 6: FOUNDATION AND DATABASE
 // ============================================================
 
@@ -20,9 +20,9 @@ const DEFAULT_CLASSES = [
   "P7"
 ];
 
-// ------------------------------------------------------------
+// ============================================================
 // RESPONSE HELPERS
-// ------------------------------------------------------------
+// ============================================================
 
 function json(data, status = 200, headers = {}) {
   return new Response(JSON.stringify(data), {
@@ -45,19 +45,9 @@ function fail(message, status = 400) {
   );
 }
 
-function redirect(location, status = 302) {
-  return new Response(null, {
-    status,
-    headers: {
-      Location: location,
-      "Cache-Control": "no-store"
-    }
-  });
-}
-
-// ------------------------------------------------------------
+// ============================================================
 // REQUEST HELPERS
-// ------------------------------------------------------------
+// ============================================================
 
 async function readBody(request) {
   try {
@@ -84,19 +74,17 @@ function isValidEmail(value) {
 }
 
 function cookieValue(request, name) {
-  const cookieHeader = request.headers.get("Cookie") || "";
+  const header = request.headers.get("Cookie") || "";
 
-  const cookies = cookieHeader.split(";");
+  for (const item of header.split(";")) {
+    const separator = item.indexOf("=");
 
-  for (const cookie of cookies) {
-    const separator = cookie.indexOf("=");
-
-    if (separator < 0) {
+    if (separator === -1) {
       continue;
     }
 
-    const key = cookie.slice(0, separator).trim();
-    const value = cookie.slice(separator + 1).trim();
+    const key = item.slice(0, separator).trim();
+    const value = item.slice(separator + 1).trim();
 
     if (key === name) {
       try {
@@ -110,9 +98,9 @@ function cookieValue(request, name) {
   return "";
 }
 
-function setAdminCookie(value) {
+function setAdminCookie(token) {
   return [
-    `${COOKIE_NAME}=${encodeURIComponent(value)}`,
+    `${COOKIE_NAME}=${encodeURIComponent(token)}`,
     "HttpOnly",
     "Secure",
     "SameSite=Lax",
@@ -132,68 +120,12 @@ function clearAdminCookie() {
   ].join("; ");
 }
 
-// ------------------------------------------------------------
-// EMAIL NOTIFICATIONS
-// ------------------------------------------------------------
-
-async function sendSchoolEmail(env, subject, message) {
-  if (
-    !env.RESEND_API_KEY ||
-    !env.EMAIL_FROM ||
-    !env.EMAIL_TO
-  ) {
-    console.error(
-      "Email configuration is incomplete."
-    );
-
-    return false;
-  }
-
-  try {
-    const response = await fetch(
-      "https://api.resend.com/emails",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${env.RESEND_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          from: env.EMAIL_FROM,
-          to: [env.EMAIL_TO],
-          subject,
-          text: message
-        })
-      }
-    );
-
-    if (!response.ok) {
-      console.error(
-        "Email delivery failed:",
-        await response.text()
-      );
-
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error(
-      "Email request failed:",
-      error
-    );
-
-    return false;
-  }
-}
-
-// ------------------------------------------------------------
+// ============================================================
 // DATABASE INITIALISATION
-// ------------------------------------------------------------
+// ============================================================
 
 async function initialiseDatabase(db) {
   const statements = [
-
     `CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL DEFAULT ''
@@ -260,7 +192,12 @@ async function initialiseDatabase(db) {
       score REAL NOT NULL DEFAULT 0,
       remarks TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(student_id, subject_id, term, academic_year)
+      UNIQUE (
+        student_id,
+        subject_id,
+        term,
+        academic_year
+      )
     )`,
 
     `CREATE TABLE IF NOT EXISTS fees (
@@ -274,15 +211,12 @@ async function initialiseDatabase(db) {
       notes TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`
-
   ];
 
   for (const statement of statements) {
     await db.prepare(statement).run();
   }
 
-  // Store the school's default class list if it is not
-  // already configured.
   await db.prepare(
     `INSERT OR IGNORE INTO settings (key, value)
      VALUES (?, ?)`
@@ -292,27 +226,78 @@ async function initialiseDatabase(db) {
   ).run();
 }
 
-// ------------------------------------------------------------
-// ADMIN SESSION HELPERS
-// ------------------------------------------------------------
+// ============================================================
+// EMAIL NOTIFICATIONS
+// Uses existing Cloudflare environment variables.
+// ============================================================
+
+async function sendSchoolEmail(env, subject, message) {
+  if (
+    !env.RESEND_API_KEY ||
+    !env.EMAIL_FROM ||
+    !env.EMAIL_TO
+  ) {
+    console.error(
+      "Email settings are incomplete; notification not sent."
+    );
+
+    return false;
+  }
+
+  try {
+    const response = await fetch(
+      "https://api.resend.com/emails",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${env.RESEND_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          from: env.EMAIL_FROM,
+          to: [env.EMAIL_TO],
+          subject,
+          text: message
+        })
+      }
+    );
+
+    if (!response.ok) {
+      console.error(
+        "Email delivery failed:",
+        response.status,
+        await response.text()
+      );
+
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Email request failed:", error);
+    return false;
+  }
+}
+
+// ============================================================
+// ADMIN SESSION SECURITY
+// ============================================================
 
 async function createSessionToken(env) {
-  const secret = env.SESSION_SECRET;
-
-  if (!secret) {
+  if (!env.SESSION_SECRET) {
     throw new Error(
       "SESSION_SECRET is not configured."
     );
   }
 
-  const timestamp = Date.now().toString();
-  const message = `${timestamp}:${crypto.randomUUID()}`;
+  const message =
+    `${Date.now()}:${crypto.randomUUID()}`;
 
   const encoder = new TextEncoder();
 
   const key = await crypto.subtle.importKey(
     "raw",
-    encoder.encode(secret),
+    encoder.encode(env.SESSION_SECRET),
     {
       name: "HMAC",
       hash: "SHA-256"
@@ -327,17 +312,15 @@ async function createSessionToken(env) {
     encoder.encode(message)
   );
 
-  const signatureBytes = new Uint8Array(signature);
+  const bytes = new Uint8Array(signature);
 
   let binary = "";
 
-  for (const byte of signatureBytes) {
+  for (const byte of bytes) {
     binary += String.fromCharCode(byte);
   }
 
-  const encodedSignature = btoa(binary);
-
-  return `${message}:${encodedSignature}`;
+  return `${message}:${btoa(binary)}`;
 }
 
 async function isAdminAuthenticated(request, env) {
@@ -357,15 +340,13 @@ async function isAdminAuthenticated(request, env) {
 
   if (
     !Number.isFinite(timestamp) ||
-    Date.now() - timestamp >
-      SESSION_DURATION * 1000 ||
-    timestamp > Date.now()
+    timestamp > Date.now() ||
+    Date.now() - timestamp > SESSION_DURATION * 1000
   ) {
     return false;
   }
 
   const message = `${parts[0]}:${parts[1]}`;
-  const suppliedSignature = parts[2];
 
   try {
     const encoder = new TextEncoder();
@@ -387,17 +368,29 @@ async function isAdminAuthenticated(request, env) {
       encoder.encode(message)
     );
 
-    const signatureBytes = new Uint8Array(signature);
+    const bytes = new Uint8Array(signature);
 
     let binary = "";
 
-    for (const byte of signatureBytes) {
+    for (const byte of bytes) {
       binary += String.fromCharCode(byte);
     }
 
-    const expectedSignature = btoa(binary);
+    const expected = btoa(binary);
+    const supplied = parts[2];
 
-    return suppliedSignature === expectedSignature;
+    if (expected.length !== supplied.length) {
+      return false;
+    }
+
+    let difference = 0;
+
+    for (let i = 0; i < expected.length; i++) {
+      difference |= expected.charCodeAt(i) ^
+        supplied.charCodeAt(i);
+    }
+
+    return difference === 0;
   } catch (error) {
     console.error(
       "Session verification failed:",
@@ -409,8 +402,9 @@ async function isAdminAuthenticated(request, env) {
 }
 
 // ============================================================
-// PART 2 WILL CONTINUE HERE.
-// Do not add another opening onRequest function.
+// END OF PART 1
+// PART 2 WILL CONTINUE FROM HERE.
+// DO NOT DEPLOY UNTIL ALL SIX PARTS ARE COMPLETE.
 // ============================================================
 // ============================================================
 // PART 2 OF 6: MAIN REQUEST HANDLER AND ADMIN LOGIN
@@ -427,11 +421,11 @@ export async function onRequest({ request, env }) {
     const path = url.pathname.replace(/^\/+|\/+$/g, "");
     const method = request.method.toUpperCase();
 
-    // Initialise the required database tables.
     await initialiseDatabase(env.DB);
 
     // --------------------------------------------------------
     // HEALTH CHECK
+    // GET /api/health
     // --------------------------------------------------------
 
     if (path === "api/health" && method === "GET") {
@@ -443,6 +437,7 @@ export async function onRequest({ request, env }) {
 
     // --------------------------------------------------------
     // ADMIN LOGIN
+    // POST /api/admin/login
     // --------------------------------------------------------
 
     if (
@@ -460,7 +455,7 @@ export async function onRequest({ request, env }) {
       const password = String(body.password || "");
 
       if (!env.ADMIN_EMAIL || !env.ADMIN_PASSWORD) {
-        console.error("Admin login configuration is missing.");
+        console.error("Admin login variables are missing.");
         return fail("Admin login is not configured.", 500);
       }
 
@@ -476,7 +471,7 @@ export async function onRequest({ request, env }) {
       try {
         token = await createSessionToken(env);
       } catch (error) {
-        console.error("Could not create admin session:", error);
+        console.error("Session creation failed:", error);
         return fail("Admin session is not configured.", 500);
       }
 
@@ -494,6 +489,7 @@ export async function onRequest({ request, env }) {
 
     // --------------------------------------------------------
     // ADMIN LOGOUT
+    // POST /api/admin/logout
     // --------------------------------------------------------
 
     if (
@@ -515,6 +511,7 @@ export async function onRequest({ request, env }) {
 
     // --------------------------------------------------------
     // CHECK ADMIN SESSION
+    // GET /api/admin/session
     // --------------------------------------------------------
 
     if (
@@ -531,49 +528,56 @@ export async function onRequest({ request, env }) {
       });
     }
 
-    // --------------------------------------------------------
-    // ADMIN ROUTE PROTECTION
-    // --------------------------------------------------------
+        // PUBLIC ROUTES AND ACCESS CONTROL
 
     const publicPaths = new Set([
       "api/health",
-      "api/login",
-      "api/logout",
-      "api/session",
       "api/admin/login",
       "api/admin/logout",
       "api/admin/session",
-      "api/admissions",
-      "api/messages",
+      "api/login",
+      "api/logout",
+      "api/session"
+    ]);
+
+    const publicReadPaths = new Set([
       "api/announcements",
       "api/settings"
     ]);
 
-    const isApiPath = path.startsWith("api/");
-    const isPublicPath = publicPaths.has(path);
+    const publicSubmissionPaths = new Set([
+      "api/admissions",
+      "api/messages"
+    ]);
 
-    if (isApiPath && !isPublicPath) {
-      const authenticated =
-        await isAdminAuthenticated(request, env);
+    const isApiPath = path.startsWith("api/");
+
+    const isPublicRequest =
+      publicPaths.has(path) ||
+      (publicReadPaths.has(path) && method === "GET") ||
+      (publicSubmissionPaths.has(path) && method === "POST");
+
+    if (isApiPath && !isPublicRequest) {
+      const authenticated = await isAdminAuthenticated(request, env);
 
       if (!authenticated) {
-        return fail("Please log in as an administrator.", 401);
+        return fail(
+          "Please log in as an administrator.",
+          401
+        );
       }
     }
 
     // --------------------------------------------------------
-    // UNKNOWN ROUTE
+    // PART 3 WILL ADD ADMISSIONS AND CONTACT MESSAGES HERE.
+    // Keep the handler open until Part 6.
     // --------------------------------------------------------
 
-    return fail("API route not found.", 404);
-
-  
-       }
-    // --------------------------------------------------------
-    // PUBLIC ADMISSION APPLICATIONS
-    // POST /api/admissions
-    // GET /api/admissions (admin only)
-    // --------------------------------------------------------
+// ------------------------------------------------------------
+// ADMISSION APPLICATIONS
+// POST /api/admissions: Public application submission
+// GET  /api/admissions: Administrator application list
+// ------------------------------------------------------------
 
     if (path === "api/admissions") {
 
@@ -635,30 +639,29 @@ export async function onRequest({ request, env }) {
           return fail("Please enter a valid parent email address.");
         }
 
-        const allowedClasses = DEFAULT_CLASSES;
+        const savedClasses = await env.DB.prepare(
+          "SELECT value FROM settings WHERE key = ?"
+        ).bind("school_classes").first();
 
-        if (!allowedClasses.includes(classApplying)) {
-          const savedClasses = await env.DB.prepare(
-            "SELECT value FROM settings WHERE key = ?"
-          ).bind("school_classes").first();
+        let configuredClasses = DEFAULT_CLASSES;
 
-          let configuredClasses = allowedClasses;
+        if (savedClasses && savedClasses.value) {
+          try {
+            const parsed = JSON.parse(savedClasses.value);
 
-          if (savedClasses && savedClasses.value) {
-            try {
-              const parsed = JSON.parse(savedClasses.value);
-
-              if (Array.isArray(parsed)) {
-                configuredClasses = parsed;
-              }
-            } catch (error) {
-              console.error("Could not read configured classes.");
+            if (
+              Array.isArray(parsed) &&
+              parsed.every(item => typeof item === "string")
+            ) {
+              configuredClasses = parsed;
             }
+          } catch {
+            console.error("Could not read configured classes.");
           }
+        }
 
-          if (!configuredClasses.includes(classApplying)) {
-            return fail("Please select a valid class.");
-          }
+        if (!configuredClasses.includes(classApplying)) {
+          return fail("Please select a valid class.");
         }
 
         const result = await env.DB.prepare(
@@ -727,11 +730,11 @@ export async function onRequest({ request, env }) {
       return fail("Method not allowed.", 405);
     }
 
-    // --------------------------------------------------------
-    // PUBLIC CONTACT MESSAGES
-    // POST /api/messages
-    // GET /api/messages (admin only)
-    // --------------------------------------------------------
+// ------------------------------------------------------------
+// CONTACT MESSAGES
+// POST /api/messages: Public message submission
+// GET  /api/messages: Administrator message list
+// ------------------------------------------------------------
 
     if (path === "api/messages") {
 
@@ -814,12 +817,23 @@ export async function onRequest({ request, env }) {
 
       return fail("Method not allowed.", 405);
     }
-    // --------------------------------------------------------
-    // ANNOUNCEMENTS
-    // GET /api/announcements: public
-    // POST /api/announcements: admin only
-    // DELETE /api/announcements?id=1: admin only
-    // --------------------------------------------------------
+
+// ------------------------------------------------------------
+// END OF PART 3
+// PART 4 WILL ADD ANNOUNCEMENTS AND SETTINGS.
+// DO NOT CLOSE onRequest() HERE.
+// ------------------------------------------------------------
+  // ============================================================
+// PART 4 OF 6: ANNOUNCEMENTS AND WEBSITE SETTINGS
+// ============================================================
+
+// ------------------------------------------------------------
+// ANNOUNCEMENTS
+// GET    /api/announcements: Public announcement list
+// POST   /api/announcements: Admin creates announcement
+// PUT    /api/announcements: Admin updates announcement
+// DELETE /api/announcements: Admin deletes announcement
+// ------------------------------------------------------------
 
     if (path === "api/announcements") {
 
@@ -838,7 +852,7 @@ export async function onRequest({ request, env }) {
         const body = await readBody(request);
 
         if (!body) {
-          return fail("Please provide valid announcement details.");
+          return fail("Please provide announcement details.");
         }
 
         const title = cleanText(body.title, 200);
@@ -864,134 +878,191 @@ export async function onRequest({ request, env }) {
         return json({
           ok: true,
           id: result.meta.last_row_id,
-          message: "Announcement published."
+          message: "Announcement published successfully."
         }, 201);
       }
 
-      if (method === "DELETE") {
-        const id = Number(url.searchParams.get("id"));
+      if (method === "PUT") {
+        const body = await readBody(request);
 
-        if (!Number.isInteger(id) || id <= 0) {
+        if (!body) {
+          return fail("Please provide the announcement details.");
+        }
+
+        const id = Number(body.id);
+        const title = cleanText(body.title, 200);
+        const content = cleanText(
+          body.content || body.message,
+          5000
+        );
+        const date = cleanText(body.date, 30);
+
+        if (!Number.isInteger(id) || id < 1) {
           return fail("A valid announcement ID is required.");
         }
 
-        await env.DB.prepare(
-          "DELETE FROM announcements WHERE id = ?"
-        ).bind(id).run();
+        if (!title || !content) {
+          return fail("Announcement title and content are required.");
+        }
+
+        const result = await env.DB.prepare(
+          `UPDATE announcements
+           SET title = ?, content = ?, date = ?
+           WHERE id = ?`
+        ).bind(
+          title,
+          content,
+          date,
+          id
+        ).run();
+
+        if (!result.meta.changes) {
+          return fail("Announcement not found.", 404);
+        }
 
         return json({
           ok: true,
-          message: "Announcement deleted."
+          message: "Announcement updated successfully."
+        });
+      }
+
+      if (method === "DELETE") {
+        const body = await readBody(request);
+        const id = Number(
+          (body && body.id) || url.searchParams.get("id")
+        );
+
+        if (!Number.isInteger(id) || id < 1) {
+          return fail("A valid announcement ID is required.");
+        }
+
+        const result = await env.DB.prepare(
+          "DELETE FROM announcements WHERE id = ?"
+        ).bind(id).run();
+
+        if (!result.meta.changes) {
+          return fail("Announcement not found.", 404);
+        }
+
+        return json({
+          ok: true,
+          message: "Announcement deleted successfully."
         });
       }
 
       return fail("Method not allowed.", 405);
     }
 
-    // --------------------------------------------------------
-    // WEBSITE SETTINGS
-    // GET /api/settings: public
-    // POST /api/settings: admin only
-    // --------------------------------------------------------
+// ------------------------------------------------------------
+// WEBSITE SETTINGS
+// GET  /api/settings: Public settings
+// PUT  /api/settings: Admin updates settings
+//
+// The public endpoint returns only the school classes.
+// Other settings are kept private.
+// ------------------------------------------------------------
 
     if (path === "api/settings") {
 
       if (method === "GET") {
-        const result = await env.DB.prepare(
-          "SELECT key, value FROM settings"
-        ).all();
+        const row = await env.DB.prepare(
+          "SELECT value FROM settings WHERE key = ?"
+        ).bind("school_classes").first();
 
-        const settings = {};
+        let classes = DEFAULT_CLASSES;
 
-        for (const row of result.results || []) {
-          settings[row.key] = row.value;
+        if (row && row.value) {
+          try {
+            const parsed = JSON.parse(row.value);
+
+            if (
+              Array.isArray(parsed) &&
+              parsed.every(item => typeof item === "string")
+            ) {
+              classes = parsed;
+            }
+          } catch {
+            console.error("Could not read school classes.");
+          }
         }
 
         return json({
           ok: true,
-          settings
+          settings: {
+            school_classes: classes
+          }
         });
       }
 
-      if (method === "POST") {
+      if (method === "PUT") {
         const body = await readBody(request);
 
-        if (!body || typeof body !== "object" || Array.isArray(body)) {
-          return fail("Please provide valid website settings.");
+        if (!body) {
+          return fail("Please provide valid settings.");
         }
 
-        const reservedKeys = new Set([
-          "admin_password",
-          "admin_email",
-          "session_secret",
-          "resend_api_key"
-        ]);
+        const suppliedClasses =
+          body.school_classes || body.classes;
 
-        const entries = Object.entries(body);
-
-        if (entries.length === 0) {
-          return fail("No settings were provided.");
+        if (!Array.isArray(suppliedClasses)) {
+          return fail("School classes must be provided as a list.");
         }
 
-        if (entries.length > 100) {
-          return fail("Too many settings were submitted.");
-        }
+        const classes = suppliedClasses
+          .map(item => cleanText(item, 50))
+          .filter(Boolean);
 
-        const statements = [];
-
-        for (const [key, value] of entries) {
-          const safeKey = cleanText(key, 100);
-
-          if (
-            !safeKey ||
-            reservedKeys.has(safeKey.toLowerCase())
-          ) {
-            return fail("One or more setting names are not allowed.");
-          }
-
-          let safeValue;
-
-          if (typeof value === "string") {
-            safeValue = value.slice(0, 10000);
-          } else {
-            safeValue = JSON.stringify(value);
-
-            if (safeValue.length > 10000) {
-              return fail(`Setting "${safeKey}" is too large.`);
-            }
-          }
-
-          statements.push(
-            env.DB.prepare(
-              `INSERT INTO settings (key, value)
-               VALUES (?, ?)
-               ON CONFLICT(key) DO UPDATE SET value = excluded.value`
-            ).bind(safeKey, safeValue)
+        if (
+          classes.length < 1 ||
+          classes.length > 20 ||
+          new Set(classes).size !== classes.length
+        ) {
+          return fail(
+            "Provide between 1 and 20 unique class names."
           );
         }
 
-        await env.DB.batch(statements);
+        await env.DB.prepare(
+          `INSERT INTO settings (key, value)
+           VALUES (?, ?)
+           ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+        ).bind(
+          "school_classes",
+          JSON.stringify(classes)
+        ).run();
 
         return json({
           ok: true,
-          message: "Website settings saved."
+          message: "School classes updated successfully.",
+          school_classes: classes
         });
       }
 
       return fail("Method not allowed.", 405);
     }
-    // --------------------------------------------------------
-    // STUDENTS
-    // GET /api/students
-    // POST /api/students
-    // DELETE /api/students?id=1
-    // --------------------------------------------------------
+
+// ------------------------------------------------------------
+// END OF PART 4
+// PART 5 WILL ADD STUDENTS, SUBJECTS AND MARKS.
+// DO NOT CLOSE onRequest() HERE.
+// ------------------------------------------------------------
+  // ============================================================
+// PART 5 OF 6: STUDENTS, SUBJECTS AND MARKS
+// ============================================================
+
+// ------------------------------------------------------------
+// STUDENT RECORDS
+// GET  /api/students: List students
+// POST /api/students: Register a student
+// PUT  /api/students: Update a student
+// DELETE /api/students: Delete a student
+// ------------------------------------------------------------
 
     if (path === "api/students") {
 
       if (method === "GET") {
         const result = await env.DB.prepare(
-          "SELECT * FROM students ORDER BY full_name ASC"
+          "SELECT * FROM students ORDER BY class_name, full_name"
         ).all();
 
         return json({
@@ -1002,99 +1073,155 @@ export async function onRequest({ request, env }) {
 
       if (method === "POST") {
         const body = await readBody(request);
-
-        if (!body) {
-          return fail("Please provide valid student details.");
-        }
+        if (!body) return fail("Please provide student details.");
 
         const fullName = cleanText(
-          body.full_name || body.fullName || body.name,
-          200
+          body.full_name || body.fullName || body.name, 150
         );
-
         const admissionNumber = cleanText(
-          body.admission_number || body.admissionNumber,
-          100
+          body.admission_number || body.admissionNumber, 80
         );
-
         const className = cleanText(
-          body.class_name || body.className || body.class,
-          50
+          body.class_name || body.className || body.class, 50
         );
-
         const gender = cleanText(body.gender, 30);
         const dateOfBirth = cleanText(
-          body.date_of_birth || body.dateOfBirth,
-          30
+          body.date_of_birth || body.dateOfBirth, 30
         );
-
         const parentName = cleanText(
-          body.parent_name || body.parentName,
-          150
+          body.parent_name || body.parentName, 150
         );
-
         const parentPhone = cleanText(
-          body.parent_phone || body.parentPhone,
-          50
+          body.parent_phone || body.parentPhone || body.phone, 50
         );
 
-        if (!fullName || !className) {
-          return fail("Student name and class are required.");
+        if (!fullName) {
+          return fail("The student's full name is required.");
+        }
+
+        if (admissionNumber) {
+          const existing = await env.DB.prepare(
+            "SELECT id FROM students WHERE admission_number = ?"
+          ).bind(admissionNumber).first();
+
+          if (existing) {
+            return fail("That admission number is already in use.");
+          }
         }
 
         const result = await env.DB.prepare(
           `INSERT INTO students (
-            admission_number,
-            full_name,
-            class_name,
-            gender,
-            date_of_birth,
-            parent_name,
-            parent_phone
+            admission_number, full_name, class_name, gender,
+            date_of_birth, parent_name, parent_phone
           ) VALUES (?, ?, ?, ?, ?, ?, ?)`
         ).bind(
-          admissionNumber,
-          fullName,
-          className,
-          gender,
-          dateOfBirth,
-          parentName,
-          parentPhone
+          admissionNumber, fullName, className, gender,
+          dateOfBirth, parentName, parentPhone
         ).run();
 
         return json({
           ok: true,
           id: result.meta.last_row_id,
-          message: "Student added successfully."
+          message: "Student registered successfully."
         }, 201);
       }
 
-      if (method === "DELETE") {
-        const id = Number(url.searchParams.get("id"));
+      if (method === "PUT") {
+        const body = await readBody(request);
+        if (!body) return fail("Please provide student details.");
 
-        if (!Number.isInteger(id) || id <= 0) {
-          return fail("A valid student ID is required.");
+        const id = Number(body.id);
+        const fullName = cleanText(
+          body.full_name || body.fullName || body.name, 150
+        );
+
+        if (!Number.isInteger(id) || id < 1 || !fullName) {
+          return fail("A valid student ID and full name are required.");
         }
 
-        await env.DB.prepare(
-          "DELETE FROM students WHERE id = ?"
-        ).bind(id).run();
+        const admissionNumber = cleanText(
+          body.admission_number || body.admissionNumber, 80
+        );
+        const className = cleanText(
+          body.class_name || body.className || body.class, 50
+        );
+        const gender = cleanText(body.gender, 30);
+        const dateOfBirth = cleanText(
+          body.date_of_birth || body.dateOfBirth, 30
+        );
+        const parentName = cleanText(
+          body.parent_name || body.parentName, 150
+        );
+        const parentPhone = cleanText(
+          body.parent_phone || body.parentPhone || body.phone, 50
+        );
+
+        if (admissionNumber) {
+          const existing = await env.DB.prepare(
+            `SELECT id FROM students
+             WHERE admission_number = ? AND id != ?`
+          ).bind(admissionNumber, id).first();
+
+          if (existing) {
+            return fail("That admission number is already in use.");
+          }
+        }
+
+        const result = await env.DB.prepare(
+          `UPDATE students SET
+            admission_number = ?, full_name = ?, class_name = ?,
+            gender = ?, date_of_birth = ?, parent_name = ?,
+            parent_phone = ?
+           WHERE id = ?`
+        ).bind(
+          admissionNumber, fullName, className, gender,
+          dateOfBirth, parentName, parentPhone, id
+        ).run();
+
+        if (!result.meta.changes) {
+          return fail("Student not found or no changes were made.", 404);
+        }
 
         return json({
           ok: true,
-          message: "Student deleted."
+          message: "Student record updated successfully."
+        });
+      }
+
+      if (method === "DELETE") {
+        const body = await readBody(request);
+        const id = Number(
+          (body && body.id) || url.searchParams.get("id")
+        );
+
+        if (!Number.isInteger(id) || id < 1) {
+          return fail("A valid student ID is required.");
+        }
+
+        const result = await env.DB.prepare(
+          "DELETE FROM students WHERE id = ?"
+        ).bind(id).run();
+
+        if (!result.meta.changes) {
+          return fail("Student not found.", 404);
+        }
+
+        return json({
+          ok: true,
+          message: "Student deleted successfully."
         });
       }
 
       return fail("Method not allowed.", 405);
     }
 
-    // --------------------------------------------------------
-    // SUBJECTS
-    // GET /api/subjects
-    // POST /api/subjects
-    // DELETE /api/subjects?id=1
-    // --------------------------------------------------------
+// ------------------------------------------------------------
+// SUBJECTS
+// GET /api/subjects: List subjects
+// POST /api/subjects: Add subject
+// PUT /api/subjects: Update subject
+// DELETE /api/subjects: Delete subject
+// ------------------------------------------------------------
 
     if (path === "api/subjects") {
 
@@ -1111,15 +1238,11 @@ export async function onRequest({ request, env }) {
 
       if (method === "POST") {
         const body = await readBody(request);
+        if (!body) return fail("Please provide subject details.");
 
-        if (!body) {
-          return fail("Please provide valid subject details.");
-        }
-
-        const name = cleanText(body.name, 150);
+        const name = cleanText(body.name, 100);
         const className = cleanText(
-          body.class_name || body.className || body.class,
-          50
+          body.class_name || body.className || body.class, 50
         );
 
         if (!name || !className) {
@@ -1127,8 +1250,7 @@ export async function onRequest({ request, env }) {
         }
 
         const result = await env.DB.prepare(
-          `INSERT INTO subjects (name, class_name)
-           VALUES (?, ?)`
+          "INSERT INTO subjects (name, class_name) VALUES (?, ?)"
         ).bind(name, className).run();
 
         return json({
@@ -1138,48 +1260,81 @@ export async function onRequest({ request, env }) {
         }, 201);
       }
 
-      if (method === "DELETE") {
-        const id = Number(url.searchParams.get("id"));
+      if (method === "PUT") {
+        const body = await readBody(request);
+        if (!body) return fail("Please provide subject details.");
 
-        if (!Number.isInteger(id) || id <= 0) {
-          return fail("A valid subject ID is required.");
+        const id = Number(body.id);
+        const name = cleanText(body.name, 100);
+        const className = cleanText(
+          body.class_name || body.className || body.class, 50
+        );
+
+        if (!Number.isInteger(id) || id < 1 || !name || !className) {
+          return fail("Valid subject ID, name and class are required.");
         }
 
-        await env.DB.prepare(
-          "DELETE FROM subjects WHERE id = ?"
-        ).bind(id).run();
+        const result = await env.DB.prepare(
+          `UPDATE subjects SET name = ?, class_name = ?
+           WHERE id = ?`
+        ).bind(name, className, id).run();
+
+        if (!result.meta.changes) {
+          return fail("Subject not found or no changes were made.", 404);
+        }
 
         return json({
           ok: true,
-          message: "Subject deleted."
+          message: "Subject updated successfully."
+        });
+      }
+
+      if (method === "DELETE") {
+        const body = await readBody(request);
+        const id = Number(
+          (body && body.id) || url.searchParams.get("id")
+        );
+
+        if (!Number.isInteger(id) || id < 1) {
+          return fail("A valid subject ID is required.");
+        }
+
+        const result = await env.DB.prepare(
+          "DELETE FROM subjects WHERE id = ?"
+        ).bind(id).run();
+
+        if (!result.meta.changes) {
+          return fail("Subject not found.", 404);
+        }
+
+        return json({
+          ok: true,
+          message: "Subject deleted successfully."
         });
       }
 
       return fail("Method not allowed.", 405);
     }
 
-    // --------------------------------------------------------
-    // MARKS
-    // GET /api/marks
-    // POST /api/marks
-    // --------------------------------------------------------
+// ------------------------------------------------------------
+// MARKS
+// GET /api/marks: List marks
+// POST /api/marks: Record or update a student's mark
+// ------------------------------------------------------------
 
     if (path === "api/marks") {
 
       if (method === "GET") {
         const result = await env.DB.prepare(
-          `SELECT
-             marks.*,
-             students.full_name AS student_name,
-             students.admission_number,
-             students.class_name,
-             subjects.name AS subject_name
+          `SELECT marks.*,
+                  students.full_name AS student_name,
+                  students.admission_number,
+                  students.class_name,
+                  subjects.name AS subject_name
            FROM marks
            LEFT JOIN students ON students.id = marks.student_id
            LEFT JOIN subjects ON subjects.id = marks.subject_id
-           ORDER BY marks.academic_year DESC,
-                    marks.term,
-                    students.full_name`
+           ORDER BY marks.academic_year DESC, marks.term, students.full_name`
         ).all();
 
         return json({
@@ -1190,46 +1345,25 @@ export async function onRequest({ request, env }) {
 
       if (method === "POST") {
         const body = await readBody(request);
+        if (!body) return fail("Please provide mark details.");
 
-        if (!body) {
-          return fail("Please provide valid marks.");
-        }
-
-        const studentId = Number(
-          body.student_id || body.studentId
-        );
-
-        const subjectId = Number(
-          body.subject_id || body.subjectId
-        );
-
-        const term = cleanText(body.term, 30);
+        const studentId = Number(body.student_id || body.studentId);
+        const subjectId = Number(body.subject_id || body.subjectId);
+        const term = cleanText(body.term, 50);
         const academicYear = cleanText(
-          body.academic_year || body.academicYear || body.year,
-          20
+          body.academic_year || body.academicYear || body.year, 20
         );
-
         const score = Number(body.score);
         const remarks = cleanText(body.remarks, 500);
 
         if (
-          !Number.isInteger(studentId) ||
-          studentId <= 0 ||
-          !Number.isInteger(subjectId) ||
-          subjectId <= 0
-        ) {
-          return fail("Select a valid student and subject.");
-        }
-
-        if (
-          !term ||
-          !academicYear ||
-          !Number.isFinite(score) ||
-          score < 0 ||
-          score > 100
+          !Number.isInteger(studentId) || studentId < 1 ||
+          !Number.isInteger(subjectId) || subjectId < 1 ||
+          !term || !academicYear ||
+          !Number.isFinite(score) || score < 0 || score > 100
         ) {
           return fail(
-            "Enter a valid term, academic year and score from 0 to 100."
+            "Provide valid student, subject, term, year and a score from 0 to 100."
           );
         }
 
@@ -1237,70 +1371,61 @@ export async function onRequest({ request, env }) {
           "SELECT id FROM students WHERE id = ?"
         ).bind(studentId).first();
 
-        if (!student) {
-          return fail("The selected student was not found.");
-        }
-
         const subject = await env.DB.prepare(
           "SELECT id FROM subjects WHERE id = ?"
         ).bind(subjectId).first();
 
-        if (!subject) {
-          return fail("The selected subject was not found.");
+        if (!student || !subject) {
+          return fail("The selected student or subject does not exist.");
         }
 
         await env.DB.prepare(
           `INSERT INTO marks (
-            student_id,
-            subject_id,
-            term,
-            academic_year,
-            score,
-            remarks
+            student_id, subject_id, term, academic_year, score, remarks
           ) VALUES (?, ?, ?, ?, ?, ?)
-          ON CONFLICT (
-            student_id,
-            subject_id,
-            term,
-            academic_year
-          ) DO UPDATE SET
-            score = excluded.score,
-            remarks = excluded.remarks`
+          ON CONFLICT(student_id, subject_id, term, academic_year)
+          DO UPDATE SET score = excluded.score, remarks = excluded.remarks`
         ).bind(
-          studentId,
-          subjectId,
-          term,
-          academicYear,
-          score,
-          remarks
+          studentId, subjectId, term, academicYear, score, remarks
         ).run();
 
         return json({
           ok: true,
-          message: "Marks saved successfully."
+          message: "Student mark saved successfully."
         }, 201);
       }
 
       return fail("Method not allowed.", 405);
-         }
-    // --------------------------------------------------------
-    // SCHOOL FEES
-    // GET /api/fees
-    // POST /api/fees
-    // --------------------------------------------------------
+    }
+
+// ------------------------------------------------------------
+// END OF PART 5
+// PART 6 WILL ADD FEES, REPORT CARDS AND CLOSE THE HANDLER.
+// DO NOT DEPLOY YET.
+// ------------------------------------------------------------
+  // ============================================================
+// PART 6 OF 6: FEES, REPORT CARDS AND FINAL HANDLER CLOSURE
+// ============================================================
+
+// ------------------------------------------------------------
+// SCHOOL FEES
+// GET    /api/fees: List fee records
+// POST   /api/fees: Record or update fee information
+// PUT    /api/fees: Update fee information
+// DELETE /api/fees: Delete a fee record
+// ------------------------------------------------------------
 
     if (path === "api/fees") {
 
       if (method === "GET") {
         const result = await env.DB.prepare(
-          `SELECT
-             fees.*,
-             students.full_name AS student_name,
-             students.admission_number,
-             students.class_name
+          `SELECT fees.*,
+                  students.full_name AS student_name,
+                  students.admission_number,
+                  students.class_name
            FROM fees
            LEFT JOIN students ON students.id = fees.student_id
-           ORDER BY fees.id DESC`
+           ORDER BY fees.academic_year DESC, fees.term, students.full_name`
         ).all();
 
         return json({
@@ -1309,51 +1434,33 @@ export async function onRequest({ request, env }) {
         });
       }
 
-      if (method === "POST") {
+      if (method === "POST" || method === "PUT") {
         const body = await readBody(request);
 
         if (!body) {
-          return fail("Please provide valid school-fee details.");
+          return fail("Please provide valid fee details.");
         }
 
-        const studentId = Number(
-          body.student_id || body.studentId
-        );
-
+        const id = Number(body.id || 0);
+        const studentId = Number(body.student_id || body.studentId);
         const academicYear = cleanText(
           body.academic_year || body.academicYear || body.year,
           20
         );
-
-        const term = cleanText(body.term, 30);
-        const amountDue = Number(
-          body.amount_due ?? body.amountDue
-        );
-
-        const amountPaid = Number(
-          body.amount_paid ?? body.amountPaid ?? 0
-        );
-
+        const term = cleanText(body.term, 50);
+        const amountDue = Number(body.amount_due ?? body.amountDue);
+        const amountPaid = Number(body.amount_paid ?? body.amountPaid);
         const notes = cleanText(body.notes, 1000);
 
         if (
-          !Number.isInteger(studentId) ||
-          studentId <= 0
+          !Number.isInteger(studentId) || studentId < 1 ||
+          !academicYear || !term ||
+          !Number.isFinite(amountDue) || amountDue < 0 ||
+          !Number.isFinite(amountPaid) || amountPaid < 0
         ) {
-          return fail("Select a valid student.");
-        }
-
-        if (!academicYear || !term) {
-          return fail("Academic year and term are required.");
-        }
-
-        if (
-          !Number.isFinite(amountDue) ||
-          !Number.isFinite(amountPaid) ||
-          amountDue < 0 ||
-          amountPaid < 0
-        ) {
-          return fail("Enter valid fee amounts.");
+          return fail(
+            "Provide a valid student, academic year, term, amount due and amount paid."
+          );
         }
 
         const student = await env.DB.prepare(
@@ -1361,20 +1468,52 @@ export async function onRequest({ request, env }) {
         ).bind(studentId).first();
 
         if (!student) {
-          return fail("The selected student was not found.");
+          return fail("The selected student does not exist.");
         }
 
-        const balance = amountDue - amountPaid;
+        const balance = Math.max(0, amountDue - amountPaid);
+
+        if (method === "PUT") {
+          if (!Number.isInteger(id) || id < 1) {
+            return fail("A valid fee record ID is required.");
+          }
+
+          const result = await env.DB.prepare(
+            `UPDATE fees SET
+              student_id = ?,
+              academic_year = ?,
+              term = ?,
+              amount_due = ?,
+              amount_paid = ?,
+              balance = ?,
+              notes = ?
+             WHERE id = ?`
+          ).bind(
+            studentId,
+            academicYear,
+            term,
+            amountDue,
+            amountPaid,
+            balance,
+            notes,
+            id
+          ).run();
+
+          if (!result.meta.changes) {
+            return fail("Fee record not found or no changes were made.", 404);
+          }
+
+          return json({
+            ok: true,
+            message: "Fee record updated successfully.",
+            balance
+          });
+        }
 
         const result = await env.DB.prepare(
           `INSERT INTO fees (
-            student_id,
-            academic_year,
-            term,
-            amount_due,
-            amount_paid,
-            balance,
-            notes
+            student_id, academic_year, term,
+            amount_due, amount_paid, balance, notes
           ) VALUES (?, ?, ?, ?, ?, ?, ?)`
         ).bind(
           studentId,
@@ -1390,38 +1529,58 @@ export async function onRequest({ request, env }) {
           ok: true,
           id: result.meta.last_row_id,
           balance,
-          message: "School fees saved successfully."
+          message: "Fee record saved successfully."
         }, 201);
+      }
+
+      if (method === "DELETE") {
+        const body = await readBody(request);
+        const id = Number(
+          (body && body.id) || url.searchParams.get("id")
+        );
+
+        if (!Number.isInteger(id) || id < 1) {
+          return fail("A valid fee record ID is required.");
+        }
+
+        const result = await env.DB.prepare(
+          "DELETE FROM fees WHERE id = ?"
+        ).bind(id).run();
+
+        if (!result.meta.changes) {
+          return fail("Fee record not found.", 404);
+        }
+
+        return json({
+          ok: true,
+          message: "Fee record deleted successfully."
+        });
       }
 
       return fail("Method not allowed.", 405);
     }
 
-    // --------------------------------------------------------
-    // REPORT CARDS
-    // GET /api/report-cards?student_id=1&term=Term%201&year=2026
-    // --------------------------------------------------------
+// ------------------------------------------------------------
+// STUDENT REPORT CARD
+// GET /api/report-card?student_id=1&term=Term%201&year=2026
+// ------------------------------------------------------------
 
-    if (path === "api/report-cards" && method === "GET") {
+    if (path === "api/report-card" && method === "GET") {
       const studentId = Number(
-        url.searchParams.get("student_id")
+        url.searchParams.get("student_id") ||
+        url.searchParams.get("studentId")
       );
 
-      const term = cleanText(
-        url.searchParams.get("term"),
-        30
-      );
-
+      const term = cleanText(url.searchParams.get("term"), 50);
       const academicYear = cleanText(
-        url.searchParams.get("year"),
+        url.searchParams.get("year") ||
+        url.searchParams.get("academic_year"),
         20
       );
 
       if (
-        !Number.isInteger(studentId) ||
-        studentId <= 0 ||
-        !term ||
-        !academicYear
+        !Number.isInteger(studentId) || studentId < 1 ||
+        !term || !academicYear
       ) {
         return fail(
           "Provide a valid student ID, term and academic year."
@@ -1429,7 +1588,10 @@ export async function onRequest({ request, env }) {
       }
 
       const student = await env.DB.prepare(
-        "SELECT * FROM students WHERE id = ?"
+        `SELECT id, admission_number, full_name, class_name,
+                gender, parent_name, parent_phone
+         FROM students
+         WHERE id = ?`
       ).bind(studentId).first();
 
       if (!student) {
@@ -1437,80 +1599,79 @@ export async function onRequest({ request, env }) {
       }
 
       const marksResult = await env.DB.prepare(
-        `SELECT
-           subjects.name AS subject_name,
-           marks.score,
-           marks.remarks
+        `SELECT subjects.name AS subject_name,
+                marks.score,
+                marks.remarks
          FROM marks
          INNER JOIN subjects ON subjects.id = marks.subject_id
          WHERE marks.student_id = ?
            AND marks.term = ?
            AND marks.academic_year = ?
          ORDER BY subjects.name`
-      ).bind(
-        studentId,
-        term,
-        academicYear
-      ).all();
-
-      const feeResult = await env.DB.prepare(
-        `SELECT
-           amount_due,
-           amount_paid,
-           balance,
-           notes
-         FROM fees
-         WHERE student_id = ?
-           AND term = ?
-           AND academic_year = ?
-         ORDER BY id DESC
-         LIMIT 1`
-      ).bind(
-        studentId,
-        term,
-        academicYear
-      ).first();
+      ).bind(studentId, term, academicYear).all();
 
       const marks = marksResult.results || [];
-
       const total = marks.reduce(
         (sum, item) => sum + Number(item.score || 0),
         0
       );
 
-      const average = marks.length
-        ? Math.round((total / marks.length) * 100) / 100
-        : 0;
+      const average = marks.length ? total / marks.length : 0;
+
+      let overallGrade = "N/A";
+
+      if (marks.length) {
+        if (average >= 80) overallGrade = "A";
+        else if (average >= 70) overallGrade = "B";
+        else if (average >= 60) overallGrade = "C";
+        else if (average >= 50) overallGrade = "D";
+        else overallGrade = "E";
+      }
+
+      const feeResult = await env.DB.prepare(
+        `SELECT COALESCE(SUM(amount_due), 0) AS total_due,
+                COALESCE(SUM(amount_paid), 0) AS total_paid,
+                COALESCE(SUM(balance), 0) AS total_balance
+         FROM fees
+         WHERE student_id = ?
+           AND term = ?
+           AND academic_year = ?`
+      ).bind(studentId, term, academicYear).first();
 
       return json({
         ok: true,
-        student,
-        term,
-        academic_year: academicYear,
-        subjects: marks,
-        total,
-        average,
-        subject_count: marks.length,
-        fees: feeResult || {
-          amount_due: 0,
-          amount_paid: 0,
-          balance: 0,
-          notes: ""
+        report_card: {
+          student,
+          term,
+          academic_year: academicYear,
+          subjects: marks,
+          total_marks: total,
+          average: Number(average.toFixed(2)),
+          overall_grade: overallGrade,
+          fee_summary: feeResult || {
+            total_due: 0,
+            total_paid: 0,
+            total_balance: 0
+          }
         }
       });
     }
 
-        // --------------------------------------------------------
-    // UNKNOWN ROUTE
-    // --------------------------------------------------------
+// ------------------------------------------------------------
+// UNKNOWN ROUTE
+// ------------------------------------------------------------
 
-    return fail("API route not found.", 404);
+    if (path.startsWith("api/")) {
+      return fail("API endpoint not found.", 404);
+    }
+
+    return fail("Not found.", 404);
 
   } catch (error) {
     console.error("Bright Angels API error:", error);
 
     return fail(
-      "The server encountered an error. Check Cloudflare logs.",
+      "The server could not complete the request. Please try again.",
       500
     );
   }
