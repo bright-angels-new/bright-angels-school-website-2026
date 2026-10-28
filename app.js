@@ -1,36 +1,1347 @@
-const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
-$('#year').textContent=new Date().getFullYear();
-$('#menuToggle').addEventListener('click',()=>$('#mainNav').classList.toggle('open'));
-$$('#mainNav a').forEach(a=>a.addEventListener('click',()=>$('#mainNav').classList.remove('open')));
-function status(el,msg,kind=''){el.textContent=msg;el.className='form-status '+kind}
-async function api(path,opts={}){const r=await fetch('/api/'+path,{credentials:'same-origin',...opts,headers:{'content-type':'application/json',...(opts.headers||{})}});let data={};try{data=await r.json()}catch{}if(!r.ok)throw Error(data.error||'Request failed. Please try again.');return data}
-function formData(form){return Object.fromEntries(new FormData(form).entries())}
-async function loadAnnouncements(){try{const x=await api('announcements');const list=$('#announcementList');list.innerHTML='';if(!x.data?.length){list.innerHTML='<div class="empty-state">There are no announcements yet. Please check back soon.</div>';return}x.data.forEach(a=>{const el=document.createElement('article');el.className='announcement';const time=document.createElement('time');time.textContent=a.created_at?new Date(a.created_at.replace(' ','T')+'Z').toLocaleDateString():'';const h=document.createElement('h3');h.textContent=a.title;const p=document.createElement('p');p.textContent=a.body;el.append(time,h,p);list.append(el)})}catch{}}
-loadAnnouncements();
-$('#admissionForm').addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,b=$('button[type=submit]',f),s=$('#admissionStatus');b.disabled=true;status(s,'Sending your enquiry…');try{await api('admissions',{method:'POST',body:JSON.stringify(formData(f))});f.reset();status(s,'Thank you. Your admission enquiry has been received.','success')}catch(err){status(s,err.message,'error')}finally{b.disabled=false}});
-$('#contactForm').addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,b=$('button[type=submit]',f),s=$('#contactStatus');b.disabled=true;status(s,'Sending message…');try{await api('messages',{method:'POST',body:JSON.stringify(formData(f))});f.reset();status(s,'Thank you. Your message has been received.','success')}catch(err){status(s,err.message,'error')}finally{b.disabled=false}});
-let activeTab='students';
-$('#loginForm').addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,b=$('button[type=submit]',f),s=$('#loginStatus');b.disabled=true;status(s,'Signing in…');try{await api('login',{method:'POST',body:JSON.stringify(formData(f))});$('#loginCard').hidden=true;$('#adminPanel').hidden=false;status(s,'');await renderTab(activeTab)}catch(err){status(s,err.message,'error')}finally{b.disabled=false}});
-$('#logoutBtn').addEventListener('click',async()=>{try{await api('logout',{method:'POST',body:'{}'})}catch{}$('#adminPanel').hidden=true;$('#loginCard').hidden=false;$('#loginForm').reset();status($('#loginStatus'),'You have signed out.','success')});
-$$('.admin-tabs button').forEach(b=>b.addEventListener('click',()=>{activeTab=b.dataset.tab;$$('.admin-tabs button').forEach(x=>x.classList.toggle('active',x===b));renderTab(activeTab)}));
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function select(name,items,placeholder='Select'){return `<label>${name}<select name="${name}" required><option value="">${placeholder}</option>${items.map(i=>`<option value="${esc(i.value??i)}">${esc(i.label??i)}</option>`).join('')}</select></label>`}
-function input(name,label,type='text',required=true){return `<label>${label}<input name="${name}" type="${type}" ${required?'required':''}></label>`}
-function boxForm(title,fields,button='Save record'){return `<form class="admin-box" data-save><h4>${title}</h4>${fields}<button class="btn btn-navy" type="submit">${button}</button><p class="form-status" role="status"></p></form>`}
-async function renderTab(tab){const root=$('#adminContent');root.innerHTML='<p>Loading records…</p>';try{
-if(tab==='students'){const x=await api('students');root.innerHTML=`<div class="admin-columns">${boxForm('Add a student',input('name','Full name')+input('admission_number','Admission number', 'text',false)+select('class_name',['Baby Class','Middle Class','Top Class','P1','P2','P3','P4','P5','P6','P7'])+select('gender',['Female','Male'],'Select gender')+input('guardian','Parent/guardian','text',false)+input('phone','Guardian phone','tel',false))}<div class="admin-box"><h4>Student register (${x.data.length})</h4>${table(['Name','Admission no.','Class','Action'],x.data.map(r=>[r.name,r.admission_number,r.class_name,`<button data-delete="students/${r.id}">Delete</button>`]))}</div></div>`}
-else if(tab==='subjects'){const x=await api('subjects');root.innerHTML=`<div class="admin-columns">${boxForm('Add a subject',input('name','Subject name')+select('class_name',['Baby Class','Middle Class','Top Class','P1','P2','P3','P4','P5','P6','P7']))}<div class="admin-box"><h4>Subjects</h4>${table(['Subject','Class','Action'],x.data.map(r=>[r.name,r.class_name,`<button data-delete="subjects/${r.id}">Delete</button>`]))}</div></div>`}
-else if(tab==='marks'){const [st,su]=await Promise.all([api('students'),api('subjects')]);root.innerHTML=`<div class="admin-columns">${boxForm('Record a result',select('student_id',st.data.map(s=>({value:s.id,label:s.name+' — '+s.class_name})))+select('subject_id',su.data.map(s=>({value:s.id,label:s.name+' — '+s.class_name})))+select('term',['Term 1','Term 2','Term 3'])+input('year','Year','number')+input('score','Mark scored','number')+input('out_of','Out of','number')+input('comment','Teacher comment','text',false),'Save result')}<div class="admin-box"><h4>Latest results</h4><p class="notice">Use the report-card area after recording results to check learner totals.</p><button class="btn btn-outline" id="loadMarks">Load results</button><div id="marksTable"></div></div></div>`}
-else if(tab==='fees'){const st=await api('students');root.innerHTML=`<div class="admin-columns">${boxForm('Record fee payment',select('student_id',st.data.map(s=>({value:s.id,label:s.name+' — '+s.class_name})))+select('term',['Term 1','Term 2','Term 3'])+input('year','Year','number')+input('amount_paid','Amount paid (UGX)','number')+input('balance','Balance (UGX)','number')+input('reference','Payment reference','text',false),'Save payment')}<div class="admin-box"><h4>Fee records</h4><button class="btn btn-outline" id="loadFees">Load fee records</button><div id="feesTable"></div></div></div>`}
-else if(tab==='announcements'){const x=await api('announcements');root.innerHTML=`<div class="admin-columns">${boxForm('Publish announcement',input('title','Title')+'<label>Announcement message<textarea name="body" rows="5" required></textarea></label>','Publish announcement')}<div class="admin-box"><h4>Published announcements</h4>${table(['Title','Date','Action'],x.data.map(r=>[r.title,r.created_at,`<button data-delete="announcements/${r.id}">Delete</button>`]))}</div></div>`}
-else if(tab==='applications'){const x=await api('admissions');root.innerHTML=`<div class="admin-box"><h4>Admission applications (${x.data.length})</h4>${table(['Child','Class','Parent','Phone','Status','Action'],x.data.map(r=>[r.child_name,r.class_applied,r.parent_name,r.phone,esc(r.status),`<button data-status="${r.id}">Update status</button>`]))}</div>`}
-else if(tab==='messages'){const x=await api('messages');root.innerHTML=`<div class="admin-box"><h4>Contact messages (${x.data.length})</h4>${table(['Name','Contact','Message','Date','Action'],x.data.map(r=>[r.name,r.email||r.phone,r.message,r.created_at,`<button data-delete="messages/${r.id}">Delete</button>`]))}</div>`}
-}catch(err){root.innerHTML=`<p class="form-status error">${esc(err.message)}</p>`}
+/* =========================================================
+   BRIGHT ANGELS JUNIOR SCHOOL
+   Main website and administration dashboard
+   ========================================================= */
+
+'use strict';
+
+/* ---------------------------------------------------------
+   1. GENERAL HELPERS
+   --------------------------------------------------------- */
+
+const $ = (selector, root = document) =>
+    root.querySelector(selector);
+
+const $$ = (selector, root = document) =>
+    Array.from(root.querySelectorAll(selector));
+
+const currentYear = $('#year');
+
+if (currentYear) {
+    currentYear.textContent = new Date().getFullYear();
 }
-function table(headers,rows){if(!rows.length)return '<p>No records yet.</p>';return `<div class="table-wrap"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c??''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
-$('#adminContent').addEventListener('submit',async e=>{const f=e.target.closest('form[data-save]');if(!f)return;e.preventDefault();const b=$('button[type=submit]',f),s=$('.form-status',f);b.disabled=true;status(s,'Saving…');let endpoint={students:'students',subjects:'subjects',marks:'marks',fees:'fees',announcements:'announcements'}[activeTab];try{await api(endpoint,{method:'POST',body:JSON.stringify(formData(f))});f.reset();status(s,'Saved successfully.','success');await renderTab(activeTab);if(activeTab==='announcements')loadAnnouncements()}catch(err){status(s,err.message,'error')}finally{b.disabled=false}});
-$('#adminContent').addEventListener('click',async e=>{const d=e.target.closest('[data-delete]');if(d){if(!confirm('Delete this record? This cannot be undone.'))return;try{await api(d.dataset.delete,{method:'DELETE',body:'{}'});await renderTab(activeTab);if(activeTab==='announcements')loadAnnouncements()}catch(err){alert(err.message)}}
-if(e.target.id==='loadMarks'){try{const x=await api('marks');$('#marksTable').innerHTML=table(['Learner','Class','Subject','Term','Year','Score'],x.data.map(r=>[esc(r.student_name),esc(r.class_name),esc(r.subject_name),esc(r.term),r.year,`${r.score}/${r.out_of}`]))}catch(err){alert(err.message)}}
-if(e.target.id==='loadFees'){try{const x=await api('fees');$('#feesTable').innerHTML=table(['Learner','Term','Year','Paid','Balance'],x.data.map(r=>[esc(r.student_name),esc(r.term),r.year,esc(r.amount_paid),esc(r.balance)]))}catch(err){alert(err.message)}}
-const st=e.target.closest('[data-status]');if(st){const statusValue=prompt('Enter new status (Pending, Contacted, Accepted, Rejected):','Contacted');if(!statusValue)return;try{await api('admissions/'+st.dataset.status,{method:'PUT',body:JSON.stringify({status:statusValue})});await renderTab(activeTab)}catch(err){alert(err.message)}}});
-(async()=>{try{await api('data');$('#loginCard').hidden=true;$('#adminPanel').hidden=false;await renderTab(activeTab)}catch{}})();
+
+const menuToggle = $('#menuToggle');
+const mainNav = $('#mainNav');
+
+if (menuToggle && mainNav) {
+    menuToggle.addEventListener('click', () => {
+        mainNav.classList.toggle('open');
+    });
+}
+
+$$('#mainNav a').forEach(link => {
+    link.addEventListener('click', () => {
+        mainNav?.classList.remove('open');
+    });
+});
+
+function escapeHTML(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[character]);
+}
+
+function showStatus(element, message, type = '') {
+    if (!element) return;
+
+    element.textContent = message;
+    element.className = 'form-status';
+
+    if (type) {
+        element.classList.add(type);
+    }
+}
+
+function formValues(form) {
+    return Object.fromEntries(new FormData(form).entries());
+}
+
+function option(value, label) {
+    return `<option value="${escapeHTML(value)}">${escapeHTML(label)}</option>`;
+}
+
+function makeTable(headers, rows) {
+    if (!rows.length) {
+        return '<div class="empty-state">No records found.</div>';
+    }
+
+    return `
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        ${headers.map(header =>
+                            `<th>${escapeHTML(header)}</th>`
+                        ).join('')}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows.map(row => `
+                        <tr>
+                            ${row.map(cell =>
+                                `<td>${cell ?? ''}</td>`
+                            ).join('')}
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function safeCell(value) {
+    return escapeHTML(value);
+}
+
+function formatDate(value) {
+    if (!value) return '';
+
+    const date = new Date(
+        String(value).includes('T')
+            ? value
+            : String(value).replace(' ', 'T')
+    );
+
+    return Number.isNaN(date.getTime())
+        ? escapeHTML(value)
+        : date.toLocaleDateString();
+}
+
+function money(value) {
+    return Number(value || 0).toLocaleString('en-UG', {
+        maximumFractionDigits: 2
+    });
+}
+
+function currentAcademicYear() {
+    return String(new Date().getFullYear());
+}
+
+/* ---------------------------------------------------------
+   2. API CONNECTION
+   --------------------------------------------------------- */
+
+async function api(path, options = {}) {
+    const requestOptions = {
+        method: options.method || 'GET',
+        credentials: 'same-origin',
+        headers: {
+            'content-type': 'application/json',
+            ...(options.headers || {})
+        }
+    };
+
+    if (options.body !== undefined) {
+        requestOptions.body =
+            typeof options.body === 'string'
+                ? options.body
+                : JSON.stringify(options.body);
+    }
+
+    const response = await fetch(`/api/${path}`, requestOptions);
+
+    let result = {};
+
+    try {
+        result = await response.json();
+    } catch {
+        result = {};
+    }
+
+    if (!response.ok || result.ok === false) {
+        throw new Error(
+            result.error ||
+            result.message ||
+            `Request failed (${response.status}).`
+        );
+    }
+
+    return result;
+}
+
+function actionButton(label, action, id, danger = false) {
+    return `
+        <button
+            type="button"
+            class="${danger ? 'danger-button' : 'secondary-button'}"
+            data-action="${escapeHTML(action)}"
+            data-id="${escapeHTML(id)}">
+            ${escapeHTML(label)}
+        </button>
+    `;
+}
+
+/* ---------------------------------------------------------
+   3. PUBLIC ANNOUNCEMENTS
+   --------------------------------------------------------- */
+
+async function loadAnnouncements() {
+    const list = $('#announcementList');
+
+    if (!list) return;
+
+    list.innerHTML =
+        '<div class="empty-state">Loading announcements...</div>';
+
+    try {
+        const result = await api('announcements');
+
+        const announcements = Array.isArray(result.announcements)
+            ? result.announcements
+            : [];
+
+        list.innerHTML = '';
+
+        if (!announcements.length) {
+            list.innerHTML = `
+                <div class="empty-state">
+                    There are no announcements yet.
+                    Please check back soon.
+                </div>
+            `;
+            return;
+        }
+
+        announcements.forEach(announcement => {
+            const article = document.createElement('article');
+            article.className = 'announcement';
+
+            const time = document.createElement('time');
+
+            time.textContent = formatDate(
+                announcement.date || announcement.created_at
+            );
+
+            const heading = document.createElement('h3');
+            heading.textContent = announcement.title || '';
+
+            const paragraph = document.createElement('p');
+            paragraph.textContent = announcement.content || '';
+
+            article.append(time, heading, paragraph);
+            list.appendChild(article);
+        });
+    } catch (error) {
+        list.innerHTML = `
+            <div class="empty-state">
+                Announcements could not be loaded.
+                ${escapeHTML(error.message)}
+            </div>
+        `;
+    }
+}
+
+loadAnnouncements();
+/* ---------------------------------------------------------
+   4. PUBLIC ADMISSION FORM
+   --------------------------------------------------------- */
+
+const admissionForm = $('#admissionForm');
+
+if (admissionForm) {
+    admissionForm.addEventListener('submit', async event => {
+        event.preventDefault();
+
+        const status = $('#admissionStatus');
+        const submitButton = admissionForm.querySelector(
+            '[type="submit"]'
+        );
+
+        showStatus(status, 'Submitting application...');
+
+        if (submitButton) submitButton.disabled = true;
+
+        try {
+            const values = formValues(admissionForm);
+
+            /*
+             * The existing API accepts JSON.
+             * Passport-photo uploads require additional API
+             * and storage support.
+             */
+
+            delete values.passport_photo;
+            delete values.passport;
+            delete values.photo;
+
+            const result = await api('admissions', {
+                method: 'POST',
+                body: values
+            });
+
+            showStatus(
+                status,
+                result.message ||
+                    'Application submitted successfully.',
+                'success'
+            );
+
+            admissionForm.reset();
+        } catch (error) {
+            showStatus(
+                status,
+                error.message ||
+                    'Application could not be submitted.',
+                'error'
+            );
+        } finally {
+            if (submitButton) submitButton.disabled = false;
+        }
+    });
+}
+
+/* ---------------------------------------------------------
+   5. PUBLIC CONTACT FORM
+   --------------------------------------------------------- */
+
+const contactForm = $('#contactForm');
+
+if (contactForm) {
+    contactForm.addEventListener('submit', async event => {
+        event.preventDefault();
+
+        const status = $('#contactStatus');
+        const submitButton = contactForm.querySelector(
+            '[type="submit"]'
+        );
+
+        showStatus(status, 'Sending your message...');
+
+        if (submitButton) submitButton.disabled = true;
+
+        try {
+            const result = await api('messages', {
+                method: 'POST',
+                body: formValues(contactForm)
+            });
+
+            showStatus(
+                status,
+                result.message ||
+                    'Your message has been received.',
+                'success'
+            );
+
+            contactForm.reset();
+        } catch (error) {
+            showStatus(
+                status,
+                error.message ||
+                    'Message could not be sent.',
+                'error'
+            );
+        } finally {
+            if (submitButton) submitButton.disabled = false;
+        }
+    });
+}
+
+/* ---------------------------------------------------------
+   6. ADMIN LOGIN AND LOGOUT
+   --------------------------------------------------------- */
+
+const loginForm = $('#loginForm');
+const loginCard = $('#loginCard');
+const adminPanel = $('#adminPanel');
+const loginStatus = $('#loginStatus');
+const adminContent = $('#adminContent');
+const logoutButton = $('#logoutBtn');
+
+let activeTab = 'students';
+
+function showAdmin(isLoggedIn) {
+    if (loginCard) {
+        loginCard.hidden = isLoggedIn;
+    }
+
+    if (adminPanel) {
+        adminPanel.hidden = !isLoggedIn;
+    }
+}
+
+async function checkAdminSession() {
+    try {
+        const result = await api('session');
+
+        const authenticated =
+            result.authenticated === true ||
+            result.logged_in === true ||
+            result.loggedIn === true;
+
+        showAdmin(authenticated);
+
+        if (authenticated) {
+            await renderTab(activeTab);
+        }
+    } catch {
+        showAdmin(false);
+    }
+}
+
+if (loginForm) {
+    loginForm.addEventListener('submit', async event => {
+        event.preventDefault();
+
+        const submitButton = loginForm.querySelector(
+            '[type="submit"]'
+        );
+
+        showStatus(loginStatus, 'Signing in...');
+
+        if (submitButton) submitButton.disabled = true;
+
+        try {
+            const result = await api('login', {
+                method: 'POST',
+                body: formValues(loginForm)
+            });
+
+            showStatus(
+                loginStatus,
+                result.message || 'Login successful.',
+                'success'
+            );
+
+            loginForm.reset();
+            showAdmin(true);
+
+            await renderTab(activeTab);
+        } catch (error) {
+            showStatus(
+                loginStatus,
+                error.message || 'Login failed.',
+                'error'
+            );
+        } finally {
+            if (submitButton) submitButton.disabled = false;
+        }
+    });
+}
+
+if (logoutButton) {
+    logoutButton.addEventListener('click', async () => {
+        try {
+            await api('logout', { method: 'POST' });
+        } catch {
+            // Lock the dashboard locally even if logout fails.
+        }
+
+        showAdmin(false);
+
+        if (loginStatus) {
+            showStatus(loginStatus, 'You have been logged out.');
+        }
+    });
+}
+
+/* ---------------------------------------------------------
+   7. ADMIN NAVIGATION
+   --------------------------------------------------------- */
+
+$$('[data-tab]').forEach(button => {
+    button.addEventListener('click', async () => {
+        const tab = button.dataset.tab;
+
+        if (!tab) return;
+
+        activeTab = tab;
+
+        $$('[data-tab]').forEach(item => {
+            item.classList.toggle('active', item === button);
+        });
+
+        await renderTab(tab);
+    });
+});
+
+/* ---------------------------------------------------------
+   8. CLASS OPTIONS
+   --------------------------------------------------------- */
+
+const DEFAULT_CLASSES = [
+    'Baby Class',
+    'Middle Class',
+    'Top Class',
+    'P1',
+    'P2',
+    'P3',
+    'P4',
+    'P5',
+    'P6',
+    'P7'
+];
+
+async function getSchoolClasses() {
+    try {
+        const result = await api('settings');
+        const classes = result.settings?.school_classes;
+
+        if (Array.isArray(classes) && classes.length) {
+            return classes;
+        }
+    } catch {
+        // Use the default classes if settings are unavailable.
+    }
+
+    return DEFAULT_CLASSES;
+}
+
+async function classSelect(
+    name = 'class_name',
+    selected = ''
+) {
+    const classes = await getSchoolClasses();
+
+    return `
+        <select name="${escapeHTML(name)}" required>
+            <option value="">Select class</option>
+
+            ${classes.map(className => `
+                <option
+                    value="${escapeHTML(className)}"
+                    ${className === selected ? 'selected' : ''}>
+                    ${escapeHTML(className)}
+                </option>
+            `).join('')}
+        </select>
+    `;
+}
+
+async function studentSelect(name = 'student_id') {
+    const result = await api('students');
+    const students = result.students || [];
+
+    return `
+        <select name="${escapeHTML(name)}" required>
+            <option value="">Select pupil</option>
+
+            ${students.map(student => `
+                <option value="${escapeHTML(student.id)}">
+                    ${escapeHTML(student.full_name)}
+                    (${escapeHTML(student.admission_number || '')})
+                </option>
+            `).join('')}
+        </select>
+    `;
+}
+
+async function subjectSelect(name = 'subject_id') {
+    const result = await api('subjects');
+    const subjects = result.subjects || [];
+
+    return `
+        <select name="${escapeHTML(name)}" required>
+            <option value="">Select subject</option>
+
+            ${subjects.map(subject => `
+                <option value="${escapeHTML(subject.id)}">
+                    ${escapeHTML(subject.name)}
+                    ${subject.class_name
+                        ? `(${escapeHTML(subject.class_name)})`
+                        : ''}
+                </option>
+            `).join('')}
+        </select>
+    `;
+    }
+/* ---------------------------------------------------------
+   9. ADMIN DASHBOARD TAB ROUTER
+   --------------------------------------------------------- */
+
+async function renderTab(tab) {
+    if (!adminContent) return;
+
+    adminContent.innerHTML = `
+        <div class="empty-state">
+            Loading ${escapeHTML(tab)}...
+        </div>
+    `;
+
+    try {
+        switch (tab) {
+            case 'students':
+                await renderStudents();
+                break;
+
+            case 'subjects':
+                await renderSubjects();
+                break;
+
+            case 'marks':
+                await renderMarks();
+                break;
+
+            case 'fees':
+                await renderFees();
+                break;
+
+            case 'announcements':
+                await renderAdminAnnouncements();
+                break;
+
+            case 'applications':
+                await renderApplications();
+                break;
+
+            case 'messages':
+                await renderMessages();
+                break;
+
+            default:
+                adminContent.innerHTML = `
+                    <div class="empty-state">
+                        This dashboard section is not available.
+                    </div>
+                `;
+        }
+    } catch (error) {
+        adminContent.innerHTML = `
+            <div class="form-status error">
+                ${escapeHTML(error.message)}
+            </div>
+        `;
+    }
+}
+
+/* ---------------------------------------------------------
+   10. STUDENT RECORDS
+   --------------------------------------------------------- */
+
+async function renderStudents() {
+    const result = await api('students');
+    const students = result.students || [];
+    const classes = await classSelect();
+
+    adminContent.innerHTML = `
+        <section class="admin-section">
+            <h2>Student Records</h2>
+            <p>Add and manage pupil records.</p>
+
+            <form id="studentForm">
+
+                <label>Full name
+                    <input name="full_name" required>
+                </label>
+
+                <label>Admission number
+                    <input name="admission_number" required>
+                </label>
+
+                <label>Class
+                    ${classes}
+                </label>
+
+                <label>Gender
+                    <select name="gender">
+                        <option value="">Select gender</option>
+                        ${option('Male', 'Male')}
+                        ${option('Female', 'Female')}
+                    </select>
+                </label>
+
+                <label>Date of birth
+                    <input
+                        type="date"
+                        name="date_of_birth">
+                </label>
+
+                <label>Parent/Guardian name
+                    <input name="parent_name">
+                </label>
+
+                <label>Parent/Guardian phone
+                    <input
+                        name="parent_phone"
+                        type="tel">
+                </label>
+
+                <button type="submit">Save Student</button>
+
+                <p id="studentStatus" class="form-status"></p>
+            </form>
+
+            <h3>Registered Pupils (${students.length})</h3>
+
+            ${makeTable(
+                [
+                    'Admission No.',
+                    'Full Name',
+                    'Class',
+                    'Gender',
+                    'Parent/Guardian',
+                    'Phone',
+                    'Actions'
+                ],
+                students.map(student => [
+                    safeCell(student.admission_number),
+                    safeCell(student.full_name),
+                    safeCell(student.class_name),
+                    safeCell(student.gender),
+                    safeCell(student.parent_name),
+                    safeCell(student.parent_phone),
+                    actionButton(
+                        'Delete',
+                        'delete-student',
+                        student.id,
+                        true
+                    )
+                ])
+            )}
+        </section>
+    `;
+
+    $('#studentForm')?.addEventListener(
+        'submit',
+        async event => {
+            event.preventDefault();
+
+            const form = event.currentTarget;
+            const status = $('#studentStatus');
+            const button = form.querySelector(
+                '[type="submit"]'
+            );
+
+            if (button) button.disabled = true;
+
+            showStatus(status, 'Saving student...');
+
+            try {
+                await api('students', {
+                    method: 'POST',
+                    body: formValues(form)
+                });
+
+                await renderStudents();
+
+                const newStatus = $('#studentStatus');
+
+                showStatus(
+                    newStatus,
+                    'Student saved successfully.',
+                    'success'
+                );
+            } catch (error) {
+                showStatus(
+                    status,
+                    error.message,
+                    'error'
+                );
+
+                if (button) button.disabled = false;
+            }
+        }
+    );
+}
+/* ---------------------------------------------------------
+   11. SUBJECTS
+   --------------------------------------------------------- */
+
+async function renderSubjects() {
+    const result = await api('subjects');
+    const subjects = result.subjects || [];
+    const classes = await classSelect();
+
+    adminContent.innerHTML = `
+        <section class="admin-section">
+            <h2>Manage Subjects</h2>
+            <p>Add subjects and assign them to classes.</p>
+
+            <form id="subjectForm">
+
+                <label>Subject name
+                    <input name="name" required>
+                </label>
+
+                <label>Class
+                    ${classes}
+                </label>
+
+                <button type="submit">Save Subject</button>
+
+                <p id="subjectStatus" class="form-status"></p>
+            </form>
+
+            <h3>Registered Subjects (${subjects.length})</h3>
+
+            ${makeTable(
+                ['Subject', 'Class', 'Actions'],
+                subjects.map(subject => [
+                    safeCell(subject.name),
+                    safeCell(subject.class_name),
+                    actionButton(
+                        'Delete',
+                        'delete-subject',
+                        subject.id,
+                        true
+                    )
+                ])
+            )}
+        </section>
+    `;
+
+    $('#subjectForm')?.addEventListener(
+        'submit',
+        async event => {
+            event.preventDefault();
+
+            const form = event.currentTarget;
+            const status = $('#subjectStatus');
+            const button = form.querySelector(
+                '[type="submit"]'
+            );
+
+            if (button) button.disabled = true;
+
+            showStatus(status, 'Saving subject...');
+
+            try {
+                await api('subjects', {
+                    method: 'POST',
+                    body: formValues(form)
+                });
+
+                await renderSubjects();
+
+                showStatus(
+                    $('#subjectStatus'),
+                    'Subject saved successfully.',
+                    'success'
+                );
+            } catch (error) {
+                showStatus(status, error.message, 'error');
+
+                if (button) button.disabled = false;
+            }
+        }
+    );
+}
+
+/* ---------------------------------------------------------
+   12. ACADEMIC MARKS
+   --------------------------------------------------------- */
+
+async function renderMarks() {
+    const result = await api('marks');
+    const marks = result.marks || [];
+
+    const pupils = await studentSelect();
+    const subjects = await subjectSelect();
+
+    adminContent.innerHTML = `
+        <section class="admin-section">
+            <h2>Academic Marks</h2>
+
+            <p>Enter each pupil's marks out of 100.</p>
+
+            <form id="marksForm">
+
+                <label>Pupil
+                    ${pupils}
+                </label>
+
+                <label>Subject
+                    ${subjects}
+                </label>
+
+                <label>Term
+                    <select name="term" required>
+                        ${option('Term 1', 'Term 1')}
+                        ${option('Term 2', 'Term 2')}
+                        ${option('Term 3', 'Term 3')}
+                    </select>
+                </label>
+
+                <label>Academic year
+                    <input
+                        name="academic_year"
+                        type="number"
+                        value="${escapeHTML(currentAcademicYear())}"
+                        required>
+                </label>
+
+                <label>Score out of 100
+                    <input
+                        name="score"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        required>
+                </label>
+
+                <label>Remarks
+                    <input name="remarks">
+                </label>
+
+                <button type="submit">Save Marks</button>
+
+                <p id="marksStatus" class="form-status"></p>
+            </form>
+
+            <h3>Recorded Marks</h3>
+
+            ${makeTable(
+                [
+                    'Pupil',
+                    'Admission No.',
+                    'Class',
+                    'Subject',
+                    'Term',
+                    'Year',
+                    'Score / 100',
+                    'Remarks'
+                ],
+                marks.map(mark => [
+                    safeCell(mark.student_name),
+                    safeCell(mark.admission_number),
+                    safeCell(mark.class_name),
+                    safeCell(mark.subject_name),
+                    safeCell(mark.term),
+                    safeCell(mark.academic_year),
+                    safeCell(mark.score),
+                    safeCell(mark.remarks)
+                ])
+            )}
+        </section>
+    `;
+
+    $('#marksForm')?.addEventListener(
+        'submit',
+        async event => {
+            event.preventDefault();
+
+            const form = event.currentTarget;
+            const status = $('#marksStatus');
+            const button = form.querySelector(
+                '[type="submit"]'
+            );
+
+            if (button) button.disabled = true;
+
+            showStatus(status, 'Saving marks...');
+
+            try {
+                const values = formValues(form);
+
+                values.student_id = Number(values.student_id);
+                values.subject_id = Number(values.subject_id);
+                values.score = Number(values.score);
+
+                await api('marks', {
+                    method: 'POST',
+                    body: values
+                });
+
+                await renderMarks();
+
+                showStatus(
+                    $('#marksStatus'),
+                    'Marks saved successfully.',
+                    'success'
+                );
+            } catch (error) {
+                showStatus(status, error.message, 'error');
+
+                if (button) button.disabled = false;
+            }
+        }
+    );
+}
+/* ---------------------------------------------------------
+   13. SCHOOL FEES
+   --------------------------------------------------------- */
+
+async function renderFees() {
+    const result = await api('fees');
+    const fees = result.fees || [];
+    const pupils = await studentSelect();
+
+    adminContent.innerHTML = `
+        <section class="admin-section">
+            <h2>School Fees</h2>
+
+            <p>
+                Record fees due and payments received.
+                The balance is calculated automatically.
+            </p>
+
+            <form id="feesForm">
+
+                <label>Pupil
+                    ${pupils}
+                </label>
+
+                <label>Academic year
+                    <input
+                        name="academic_year"
+                        type="number"
+                        value="${escapeHTML(currentAcademicYear())}"
+                        required>
+                </label>
+
+                <label>Term
+                    <select name="term" required>
+                        ${option('Term 1', 'Term 1')}
+                        ${option('Term 2', 'Term 2')}
+                        ${option('Term 3', 'Term 3')}
+                    </select>
+                </label>
+
+                <label>Amount due
+                    <input
+                        name="amount_due"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required>
+                </label>
+
+                <label>Amount paid
+                    <input
+                        name="amount_paid"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="0"
+                        required>
+                </label>
+
+                <label>Notes
+                    <textarea name="notes"></textarea>
+                </label>
+
+                <button type="submit">Save Fees</button>
+
+                <p id="feesStatus" class="form-status"></p>
+            </form>
+
+            <h3>Fees Records</h3>
+
+            ${makeTable(
+                [
+                    'Pupil',
+                    'Admission No.',
+                    'Class',
+                    'Term',
+                    'Year',
+                    'Amount Due',
+                    'Amount Paid',
+                    'Balance'
+                ],
+                fees.map(fee => [
+                    safeCell(fee.student_name),
+                    safeCell(fee.admission_number),
+                    safeCell(fee.class_name),
+                    safeCell(fee.term),
+                    safeCell(fee.academic_year),
+                    safeCell(money(fee.amount_due)),
+                    safeCell(money(fee.amount_paid)),
+                    safeCell(money(fee.balance))
+                ])
+            )}
+        </section>
+    `;
+
+    $('#feesForm')?.addEventListener(
+        'submit',
+        async event => {
+            event.preventDefault();
+
+            const form = event.currentTarget;
+            const status = $('#feesStatus');
+            const button = form.querySelector(
+                '[type="submit"]'
+            );
+
+            if (button) button.disabled = true;
+
+            showStatus(status, 'Saving fees record...');
+
+            try {
+                const values = formValues(form);
+
+                values.student_id = Number(values.student_id);
+                values.amount_due = Number(values.amount_due);
+                values.amount_paid = Number(values.amount_paid);
+
+                await api('fees', {
+                    method: 'POST',
+                    body: values
+                });
+
+                await renderFees();
+
+                showStatus(
+                    $('#feesStatus'),
+                    'Fees record saved successfully.',
+                    'success'
+                );
+            } catch (error) {
+                showStatus(status, error.message, 'error');
+
+                if (button) button.disabled = false;
+            }
+        }
+    );
+}
+
+/* ---------------------------------------------------------
+   14. ANNOUNCEMENTS MANAGEMENT
+   --------------------------------------------------------- */
+
+async function renderAdminAnnouncements() {
+    const result = await api('announcements');
+    const announcements = result.announcements || [];
+
+    adminContent.innerHTML = `
+        <section class="admin-section">
+            <h2>Manage Announcements</h2>
+
+            <p>
+                Publish school announcements for parents
+                and visitors to see on the public website.
+            </p>
+
+            <form id="announcementForm">
+
+                <label>Announcement title
+                    <input name="title" required>
+                </label>
+
+                <label>Announcement message
+                    <textarea
+                        name="content"
+                        rows="5"
+                        required></textarea>
+                </label>
+
+                <label>Announcement date
+                    <input name="date" type="date">
+                </label>
+
+                <button type="submit">
+                    Publish Announcement
+                </button>
+
+                <p
+                    id="announcementStatus"
+                    class="form-status"></p>
+            </form>
+
+            <h3>
+                Published Announcements (${announcements.length})
+            </h3>
+
+            ${makeTable(
+                ['Date', 'Title', 'Message', 'Actions'],
+                announcements.map(item => [
+                    safeCell(
+                        formatDate(item.date || item.created_at)
+                    ),
+                    safeCell(item.title),
+                    safeCell(item.content),
+                    actionButton(
+                        'Delete',
+                        'delete-announcement',
+                        item.id,
+                        true
+                    )
+                ])
+            )}
+        </section>
+    `;
+
+    $('#announcementForm')?.addEventListener(
+        'submit',
+        async event => {
+            event.preventDefault();
+
+            const form = event.currentTarget;
+            const status = $('#announcementStatus');
+            const button = form.querySelector(
+                '[type="submit"]'
+            );
+
+            if (button) button.disabled = true;
+
+            showStatus(status, 'Publishing announcement...');
+
+            try {
+                const values = formValues(form);
+
+                await api('announcements', {
+                    method: 'POST',
+                    body: values
+                });
+
+                form.reset();
+
+                await loadAnnouncements();
+                await renderAdminAnnouncements();
+
+                showStatus(
+                    $('#announcementStatus'),
+                    'Announcement published successfully.',
+                    'success'
+                );
+            } catch (error) {
+                showStatus(status, error.message, 'error');
+
+                if (button) button.disabled = false;
+            }
+        }
+    );
+}
+/* ---------------------------------------------------------
+   15. ADMISSION APPLICATIONS
+   --------------------------------------------------------- */
+
+async function renderApplications() {
+    const result = await api('admissions');
+    const applications = result.applications || [];
+
+    adminContent.innerHTML = `
+        <section class="admin-section">
+            <h2>Admission Applications</h2>
+
+            <p>
+                View applications submitted through
+                the school website.
+            </p>
+
+            ${makeTable(
+                [
+                    'Child Name',
+                    'Date of Birth',
+                    'Gender',
+                    'Class Applying For',
+                    'Parent/Guardian',
+                    'Phone',
+                    'Email',
+                    'Date Received'
+                ],
+                applications.map(application => [
+                    safeCell(application.child_name),
+                    safeCell(application.date_of_birth),
+                    safeCell(application.gender),
+                    safeCell(application.class_applying),
+                    safeCell(application.parent_name),
+                    safeCell(application.parent_phone),
+                    safeCell(application.parent_email),
+                    safeCell(formatDate(application.created_at))
+                ])
+            )}
+        </section>
+    `;
+}
+
+/* ---------------------------------------------------------
+   16. CONTACT MESSAGES
+   --------------------------------------------------------- */
+
+async function renderMessages() {
+    const result = await api('messages');
+    const messages = result.messages || [];
+
+    adminContent.innerHTML = `
+        <section class="admin-section">
+            <h2>Contact Messages</h2>
+
+            <p>
+                View messages submitted through
+                the public school website.
+            </p>
+
+            ${makeTable(
+                [
+                    'Name',
+                    'Email',
+                    'Phone',
+                    'Subject',
+                    'Message',
+                    'Date Received'
+                ],
+                messages.map(message => [
+                    safeCell(message.name),
+                    safeCell(message.email),
+                    safeCell(message.phone),
+                    safeCell(message.subject),
+                    safeCell(message.message),
+                    safeCell(formatDate(message.created_at))
+                ])
+            )}
+        </section>
+    `;
+}
+
+/* ---------------------------------------------------------
+   17. ADMIN DELETE ACTIONS
+   --------------------------------------------------------- */
+
+if (adminContent) {
+    adminContent.addEventListener('click', async event => {
+        const button = event.target.closest('[data-action]');
+
+        if (!button) return;
+
+        const action = button.dataset.action;
+        const id = button.dataset.id;
+
+        if (!id) return;
+
+        const deleteRoutes = {
+            'delete-student': 'students',
+            'delete-subject': 'subjects',
+            'delete-announcement': 'announcements'
+        };
+
+        const endpoint = deleteRoutes[action];
+
+        if (!endpoint) return;
+
+        if (!confirm(
+            'Are you sure you want to delete this record?'
+        )) {
+            return;
+        }
+
+        button.disabled = true;
+
+        try {
+            await api(endpoint, {
+                method: 'DELETE',
+                body: {
+                    id: Number(id)
+                }
+            });
+
+            if (action === 'delete-announcement') {
+                await loadAnnouncements();
+            }
+
+            await renderTab(activeTab);
+
+        } catch (error) {
+            alert(
+                `Could not delete the record: ${error.message}`
+            );
+
+            button.disabled = false;
+        }
+    });
+}
+
+/* ---------------------------------------------------------
+   18. STARTUP
+   --------------------------------------------------------- */
+
+checkAdminSession();
+
+/* =========================================================
+   END OF BRIGHT ANGELS JUNIOR SCHOOL APP.JS
+   ========================================================= */
