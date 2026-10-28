@@ -562,7 +562,7 @@ export async function onRequest({ request, env }) {
     }
 
     // --------------------------------------------------------
-    // PART 3 WILL ADD PUBLIC ADMISSIONS AND MESSAGES.
+    // UNKNOWN ROUTE
     // --------------------------------------------------------
 
     return fail("API route not found.", 404);
@@ -575,6 +575,7 @@ export async function onRequest({ request, env }) {
       500
     );
   }
+}
        }
     // --------------------------------------------------------
     // PUBLIC ADMISSION APPLICATIONS
@@ -1507,11 +1508,18 @@ export async function onRequest({ request, env }) {
       });
     }
 
-    // --------------------------------------------------------
+        // --------------------------------------------------------
     // UNKNOWN ROUTE
     // --------------------------------------------------------
 
-    return fail("API route not found.", 404
-  );
- }
+    return fail("API route not found.", 404);
+
+  } catch (error) {
+    console.error("Bright Angels API error:", error);
+
+    return fail(
+      "The server encountered an error. Check Cloudflare logs.",
+      500
+    );
+  }
 }
