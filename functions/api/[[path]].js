@@ -1665,12 +1665,11 @@ export async function onRequest({ request, env }) {
     }
 
     return fail("Not found.", 404);
-
-} catch (error) {
-  console.error("Bright Angels API error:", error);
-  return json({
-    ok: false,
-    error: error.message || String(error)
-  }, 500);
+  } catch (error) {
+    console.error("Bright Angels API error:", error);
+    return json({
+      ok: false,
+      error: error.message || String(error)
+    }, 500);
   }
-
+}
