@@ -567,15 +567,7 @@ export async function onRequest({ request, env }) {
 
     return fail("API route not found.", 404);
 
-  } catch (error) {
-    console.error("Bright Angels API error:", error);
-
-    return fail(
-      "The server encountered an error. Check Cloudflare logs.",
-      500
-    );
-  }
-}
+  
        }
     // --------------------------------------------------------
     // PUBLIC ADMISSION APPLICATIONS
