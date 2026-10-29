@@ -1365,9 +1365,9 @@ export async function onRequest({ request, env }) {
           );
         }
 
-        const student = await env.DB.prepare(
-          "SELECT id FROM students WHERE id = ?"
-        ).bind(studentId).first();
+        const subject = await env.DB.prepare(
+  "SELECT id FROM ba_subjects WHERE id = ?"
+).bind(subjectId).first();
 
         const subject = await env.DB.prepare(
           "SELECT id FROM subjects WHERE id = ?"
@@ -1378,20 +1378,26 @@ export async function onRequest({ request, env }) {
         }
 
         await env.DB.prepare(
-          `INSERT INTO marks (
-            student_id, subject_id, term, academic_year, score, remarks
-          ) VALUES (?, ?, ?, ?, ?, ?)
-          ON CONFLICT(student_id, subject_id, term, academic_year)
-          DO UPDATE SET score = excluded.score, remarks = excluded.remarks`
-        ).bind(
-          studentId, subjectId, term, academicYear, score, remarks
-        ).run();
-
-        return json({
-          ok: true,
-          message: "Student mark saved successfully."
-        }, 201);
-      }
+  `INSERT INTO marks (
+    student_id, subject_id, term, academic_year,
+    assessment_type, marks_obtained, maximum_marks, remarks
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  ON CONFLICT(student_id, subject_id, term, academic_year)
+  DO UPDATE SET
+    assessment_type = excluded.assessment_type,
+    marks_obtained = excluded.marks_obtained,
+    maximum_marks = excluded.maximum_marks,
+    remarks = excluded.remarks`
+).bind(
+  studentId,
+  subjectId,
+  term,
+  academicYear,
+  cleanText(body.assessment_type || body.assessmentType || "Exam", 50),
+  score,
+  Number(body.maximum_marks || body.maximumMarks || 100),
+  remarks
+).run();
 
       return fail("Method not allowed.", 405);
     }
