@@ -30,12 +30,34 @@ if (menuToggle && mainNav) {
     });
 }
 
+// Close the mobile navigation after a link is selected.
 $$('#mainNav a').forEach(link => {
     link.addEventListener('click', () => {
         mainNav?.classList.remove('open');
     });
 });
 
+// Explicitly navigate to the administrator login section.
+const adminLoginLink = $('.nav-admin');
+const adminSection = $('#admin');
+
+if (adminLoginLink && adminSection) {
+    adminLoginLink.addEventListener('click', event => {
+        event.preventDefault();
+
+        // Close the mobile menu first.
+        mainNav?.classList.remove('open');
+
+        // Update the address bar without reloading the website.
+        history.replaceState(null, '', '#admin');
+
+        // Scroll directly to the administrator section.
+        adminSection.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    });
+}
 function escapeHTML(value) {
     return String(value ?? '').replace(/[&<>"']/g, character => ({
         '&': '&amp;',
