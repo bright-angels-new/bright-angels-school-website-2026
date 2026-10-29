@@ -1329,9 +1329,9 @@ export async function onRequest({ request, env }) {
                   students.full_name AS student_name,
                   students.admission_number,
                   students.class_name,
-                  subjects.name AS subject_name
+                 ba_subjects.name AS subject_name 
            FROM marks
-           LEFT JOIN students ON students.id = marks.student_id
+           LEFT JOIN ba_subjects ON ba_subjects.id = marks.subject_id
            LEFT JOIN subjects ON subjects.id = marks.subject_id
            ORDER BY marks.academic_year DESC, marks.term, students.full_name`
         ).all();
