@@ -611,7 +611,9 @@ async function renderTab(tab) {
             case 'announcements':
                 await renderAdminAnnouncements();
                 break;
-
+case 'gallery':
+    await renderAdminGallery();
+    break;
             case 'applications':
                 await renderApplications();
                 break;
