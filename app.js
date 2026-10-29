@@ -860,10 +860,9 @@ async function renderMarks() {
             api('subjects')
         ]);
 
-    const marks = marksResult.data || [];
-    const students = studentsResult.data || [];
-    const subjects = subjectsResult.data || [];
-
+    const marks=marksResult.marks||[],
+      students=studentsResult.students||[],
+      subjects=subjectsResult.subjects||[];
     adminContent.innerHTML = `
         <section class="admin-section">
             <h2>Academic Marks</h2>
