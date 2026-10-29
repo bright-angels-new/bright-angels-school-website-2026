@@ -61,7 +61,7 @@ export async function onRequest({request,env}){
             st.name AS student_name,
             st.admission_number,
             st.class_name,
-            su.subject_name AS subject_name
+            su.name AS subject_name
         FROM ba_marks m
         JOIN ba_students st ON st.id=m.student_id
         JOIN ba_subjects su ON su.id=m.subject_id
@@ -85,7 +85,7 @@ export async function onRequest({request,env}){
         p.push(year);
     }
 
-    sql+=' ORDER BY st.class_name,st.name,su.subject_name';
+    sql+=' ORDER BY st.class_name,st.name,su.name
 
     return json({
         data: await all(env.DB,sql,...p)
