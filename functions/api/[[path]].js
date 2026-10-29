@@ -1420,6 +1420,8 @@ return json({
   ok: true,
   message: "Student mark saved successfully."
 }, 201);   
+      }
+    }
 
 // ------------------------------------------------------------
 // END OF PART 5
