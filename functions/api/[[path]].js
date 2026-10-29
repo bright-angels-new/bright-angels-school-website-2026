@@ -1364,7 +1364,9 @@ export async function onRequest({ request, env }) {
             "Provide valid student, subject, term, year and a score from 0 to 100."
           );
         }
-
+const student = await env.DB.prepare(
+  "SELECT id FROM students WHERE id = ?"
+).bind(studentId).first();
         const subject = await env.DB.prepare(
   "SELECT id FROM ba_subjects WHERE id = ?"
 ).bind(subjectId).first();
