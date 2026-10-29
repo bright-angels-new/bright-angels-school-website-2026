@@ -870,7 +870,7 @@ export async function onRequest({ request, env }) {
   `INSERT INTO announcements (title, body, date)
    VALUES (?, ?, ?)`
 )
-        ).bind(
+        bind(
           title,
           content,
           date || new Date().toISOString().slice(0, 10)
