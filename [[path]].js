@@ -50,7 +50,47 @@ export async function onRequest({request,env}){
   if(resource==='subjects'&&method==='GET'&&!id)return json({data:await all(env.DB,'SELECT * FROM ba_subjects ORDER BY class_name,name')});
   if(resource==='subjects'&&method==='POST'&&!id){const b=await readBody(request),name=str(b.name,120),cls=str(b.class_name??b.class,80);if(!name||!cls)return fail('Subject and class are required.');const r=await env.DB.prepare('INSERT INTO ba_subjects(name,class_name) VALUES(?,?)').bind(name,cls).run();return json({ok:true,id:r.meta.last_row_id},201)}
   if(resource==='subjects'&&method==='DELETE'&&id){if(!await has(env.DB,'ba_subjects',id))return fail('Subject not found.',404);await env.DB.batch([env.DB.prepare('DELETE FROM ba_marks WHERE subject_id=?').bind(id),env.DB.prepare('DELETE FROM ba_subjects WHERE id=?').bind(id)]);return json({ok:true})}
-  if(resource==='marks'&&method==='GET'){const sid=num(url.searchParams.get('student_id')),term=str(url.searchParams.get('term'),30),year=num(url.searchParams.get('year'));let sql='SELECT m.*,st.name AS student_name,st.admission_number,st.class_name,su.name AS subject_name FROM ba_marks m JOIN ba_students st ON st.id=m.student_id JOIN ba_subjects su ON su.id=m.subject_id WHERE 1=1',p=[];if(sid){sql+=' AND m.student_id=?';p.push(sid)}if(term){sql+=' AND m.term=?';p.push(term)}if(year){sql+=' AND m.year=?';p.push(year)}sql+=' ORDER BY st.class_name,st.name,su.name';return json({data:await all(env.DB,sql,...p)})}
+  if(resource==='marks'&&method==='GET'){
+    const sid=num(url.searchParams.get('student_id'));
+    const term=str(url.searchParams.get('term'),30);
+    const year=num(url.searchParams.get('year'));
+
+    let sql=`
+        SELECT
+            m.*,
+            st.name AS student_name,
+            st.admission_number,
+            st.class_name,
+            su.subject_name AS subject_name
+        FROM ba_marks m
+        JOIN ba_students st ON st.id=m.student_id
+        JOIN ba_subjects su ON su.id=m.subject_id
+        WHERE 1=1
+    `;
+
+    const p=[];
+
+    if(sid){
+        sql+=' AND m.student_id=?';
+        p.push(sid);
+    }
+
+    if(term){
+        sql+=' AND m.term=?';
+        p.push(term);
+    }
+
+    if(year){
+        sql+=' AND m.year=?';
+        p.push(year);
+    }
+
+    sql+=' ORDER BY st.class_name,st.name,su.subject_name';
+
+    return json({
+        data: await all(env.DB,sql,...p)
+    });
+     }
   if(resource==='marks'&&method==='POST'&&!id){const b=await readBody(request),sid=num(b.student_id),sub=num(b.subject_id),term=str(b.term,30),year=num(b.year),score=num(b.score??b.marks),out=num(b.out_of??100);if(!sid||!sub||!term||!year)return fail('Student, subject, term and year are required.');if(score<0||out<=0||score>out)return fail('Score must be between zero and the maximum mark.');if(!await has(env.DB,'ba_students',sid)||!await has(env.DB,'ba_subjects',sub))return fail('Student or subject not found.',404);const r=await env.DB.prepare('INSERT INTO ba_marks(student_id,subject_id,term,year,score,out_of,comment) VALUES(?,?,?,?,?,?,?)').bind(sid,sub,term,year,score,out,str(b.comment,500)).run();return json({ok:true,id:r.meta.last_row_id},201)}
   if(resource==='marks'&&method==='DELETE'&&id){if(!await has(env.DB,'ba_marks',id))return fail('Mark record not found.',404);await env.DB.prepare('DELETE FROM ba_marks WHERE id=?').bind(id).run();return json({ok:true})}
   if(resource==='fees'&&method==='GET'){const sid=num(url.searchParams.get('student_id')),term=str(url.searchParams.get('term'),30),year=num(url.searchParams.get('year'));let sql='SELECT f.*,st.name AS student_name,st.admission_number,st.class_name FROM ba_fees f JOIN ba_students st ON st.id=f.student_id WHERE 1=1',p=[];if(sid){sql+=' AND f.student_id=?';p.push(sid)}if(term){sql+=' AND f.term=?';p.push(term)}if(year){sql+=' AND f.year=?';p.push(year)}return json({data:await all(env.DB,sql+' ORDER BY st.class_name,st.name',...p)})}
