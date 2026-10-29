@@ -867,8 +867,9 @@ export async function onRequest({ request, env }) {
         }
 
         const result = await env.DB.prepare(
-          `INSERT INTO announcements (title, content, date)
-           VALUES (?, ?, ?)`
+  `INSERT INTO announcements (title, body, date)
+   VALUES (?, ?, ?)`
+)
         ).bind(
           title,
           content,
@@ -907,8 +908,8 @@ export async function onRequest({ request, env }) {
 
         const result = await env.DB.prepare(
           `UPDATE announcements
-           SET title = ?, content = ?, date = ?
-           WHERE id = ?`
+ SET title = ?, body = ?, date = ?
+ WHERE id = ?`
         ).bind(
           title,
           content,
