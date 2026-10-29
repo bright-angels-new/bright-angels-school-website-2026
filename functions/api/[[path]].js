@@ -1326,14 +1326,14 @@ export async function onRequest({ request, env }) {
       if (method === "GET") {
         const result = await env.DB.prepare(
   `SELECT marks.*,
-          students.name AS student_name,
+          students.full_name AS student_name,
           students.admission_number,
           students.class_name,
           ba_subjects.name AS subject_name
    FROM marks
    LEFT JOIN students ON students.id = marks.student_id
    LEFT JOIN ba_subjects ON ba_subjects.id = marks.subject_id
-   ORDER BY marks.academic_year DESC, marks.term, students.name`
+   ORDER BY marks.academic_year DESC, marks.term, students.full_name`
 ).all();
         return json({
           ok: true,
