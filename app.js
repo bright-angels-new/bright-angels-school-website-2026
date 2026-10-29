@@ -848,86 +848,156 @@ async function renderSubjects() {
         }
     );
 }
-
 /* ---------------------------------------------------------
    12. ACADEMIC MARKS
    --------------------------------------------------------- */
 
- if (path === "api/marks") {
-      if (method === "GET") {
-        const result = await env.DB.prepare(
-          `SELECT marks.*,
-                  students.full_name AS student_name,
-                  students.admission_number,
-                  students.class_name,
-                  subjects.subject_name AS subject_name,
-                  marks.marks_obtained AS score
-           FROM marks
-           LEFT JOIN students ON students.id = marks.student_id
-           LEFT JOIN subjects ON subjects.id = marks.subject_id
-           ORDER BY marks.academic_year DESC, marks.term, students.full_name`
-        ).all();
+async function renderMarks() {
+    const [marksResult, studentsResult, subjectsResult] =
+        await Promise.all([
+            api('marks'),
+            api('students'),
+            api('subjects')
+        ]);
 
-        return json({
-          ok: true,
-          marks: result.results || []
-        });
-      }
+    const marks = marksResult.data || [];
+    const students = studentsResult.data || [];
+    const subjects = subjectsResult.data || [];
 
-      if (method === "POST") {
-        const body = await readBody(request);
-        if (!body) return fail("Please provide mark details.");
+    adminContent.innerHTML = `
+        <section class="admin-section">
+            <h2>Academic Marks</h2>
+            <p>Record and review pupils' academic marks.</p>
 
-        const studentId = Number(body.student_id || body.studentId);
-        const subjectId = Number(body.subject_id || body.subjectId);
-        const term = cleanText(body.term, 50);
-        const academicYear = cleanText(
-          body.academic_year || body.academicYear || body.year, 20
-        );
-        const score = Number(body.score);
-        const remarks = cleanText(body.remarks, 500);
+            <form id="marksForm">
+                <label>Pupil
+                    <select name="student_id" required>
+                        <option value="">Select pupil</option>
+                        ${students.map(student => `
+                            <option value="${escapeHTML(student.id)}">
+                                ${escapeHTML(student.name)}
+                                (${escapeHTML(student.admission_number || '')})
+                            </option>
+                        `).join('')}
+                    </select>
+                </label>
 
-        if (
-          !Number.isInteger(studentId) || studentId < 1 ||
-          !Number.isInteger(subjectId) || subjectId < 1 ||
-          !term || !academicYear ||
-          !Number.isFinite(score) || score < 0 || score > 100
-        ) {
-          return fail(
-            "Provide valid student, subject, term, year and a score from 0 to 100."
-          );
+                <label>Subject
+                    <select name="subject_id" required>
+                        <option value="">Select subject</option>
+                        ${subjects.map(subject => `
+                            <option value="${escapeHTML(subject.id)}">
+                                ${escapeHTML(subject.name)}
+                                (${escapeHTML(subject.class_name || '')})
+                            </option>
+                        `).join('')}
+                    </select>
+                </label>
+
+                <label>Academic year
+                    <input
+                        name="year"
+                        type="number"
+                        value="${escapeHTML(currentAcademicYear())}"
+                        required>
+                </label>
+
+                <label>Term
+                    <select name="term" required>
+                        <option value="">Select term</option>
+                        ${option('Term 1', 'Term 1')}
+                        ${option('Term 2', 'Term 2')}
+                        ${option('Term 3', 'Term 3')}
+                    </select>
+                </label>
+
+                <label>Marks obtained
+                    <input
+                        name="score"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        required>
+                </label>
+
+                <label>Maximum marks
+                    <input
+                        name="out_of"
+                        type="number"
+                        min="1"
+                        value="100"
+                        required>
+                </label>
+
+                <label>Remarks
+                    <textarea name="comment"></textarea>
+                </label>
+
+                <button type="submit">Save Marks</button>
+                <p id="marksStatus" class="form-status"></p>
+            </form>
+
+            <h3>Recorded Marks (${marks.length})</h3>
+
+            ${makeTable(
+                [
+                    'Pupil',
+                    'Admission No.',
+                    'Class',
+                    'Subject',
+                    'Term',
+                    'Year',
+                    'Score',
+                    'Maximum',
+                    'Remarks'
+                ],
+                marks.map(mark => [
+                    safeCell(mark.student_name),
+                    safeCell(mark.admission_number),
+                    safeCell(mark.class_name),
+                    safeCell(mark.subject_name),
+                    safeCell(mark.term),
+                    safeCell(mark.year),
+                    safeCell(mark.score),
+                    safeCell(mark.out_of),
+                    safeCell(mark.comment)
+                ])
+            )}
+        </section>
+    `;
+
+    $('#marksForm')?.addEventListener('submit', async event => {
+        event.preventDefault();
+
+        const form = event.currentTarget;
+        const status = $('#marksStatus');
+        const button = form.querySelector('[type="submit"]');
+
+        if (button) button.disabled = true;
+
+        showStatus(status, 'Saving marks...');
+
+        try {
+            await api('marks', {
+                method: 'POST',
+                body: formValues(form)
+            });
+
+            await renderMarks();
+
+            showStatus(
+                $('#marksStatus'),
+                'Marks saved successfully.',
+                'success'
+            );
+        } catch (error) {
+            showStatus(status, error.message, 'error');
+        } finally {
+            if (button) button.disabled = false;
         }
-
-        const student = await env.DB.prepare(
-          "SELECT id FROM students WHERE id = ?"
-        ).bind(studentId).first();
-
-        const subject = await env.DB.prepare(
-          "SELECT id FROM subjects WHERE id = ?"
-        ).bind(subjectId).first();
-
-        if (!student || !subject) {
-          return fail("The selected student or subject does not exist.");
-        }
-
-        await env.DB.prepare(
-          `INSERT INTO marks (
-            student_id, subject_id, academic_year, term,
-            assessment_type, marks_obtained, maximum_marks, remarks
-          ) VALUES (?, ?, ?, ?, 'Exam', ?, 100, ?)`
-        ).bind(
-          studentId, subjectId, academicYear, term, score, remarks
-        ).run();
-
-        return json({
-          ok: true,
-          message: "Student mark saved successfully."
-        }, 201);
-      }
-
-      return fail("Method not allowed.", 405);
- }
-         
+    });
+}
 /* ---------------------------------------------------------
    13. SCHOOL FEES
    --------------------------------------------------------- */
