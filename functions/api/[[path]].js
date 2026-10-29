@@ -1382,8 +1382,8 @@ export async function onRequest({ request, env }) {
     student_id, subject_id, term, academic_year,
     assessment_type, marks_obtained, maximum_marks, remarks
   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  ON CONFLICT(student_id, subject_id, term, academic_year)
-  DO UPDATE SET
+  ON CONFLICT(student_id, subject_id, academic_year, term, assessment_type)
+    DO UPDATE SET
     assessment_type = excluded.assessment_type,
     marks_obtained = excluded.marks_obtained,
     maximum_marks = excluded.maximum_marks,
