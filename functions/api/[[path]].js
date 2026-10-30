@@ -200,18 +200,6 @@ async function initialiseDatabase(db) {
       )
     )`,
 
-    `CREATE TABLE IF NOT EXISTS fees (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      student_id INTEGER NOT NULL,
-      academic_year TEXT NOT NULL DEFAULT '',
-      term TEXT NOT NULL DEFAULT '',
-      amount_due REAL NOT NULL DEFAULT 0,
-      amount_paid REAL NOT NULL DEFAULT 0,
-      balance REAL NOT NULL DEFAULT 0,
-      notes TEXT NOT NULL DEFAULT '',
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`
-  ];
         `CREATE TABLE IF NOT EXISTS fees (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       student_id INTEGER NOT NULL,
