@@ -51,7 +51,57 @@ export async function onRequest({request,env}){
  if(path==='announcements'&&method==='GET')return json({data:await all(env.DB,'SELECT * FROM ba_announcements ORDER BY id DESC')});
   if(path==='content'&&method==='GET')return json({data:await all(env.DB,'SELECT * FROM ba_content ORDER BY key')});
   if(path==='data'&&method==='GET')return await authorized(request,env)?json({ok:true}):fail('Please sign in.',401);
-  if(!await authorized(request,env))return fail('Please sign in to use the admin dashboard.',401);
+  if(resource==='gallery'&&method==='POST'){
+    if(!env.IMAGEKIT_PRIVATE_KEY){
+        return fail('ImageKit private key is not configured.',503);
+    }
+
+    const form=await request.formData();
+    const file=form.get('file');
+    const caption=str(form.get('caption'),300);
+
+    if(!file||typeof file==='string'||!file.size){
+        return fail('Please select a photo.');
+    }
+
+    if(!file.type.startsWith('image/')){
+        return fail('Only image files are allowed.');
+    }
+
+    if(file.size>10*1024*1024){
+        return fail('Photo must not exceed 10 MB.');
+    }
+
+    const uploadForm=new FormData();
+    uploadForm.append('file',file);
+    uploadForm.append('fileName',file.name);
+    uploadForm.append('folder','/bright-angels-school');
+
+    const upload=await fetch(
+        'https://upload.imagekit.io/api/v1/files/upload',
+        {
+            method:'POST',
+            headers:{
+                Authorization:'Basic '+btoa(env.IMAGEKIT_PRIVATE_KEY+':')
+            },
+            body:uploadForm
+        }
+    );
+
+    const uploaded=await upload.json();
+
+    if(!upload.ok){
+        console.error('ImageKit upload error:',uploaded);
+        return fail('Photo upload failed. Please try again.',502);
+    }
+
+    const saved=await env.DB.prepare(
+        'INSERT INTO ba_gallery(image_url,file_id,caption) VALUES(?,?,?)'
+    ).bind(uploaded.url,uploaded.fileId,caption).run();
+
+    return json({ok:true,id:saved.meta.last_row_id,url:uploaded.url},201);
+  }
+     if(!await authorized(request,env))return fail('Please sign in to use the admin dashboard.',401);
   if(resource==='students'&&method==='GET'&&!id)return json({data:await all(env.DB,'SELECT * FROM ba_students ORDER BY class_name,name')});
   if(resource==='students'&&method==='POST'&&!id){const b=await readBody(request),name=str(b.name,200),cls=str(b.class_name??b.class,80),adm=str(b.admission_number??b.admission_no,80);if(!name||!cls)return fail('Student name and class are required.');const r=await env.DB.prepare('INSERT INTO ba_students(admission_number,name,class_name,gender,guardian,phone) VALUES(?,?,?,?,?,?)').bind(adm||null,name,cls,str(b.gender,30),str(b.guardian,200),str(b.phone,80)).run();return json({ok:true,id:r.meta.last_row_id},201)}
   if(resource==='students'&&method==='DELETE'&&id){if(!await has(env.DB,'ba_students',id))return fail('Student not found.',404);await env.DB.batch([env.DB.prepare('DELETE FROM ba_marks WHERE student_id=?').bind(id),env.DB.prepare('DELETE FROM ba_fees WHERE student_id=?').bind(id),env.DB.prepare('DELETE FROM ba_students WHERE id=?').bind(id)]);return json({ok:true})}
