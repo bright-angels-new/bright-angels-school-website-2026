@@ -670,6 +670,48 @@ export async function onRequest({ request, env }) {
           return fail(
             "Please provide the child's name, class, parent name and phone number."
           );
+               // Father's details
+        const fatherName = cleanText(body.father_name, 150);
+        const fatherPhone = cleanText(body.father_phone, 50);
+        const fatherEmail = normaliseEmail(body.father_email);
+
+        // Mother's details
+        const motherName = cleanText(body.mother_name, 150);
+        const motherPhone = cleanText(body.mother_phone, 50);
+        const motherEmail = normaliseEmail(body.mother_email);
+
+        // Previous school
+        const previousSchool = cleanText(
+          body.previous_school,
+          200
+        );
+
+        // Emergency contact
+        const emergencyContactName = cleanText(
+          body.emergency_contact_name,
+          150
+        );
+
+        const emergencyContactPhone = cleanText(
+          body.emergency_contact_phone,
+          50
+        );
+
+        const emergencyContactRelationship = cleanText(
+          body.emergency_contact_relationship,
+          100
+        );
+
+        // Medical and learning information
+        const medicalInformation = cleanText(
+          body.medical_information,
+          2000
+        );
+
+        const specialLearningNeeds = cleanText(
+          body.special_learning_needs,
+          2000
+        );
         }
 
         if (parentEmail && !isValidEmail(parentEmail)) {
