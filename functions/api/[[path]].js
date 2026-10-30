@@ -794,7 +794,7 @@ export async function onRequest({ request, env }) {
         ).run();
         const applicationId = result.meta.last_row_id;
 
-        await sendSchoolEmail(
+                await sendSchoolEmail(
           env,
           "New Admission Application",
           [
@@ -802,16 +802,39 @@ export async function onRequest({ request, env }) {
             "",
             `Application ID: ${applicationId}`,
             `Child's name: ${childName}`,
-            `Class applying for: ${classApplying}`,
             `Date of birth: ${dateOfBirth}`,
             `Gender: ${gender}`,
+            `Class applying for: ${classApplying}`,
+            "",
+            "PARENT/GUARDIAN DETAILS",
             `Parent/guardian: ${parentName}`,
             `Phone: ${parentPhone}`,
             `Email: ${parentEmail}`,
-            `Address: ${address}`
+            `Address: ${address}`,
+            "",
+            "FATHER'S DETAILS",
+            `Name: ${fatherName}`,
+            `Phone: ${fatherPhone}`,
+            `Email: ${fatherEmail}`,
+            "",
+            "MOTHER'S DETAILS",
+            `Name: ${motherName}`,
+            `Phone: ${motherPhone}`,
+            `Email: ${motherEmail}`,
+            "",
+            "PREVIOUS SCHOOL",
+            `Previous school: ${previousSchool}`,
+            "",
+            "EMERGENCY CONTACT",
+            `Name: ${emergencyContactName}`,
+            `Phone: ${emergencyContactPhone}`,
+            `Relationship: ${emergencyContactRelationship}`,
+            "",
+            "MEDICAL AND LEARNING INFORMATION",
+            `Medical information: ${medicalInformation}`,
+            `Special learning needs: ${specialLearningNeeds}`
           ].join("\n")
         );
-
         return json(
           {
             ok: true,
