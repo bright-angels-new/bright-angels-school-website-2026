@@ -47,7 +47,8 @@ export async function onRequest({request,env}){
   if(path==='logout'&&method==='POST'){const t=cookieValue(request).split('.')[0];if(t)await env.DB.prepare('DELETE FROM ba_sessions WHERE token_hash = ?').bind(await hash(t)).run();return json({ok:true},200,{'set-cookie':setCookie('',0)})}
   if(path==='admissions'&&method==='POST'){const b=await readBody(request);if(!str(b.child_name))return fail('Child name is required.');const r=await env.DB.prepare('INSERT INTO ba_admissions(child_name,class_applied,parent_name,phone,email,message) VALUES(?,?,?,?,?,?)').bind(str(b.child_name,200),str(b.class_applied,80),str(b.parent_name,200),str(b.phone,80),str(b.email,250),str(b.message)).run();return json({ok:true,id:r.meta.last_row_id},201)}
   if(path==='messages'&&method==='POST'){const b=await readBody(request);if(!str(b.message))return fail('Message is required.');const r=await env.DB.prepare('INSERT INTO ba_messages(name,email,phone,message) VALUES(?,?,?,?)').bind(str(b.name,200),str(b.email,250),str(b.phone,80),str(b.message)).run();return json({ok:true,id:r.meta.last_row_id},201)}
-  if(path==='announcements'&&method==='GET')return json({data:await all(env.DB,'SELECT * FROM ba_announcements ORDER BY id DESC')});
+ if(path==='gallery'&&method==='GET')return json({data:await all(env.DB,'SELECT * FROM ba_gallery ORDER BY id DESC')});
+ if(path==='announcements'&&method==='GET')return json({data:await all(env.DB,'SELECT * FROM ba_announcements ORDER BY id DESC')});
   if(path==='content'&&method==='GET')return json({data:await all(env.DB,'SELECT * FROM ba_content ORDER BY key')});
   if(path==='data'&&method==='GET')return await authorized(request,env)?json({ok:true}):fail('Please sign in.',401);
   if(!await authorized(request,env))return fail('Please sign in to use the admin dashboard.',401);
