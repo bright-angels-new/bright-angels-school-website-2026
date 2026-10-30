@@ -845,7 +845,140 @@ export async function onRequest({ request, env }) {
   // ============================================================
 // PART 4 OF 6: ANNOUNCEMENTS AND WEBSITE SETTINGS
 // ============================================================
+// --------------------------------------------------------
+// SCHOOL PHOTO GALLERY
+// GET    /api/gallery
+// POST   /api/gallery
+// DELETE /api/gallery
+// --------------------------------------------------------
 
+if (path === "api/gallery") {
+
+  // LOAD PHOTOS
+  if (method === "GET") {
+    const photos = await env.DB.prepare(
+      "SELECT * FROM ba_gallery ORDER BY id DESC"
+    ).all();
+
+    return json({
+      ok: true,
+      data: photos.results || []
+    });
+  }
+
+  // UPLOAD PHOTO
+  if (method === "POST") {
+
+    if (!env.IMAGEKIT_PRIVATE_KEY) {
+      return fail("ImageKit is not configured.", 503);
+    }
+
+    const form = await request.formData();
+    const file = form.get("file");
+    const caption = cleanText(form.get("caption"), 300);
+
+    if (!file || typeof file === "string" || !file.size) {
+      return fail("Please select a photo.");
+    }
+
+    if (!file.type.startsWith("image/")) {
+      return fail("Only image files are allowed.");
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      return fail("Photo must not exceed 10 MB.");
+    }
+
+    const uploadForm = new FormData();
+    uploadForm.append("file", file);
+    uploadForm.append("fileName", file.name);
+    uploadForm.append("folder", "/bright-angels-school");
+
+    const response = await fetch(
+      "https://upload.imagekit.io/api/v1/files/upload",
+      {
+        method: "POST",
+        headers: {
+          Authorization:
+            "Basic " + btoa(env.IMAGEKIT_PRIVATE_KEY + ":")
+        },
+        body: uploadForm
+      }
+    );
+
+    const uploaded = await response.json();
+
+    if (!response.ok) {
+      console.error("ImageKit upload error:", uploaded);
+      return fail("Photo upload failed.", 502);
+    }
+
+    const saved = await env.DB.prepare(
+      `INSERT INTO ba_gallery
+       (image_url, file_id, caption)
+       VALUES (?, ?, ?)`
+    ).bind(
+      uploaded.url,
+      uploaded.fileId,
+      caption
+    ).run();
+
+    return json({
+      ok: true,
+      id: saved.meta.last_row_id,
+      url: uploaded.url
+    }, 201);
+  }
+
+  // DELETE PHOTO
+  if (method === "DELETE") {
+
+    if (!env.IMAGEKIT_PRIVATE_KEY) {
+      return fail("ImageKit is not configured.", 503);
+    }
+
+    const body = await readBody(request);
+    const id = Number(body && body.id);
+
+    if (!Number.isInteger(id) || id < 1) {
+      return fail("A valid photo ID is required.");
+    }
+
+    const photo = await env.DB.prepare(
+      "SELECT * FROM ba_gallery WHERE id = ?"
+    ).bind(id).first();
+
+    if (!photo) {
+      return fail("Photo not found.", 404);
+    }
+
+    const response = await fetch(
+      `https://api.imagekit.io/v1/files/${encodeURIComponent(photo.file_id)}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization:
+            "Basic " + btoa(env.IMAGEKIT_PRIVATE_KEY + ":")
+        }
+      }
+    );
+
+    if (!response.ok) {
+      return fail("Could not delete photo from ImageKit.", 502);
+    }
+
+    await env.DB.prepare(
+      "DELETE FROM ba_gallery WHERE id = ?"
+    ).bind(id).run();
+
+    return json({
+      ok: true,
+      message: "Photo deleted successfully."
+    });
+  }
+
+  return fail("Method not allowed.", 405);
+}
 // ------------------------------------------------------------
 // ANNOUNCEMENTS
 // GET    /api/announcements: Public announcement list
