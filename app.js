@@ -1546,7 +1546,6 @@ async function loadWebsiteBackground() {
 /* ---------------------------------------------------------
    15. ADMISSION APPLICATIONS
    --------------------------------------------------------- */
-
 async function renderApplications() {
     const result = await api('admissions');
     const applications = result.applications || [];
@@ -1556,8 +1555,8 @@ async function renderApplications() {
             <h2>Admission Applications</h2>
 
             <p>
-                View applications submitted through
-                the school website.
+                View complete student admission
+                applications submitted through the website.
             </p>
 
             ${makeTable(
@@ -1565,20 +1564,46 @@ async function renderApplications() {
                     'Child Name',
                     'Date of Birth',
                     'Gender',
-                    'Class Applying For',
+                    'Class',
                     'Parent/Guardian',
-                    'Phone',
-                    'Email',
+                    'Parent Phone',
+                    'Parent Email',
+                    'Father Name',
+                    'Father Phone',
+                    'Father Email',
+                    'Mother Name',
+                    'Mother Phone',
+                    'Mother Email',
+                    'Previous School',
+                    'Emergency Contact',
+                    'Emergency Phone',
+                    'Relationship',
+                    'Medical Information',
+                    'Special Learning Needs',
+                    'Home Address',
                     'Date Received'
                 ],
                 applications.map(application => [
                     safeCell(application.child_name),
-                    safeCell(application.date_of_birth),
+                    safeCell(application.date_of_birth || application.dob),
                     safeCell(application.gender),
                     safeCell(application.class_applying),
-                    safeCell(application.parent_name),
-                    safeCell(application.parent_phone),
-                    safeCell(application.parent_email),
+                    safeCell(application.guardian_name),
+                    safeCell(application.phone),
+                    safeCell(application.guardian_email),
+                    safeCell(application.father_name),
+                    safeCell(application.father_phone),
+                    safeCell(application.father_email),
+                    safeCell(application.mother_name),
+                    safeCell(application.mother_phone),
+                    safeCell(application.mother_email),
+                    safeCell(application.previous_school),
+                    safeCell(application.emergency_contact_name),
+                    safeCell(application.emergency_contact_phone),
+                    safeCell(application.emergency_contact_relationship),
+                    safeCell(application.medical_information),
+                    safeCell(application.special_learning_needs),
+                    safeCell(application.address),
                     safeCell(formatDate(application.created_at))
                 ])
             )}
