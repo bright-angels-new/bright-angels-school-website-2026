@@ -277,6 +277,53 @@ async function loadAnnouncements() {
         `;
     }
 }
+let galleryPhotos = [];
+let currentPhotoIndex = 0;
+let slideshowTimer = null;
+
+async function loadGallerySlideshow() {
+    const image = $('#slideshowImage');
+    const caption = $('#slideshowCaption');
+
+    if (!image || !caption) return;
+
+    try {
+        const result = await api('gallery');
+        galleryPhotos = Array.isArray(result.data) ? result.data : [];
+
+        if (!galleryPhotos.length) return;
+
+        function showPhoto(index) {
+            currentPhotoIndex =
+                (index + galleryPhotos.length) % galleryPhotos.length;
+
+            const photo = galleryPhotos[currentPhotoIndex];
+
+            image.src = photo.image_url;
+            caption.textContent = photo.caption || 'Bright Angels Junior School';
+        }
+
+        showPhoto(0);
+
+        $('#previousPhoto')?.addEventListener('click', () => {
+            showPhoto(currentPhotoIndex - 1);
+        });
+
+        $('#nextPhoto')?.addEventListener('click', () => {
+            showPhoto(currentPhotoIndex + 1);
+        });
+
+        clearInterval(slideshowTimer);
+
+        if (galleryPhotos.length > 1) {
+            slideshowTimer = setInterval(() => {
+                showPhoto(currentPhotoIndex + 1);
+            }, 5000);
+        }
+    } catch (error) {
+        console.error('Gallery loading failed:', error);
+    }
+}
 
 loadAnnouncements();
 /* ---------------------------------------------------------
