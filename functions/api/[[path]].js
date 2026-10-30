@@ -742,7 +742,7 @@ export async function onRequest({ request, env }) {
         if (!configuredClasses.includes(classApplying)) {
           return fail("Please select a valid class.");
         }
-
+        
         const result = await env.DB.prepare(
           `INSERT INTO applications (
             child_name,
@@ -752,8 +752,20 @@ export async function onRequest({ request, env }) {
             parent_name,
             parent_phone,
             parent_email,
-            address
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+            address,
+            father_name,
+            father_phone,
+            father_email,
+            mother_name,
+            mother_phone,
+            mother_email,
+            previous_school,
+            emergency_contact_name,
+            emergency_contact_phone,
+            emergency_contact_relationship,
+            medical_information,
+            special_learning_needs
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
           childName,
           dateOfBirth,
@@ -762,9 +774,20 @@ export async function onRequest({ request, env }) {
           parentName,
           parentPhone,
           parentEmail,
-          address
+          address,
+          fatherName,
+          fatherPhone,
+          fatherEmail,
+          motherName,
+          motherPhone,
+          motherEmail,
+          previousSchool,
+          emergencyContactName,
+          emergencyContactPhone,
+          emergencyContactRelationship,
+          medicalInformation,
+          specialLearningNeeds
         ).run();
-
         const applicationId = result.meta.last_row_id;
 
         await sendSchoolEmail(
