@@ -175,7 +175,7 @@ export async function onRequest({request,env}){
         p.push(year);
     }
 
-    sql+=' ORDER BY st.class_name,st.name,su.name
+    sql += ' ORDER BY st.class_name,st.name,su.name';
 
     return json({
         data: await all(env.DB,sql,...p)
