@@ -327,6 +327,7 @@ async function loadGallerySlideshow() {
 
 loadAnnouncements();
 loadGallerySlideshow();
+loadWebsiteBackground();
 /* ---------------------------------------------------------
    4. PUBLIC ADMISSION FORM
    --------------------------------------------------------- */
