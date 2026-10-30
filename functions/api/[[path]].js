@@ -750,51 +750,67 @@ export async function onRequest({ request, env }) {
           return fail("Please select a valid class.");
         }
         
-        const result = await env.DB.prepare(
-          `INSERT INTO applications (
-            child_name,
-            date_of_birth,
-            gender,
-            class_applying,
-            parent_name,
-            parent_phone,
-            parent_email,
-            address,
-            father_name,
-            father_phone,
-            father_email,
-            mother_name,
-            mother_phone,
-            mother_email,
-            previous_school,
-            emergency_contact_name,
-            emergency_contact_phone,
-            emergency_contact_relationship,
-            medical_information,
-            special_learning_needs
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(
-          childName,
-          dateOfBirth,
-          gender,
-          classApplying,
-          parentName,
-          parentPhone,
-          parentEmail,
-          address,
-          fatherName,
-          fatherPhone,
-          fatherEmail,
-          motherName,
-          motherPhone,
-          motherEmail,
-          previousSchool,
-          emergencyContactName,
-          emergencyContactPhone,
-          emergencyContactRelationship,
-          medicalInformation,
-          specialLearningNeeds
-        ).run();
+        const applicationReference = `BA-${crypto.randomUUID()}`;
+
+const result = await env.DB.prepare(
+  `INSERT INTO applications (
+    reference,
+    child_name,
+    dob,
+    date_of_birth,
+    gender,
+    class_applying,
+    previous_school,
+    guardian_name,
+    relationship,
+    phone,
+    guardian_email,
+    district,
+    address,
+    notes,
+    passport_key,
+    father_name,
+    father_phone,
+    father_email,
+    mother_name,
+    mother_phone,
+    mother_email,
+    emergency_contact_name,
+    emergency_contact_phone,
+    emergency_contact_relationship,
+    medical_information,
+    special_learning_needs
+  ) VALUES (
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+  )`
+).bind(
+  applicationReference,
+  childName,
+  dateOfBirth,
+  dateOfBirth,
+  gender,
+  classApplying,
+  previousSchool,
+  parentName,
+  "Parent/Guardian",
+  parentPhone,
+  parentEmail,
+  "",
+  address,
+  "",
+  "",
+  fatherName,
+  fatherPhone,
+  fatherEmail,
+  motherName,
+  motherPhone,
+  motherEmail,
+  emergencyContactName,
+  emergencyContactPhone,
+  emergencyContactRelationship,
+  medicalInformation,
+  specialLearningNeeds
+).run();
         const applicationId = result.meta.last_row_id;
 
                 await sendSchoolEmail(
