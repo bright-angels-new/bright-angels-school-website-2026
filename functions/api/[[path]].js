@@ -212,7 +212,7 @@ async function initialiseDatabase(db) {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`
   ];
-    `CREATE TABLE IF NOT EXISTS fees (
+        `CREATE TABLE IF NOT EXISTS fees (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       student_id INTEGER NOT NULL,
       academic_year TEXT NOT NULL DEFAULT '',
@@ -231,6 +231,7 @@ async function initialiseDatabase(db) {
       caption TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`
+  ];
   for (const statement of statements) {
     await db.prepare(statement).run();
   }
