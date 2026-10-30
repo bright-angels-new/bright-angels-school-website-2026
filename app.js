@@ -1549,7 +1549,26 @@ async function loadWebsiteBackground() {
 async function renderApplications() {
     const result = await api('admissions');
     const applications = result.applications || [];
+const classOrder = [
+    'Baby Class',
+    'Middle Class',
+    'Top Class',
+    'P1',
+    'P2',
+    'P3',
+    'P4',
+    'P5',
+    'P6',
+    'P7'
+];
 
+applications.sort((a, b) => {
+    const classA = classOrder.indexOf(a.class_applying);
+    const classB = classOrder.indexOf(b.class_applying);
+
+    return (classA === -1 ? 999 : classA) -
+           (classB === -1 ? 999 : classB);
+});
     const field = (label, value) => `
         <div class="admission-field">
             <strong>${label}</strong>
