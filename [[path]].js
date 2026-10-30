@@ -134,13 +134,52 @@ export async function onRequest({request,env}){
     return json({ok:true});
         }
      if(!await authorized(request,env))return fail('Please sign in to use the admin dashboard.',401);
-  if(resource==='students'&&method==='GET'&&!id)return json({data:await all(env.DB,'SELECT * FROM ba_students ORDER BY class_name,name')});
-  if(resource==='students'&&method==='POST'&&!id){const b=await readBody(request),name=str(b.name,200),cls=str(b.class_name??b.class,80),adm=str(b.admission_number??b.admission_no,80);if(!name||!cls)return fail('Student name and class are required.');const r=await env.DB.prepare('INSERT INTO ba_students(admission_number,name,class_name,gender,guardian,phone) VALUES(?,?,?,?,?,?)').bind(adm||null,name,cls,str(b.gender,30),str(b.guardian,200),str(b.phone,80)).run();return json({ok:true,id:r.meta.last_row_id},201)}
-  if(resource==='students'&&method==='DELETE'&&id){if(!await has(env.DB,'ba_students',id))return fail('Student not found.',404);await env.DB.batch([env.DB.prepare('DELETE FROM ba_marks WHERE student_id=?').bind(id),env.DB.prepare('DELETE FROM ba_fees WHERE student_id=?').bind(id),env.DB.prepare('DELETE FROM ba_students WHERE id=?').bind(id)]);return json({ok:true})}
-  if(resource==='subjects'&&method==='GET'&&!id)return json({data:await all(env.DB,'SELECT * FROM ba_subjects ORDER BY class_name,name')});
-  if(resource==='subjects'&&method==='POST'&&!id){const b=await readBody(request),name=str(b.name,120),cls=str(b.class_name??b.class,80);if(!name||!cls)return fail('Subject and class are required.');const r=await env.DB.prepare('INSERT INTO ba_subjects(name,class_name) VALUES(?,?)').bind(name,cls).run();return json({ok:true,id:r.meta.last_row_id},201)}
-  if(resource==='subjects'&&method==='DELETE'&&id){if(!await has(env.DB,'ba_subjects',id))return fail('Subject not found.',404);await env.DB.batch([env.DB.prepare('DELETE FROM ba_marks WHERE subject_id=?').bind(id),env.DB.prepare('DELETE FROM ba_subjects WHERE id=?').bind(id)]);return json({ok:true})}
-  if(resource==='marks'&&method==='GET'){
+if(resource==='students'&&method==='GET'&&!id){
+const students=await all(env.DB,
+"SELECT * FROM students WHERE status='Active' ORDER BY class_name,full_name"
+);
+return json({ok:true,students});
+}
+
+if(resource==='students'&&method==='POST'&&!id){
+const b=await readBody(request);
+const name=str(b.full_name,200);
+const cls=str(b.class_name,80);
+const adm=str(b.admission_number,80);
+
+if(!name||!cls||!adm)
+  return fail('Full name, admission number and class are required.');
+
+const r=await env.DB.prepare(`
+  INSERT INTO students
+  (admission_number,full_name,date_of_birth,gender,class_name,parent_name,parent_phone,enrollment_date,status)
+  VALUES(?,?,?,?,?,?,?,date('now'),'Active')
+`).bind(
+  adm,
+  name,
+  str(b.date_of_birth,20)||null,
+  str(b.gender,30),
+  cls,
+  str(b.parent_name,200),
+  str(b.parent_phone,80)
+).run();
+
+return json({ok:true,id:r.meta.last_row_id},201);
+
+}
+
+if(resource==='students'&&method==='DELETE'&&id){
+const result=await env.DB.prepare(
+"UPDATE students SET status='Archived' WHERE id=? AND status='Active'"
+).bind(id).run();
+
+if(!result.meta.changes)
+  return fail('Active student not found.',404);
+
+return json({ok:true});
+
+}
+     if(resource==='marks'&&method==='GET'){
     const sid=num(url.searchParams.get('student_id'));
     const term=str(url.searchParams.get('term'),30);
     const year=num(url.searchParams.get('year'));
