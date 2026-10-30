@@ -101,6 +101,38 @@ export async function onRequest({request,env}){
 
     return json({ok:true,id:saved.meta.last_row_id,url:uploaded.url},201);
   }
+   if(resource==='gallery'&&method==='DELETE'){
+    const b=await readBody(request);
+    const photoId=num(b.id);
+
+    if(!photoId)return fail('Photo ID is required.');
+
+    const photo=await env.DB.prepare(
+        'SELECT * FROM ba_gallery WHERE id=?'
+    ).bind(photoId).first();
+
+    if(!photo)return fail('Photo not found.',404);
+
+    const removed=await fetch(
+        `https://api.imagekit.io/v1/files/${encodeURIComponent(photo.file_id)}`,
+        {
+            method:'DELETE',
+            headers:{
+                Authorization:'Basic '+btoa(env.IMAGEKIT_PRIVATE_KEY+':')
+            }
+        }
+    );
+
+    if(!removed.ok){
+        return fail('Could not delete the photo from ImageKit.',502);
+    }
+
+    await env.DB.prepare(
+        'DELETE FROM ba_gallery WHERE id=?'
+    ).bind(photoId).run();
+
+    return json({ok:true});
+        }
      if(!await authorized(request,env))return fail('Please sign in to use the admin dashboard.',401);
   if(resource==='students'&&method==='GET'&&!id)return json({data:await all(env.DB,'SELECT * FROM ba_students ORDER BY class_name,name')});
   if(resource==='students'&&method==='POST'&&!id){const b=await readBody(request),name=str(b.name,200),cls=str(b.class_name??b.class,80),adm=str(b.admission_number??b.admission_no,80);if(!name||!cls)return fail('Student name and class are required.');const r=await env.DB.prepare('INSERT INTO ba_students(admission_number,name,class_name,gender,guardian,phone) VALUES(?,?,?,?,?,?)').bind(adm||null,name,cls,str(b.gender,30),str(b.guardian,200),str(b.phone,80)).run();return json({ok:true,id:r.meta.last_row_id},201)}
