@@ -1550,66 +1550,129 @@ async function renderApplications() {
     const result = await api('admissions');
     const applications = result.applications || [];
 
+    const field = (label, value) => `
+        <div class="admission-field">
+            <strong>${label}</strong>
+            <span>${safeCell(value || 'Not provided')}</span>
+        </div>
+    `;
+
+    const card = (title, content) => `
+        <div class="admission-info-card">
+            <h4>${title}</h4>
+            ${content}
+        </div>
+    `;
+
     adminContent.innerHTML = `
-        <section class="admin-section">
+        <section class="admin-section mobile-admissions">
+
             <h2>Admission Applications</h2>
 
-            <p>
-                View complete student admission
-                applications submitted through the website.
-            </p>
+            <p>View complete student admission applications.</p>
 
-            ${makeTable(
-                [
-                    'Child Name',
-                    'Date of Birth',
-                    'Gender',
-                    'Class',
-                    'Parent/Guardian',
-                    'Parent Phone',
-                    'Parent Email',
-                    'Father Name',
-                    'Father Phone',
-                    'Father Email',
-                    'Mother Name',
-                    'Mother Phone',
-                    'Mother Email',
-                    'Previous School',
-                    'Emergency Contact',
-                    'Emergency Phone',
-                    'Relationship',
-                    'Medical Information',
-                    'Special Learning Needs',
-                    'Home Address',
-                    'Date Received'
-                ],
-                applications.map(application => [
-                    safeCell(application.child_name),
-                    safeCell(application.date_of_birth || application.dob),
-                    safeCell(application.gender),
-                    safeCell(application.class_applying),
-                    safeCell(application.guardian_name),
-                    safeCell(application.phone),
-                    safeCell(application.guardian_email),
-                    safeCell(application.father_name),
-                    safeCell(application.father_phone),
-                    safeCell(application.father_email),
-                    safeCell(application.mother_name),
-                    safeCell(application.mother_phone),
-                    safeCell(application.mother_email),
-                    safeCell(application.previous_school),
-                    safeCell(application.emergency_contact_name),
-                    safeCell(application.emergency_contact_phone),
-                    safeCell(application.emergency_contact_relationship),
-                    safeCell(application.medical_information),
-                    safeCell(application.special_learning_needs),
-                    safeCell(application.address),
-                    safeCell(formatDate(application.created_at))
-                ])
-            )}
+            <input
+                type="search"
+                id="admissionSearch"
+                placeholder="Search by child's name..."
+                class="admission-search"
+            >
+
+            <div class="admission-list">
+
+                ${applications.map(application => `
+                    <details class="admission-card">
+
+                        <summary>
+                            <span class="admission-child">
+                                ${safeCell(application.child_name)}
+                            </span>
+
+                            <span>
+                                ${safeCell(application.date_of_birth || application.dob)}
+                            </span>
+
+                            <span>
+                                ${safeCell(application.class_applying)}
+                            </span>
+
+                            <span class="admission-arrow">⌄</span>
+                        </summary>
+
+                        <div class="admission-details">
+
+                            <h3>Application Details</h3>
+
+                            <div class="admission-grid">
+
+                                ${card('Student Information', `
+                                    ${field('Full Name', application.child_name)}
+                                    ${field('Date of Birth', application.date_of_birth || application.dob)}
+                                    ${field('Gender', application.gender)}
+                                    ${field('Class', application.class_applying)}
+                                    ${field('Home Address', application.address)}
+                                `)}
+
+                                ${card('Parent / Guardian Details', `
+                                    ${field('Name', application.guardian_name)}
+                                    ${field('Phone', application.phone)}
+                                    ${field('Email', application.guardian_email)}
+                                `)}
+
+                                ${card("Father's Details", `
+                                    ${field('Name', application.father_name)}
+                                    ${field('Phone', application.father_phone)}
+                                    ${field('Email', application.father_email)}
+                                `)}
+
+                                ${card("Mother's Details", `
+                                    ${field('Name', application.mother_name)}
+                                    ${field('Phone', application.mother_phone)}
+                                    ${field('Email', application.mother_email)}
+                                `)}
+
+                                ${card('Additional Information', `
+                                    ${field('Previous School', application.previous_school)}
+                                    ${field('Emergency Contact', application.emergency_contact_name)}
+                                    ${field('Emergency Phone', application.emergency_contact_phone)}
+                                    ${field('Relationship', application.emergency_contact_relationship)}
+                                    ${field('Medical Information', application.medical_information)}
+                                    ${field('Special Learning Needs', application.special_learning_needs)}
+                                    ${field('Date Received', application.created_at)}
+                                `)}
+
+                            </div>
+
+                            <button
+                                type="button"
+                                class="btn btn-navy"
+                                onclick="this.closest('details').open = false"
+                            >
+                                Close Details
+                            </button>
+
+                        </div>
+                    </details>
+                `).join('')}
+
+            </div>
         </section>
     `;
+
+    const search = document.getElementById('admissionSearch');
+
+    search.addEventListener('input', () => {
+        const term = search.value.toLowerCase();
+
+        document.querySelectorAll('.admission-card').forEach(item => {
+            item.style.display =
+                item.innerText.toLowerCase().includes(term)
+                    ? ''
+                    : 'none';
+        });
+    });
 }
+ 
 
 /* ---------------------------------------------------------
    16. CONTACT MESSAGES
