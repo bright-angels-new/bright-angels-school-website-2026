@@ -1278,6 +1278,95 @@ const announcements = Array.isArray(result.announcements)
     }
 );
 }
+async function renderAdminGallery() {
+    const result = await api('gallery');
+    const photos = Array.isArray(result.data) ? result.data : [];
+
+    adminContent.innerHTML = `
+        <section class="admin-section">
+            <h2>Manage School Photos</h2>
+
+            <p>Upload photos to display in the school website slideshow.</p>
+
+            <form id="galleryForm">
+                <label>Select photo
+                    <input
+                        type="file"
+                        name="file"
+                        accept="image/*"
+                        required
+                    >
+                </label>
+
+                <label>Photo caption
+                    <input
+                        type="text"
+                        name="caption"
+                        maxlength="300"
+                        placeholder="Enter a short caption"
+                    >
+                </label>
+
+                <button type="submit">Upload Photo</button>
+
+                <p id="galleryStatus" class="form-status"></p>
+            </form>
+
+            <h3>Uploaded Photos (${photos.length})</h3>
+
+            <div class="gallery-admin-grid">
+                ${photos.map(photo => `
+                    <div class="gallery-admin-card">
+                        <img
+                            src="${safeCell(photo.image_url)}"
+                            alt="${safeCell(photo.caption || 'School photo')}"
+                        >
+                        <p>${safeCell(photo.caption || '')}</p>
+                        ${actionButton(
+                            'Delete',
+                            'delete-gallery',
+                            photo.id,
+                            true
+                        )}
+                    </div>
+                `).join('')}
+            </div>
+        </section>
+    `;
+
+    $('#galleryForm')?.addEventListener('submit', async event => {
+        event.preventDefault();
+
+        const form = event.currentTarget;
+        const button = form.querySelector('[type="submit"]');
+        const status = $('#galleryStatus');
+
+        if (button) button.disabled = true;
+
+        showStatus(status, 'Uploading photo...');
+
+        try {
+            const formData = new FormData(form);
+            await uploadGalleryPhoto(formData);
+
+            await renderAdminGallery();
+
+            showStatus(
+                $('#galleryStatus'),
+                'Photo uploaded successfully.',
+                'success'
+            );
+        } catch (error) {
+            showStatus(
+                status,
+                `Photo upload failed: ${error.message}`,
+                'error'
+            );
+        } finally {
+            if (button) button.disabled = false;
+        }
+    });
+}
 /* ---------------------------------------------------------
    15. ADMISSION APPLICATIONS
    --------------------------------------------------------- */
