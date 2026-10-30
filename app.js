@@ -1767,12 +1767,9 @@ if (adminContent) {
         button.disabled = true;
 
         try {
-            await api(endpoint, {
-                method: 'DELETE',
-                body: {
-                    id: Number(id)
-                }
-            });
+           await api(`${endpoint}/${id}`, {
+    method: 'DELETE'
+}); 
 
             if (action === 'delete-announcement') {
                 await loadAnnouncements();
