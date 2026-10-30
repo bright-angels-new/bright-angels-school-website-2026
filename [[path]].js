@@ -179,6 +179,29 @@ if(!result.meta.changes)
 return json({ok:true});
 
 }
+     if(resource==='subjects'&&method==='GET'&&!id){
+const subjects=await all(env.DB,
+'SELECT * FROM subjects ORDER BY subject_name'
+);
+return json({ok:true,subjects});
+}
+
+if(resource==='subjects'&&method==='POST'&&!id){
+const b=await readBody(request);
+const name=str(b.name??b.subject_name,120);
+
+if(!name)return fail('Subject name is required.');
+
+const r=await env.DB.prepare(
+'INSERT INTO subjects(subject_name) VALUES(?)'
+).bind(name).run();
+
+return json({ok:true,id:r.meta.last_row_id},201);
+}
+
+if(resource==='subjects'&&method==='DELETE'&&id){
+return fail('Subject deletion is disabled to protect historical marks.');
+}
      if(resource==='marks'&&method==='GET'){
     const sid=num(url.searchParams.get('student_id'));
     const term=str(url.searchParams.get('term'),30);
