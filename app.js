@@ -1022,21 +1022,23 @@ async function renderMarks() {
             <h3>Recorded Marks (${marks.length})</h3>
 
             ${makeTable(
-                [
-                    'Pupil',
-                    'Admission No.',
-                    'Class',
-                    'Subject',
-                    'Term',
-                    'Year',
-                    'Score',
-                    'Maximum',
-                    'Remarks'
+    [
+        'Pupil',
+        'Admission No.',
+        'Class',
+        'Subject',
+        'Assessment',
+        'Term',
+        'Year',
+        'Score',
+        'Maximum',
+        'Remarks'
                 ],
                 marks.map(mark => [
                     safeCell(mark.student_name),
                     safeCell(mark.admission_number),
                     safeCell(mark.class_name),
+                   safeCell(mark.assessment_type),
                     safeCell(mark.subject_name),
                     safeCell(mark.term),
                     safeCell(mark.year),
