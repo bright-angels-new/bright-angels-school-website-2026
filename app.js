@@ -1356,10 +1356,11 @@ if (adminContent) {
         if (!id) return;
 
         const deleteRoutes = {
-            'delete-student': 'students',
-            'delete-subject': 'subjects',
-            'delete-announcement': 'announcements'
-        };
+    'delete-student': 'students',
+    'delete-subject': 'subjects',
+    'delete-announcement': 'announcements',
+    'delete-gallery': 'gallery'
+};
 
         const endpoint = deleteRoutes[action];
 
