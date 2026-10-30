@@ -1106,143 +1106,104 @@ if (path === "api/gallery") {
 
     if (path === "api/settings") {
 
-      if (method === "GET") {
+    if (method === "GET") {
         const row = await env.DB.prepare(
-          "SELECT value FROM settings WHERE key = ?"
+            "SELECT value FROM settings WHERE key = ?"
         ).bind("school_classes").first();
 
         let classes = DEFAULT_CLASSES;
 
-        if (row && row.value) {
-          try {
-            const parsed = JSON.parse(row.value);
+        if (row?.value) {
+            try {
+                const parsed = JSON.parse(row.value);
 
-            if (
-              Array.isArray(parsed) &&
-              parsed.every(item => typeof item === "string")
-            ) {
-              classes = parsed;
+                if (
+                    Array.isArray(parsed) &&
+                    parsed.every(item => typeof item === "string")
+                ) {
+                    classes = parsed;
+                }
+            } catch {
+                console.error("Could not read school classes.");
             }
-          } catch {
-            console.error("Could not read school classes.");
-          }
         }
 
         const backgroundRow = await env.DB.prepare(
-  "SELECT value FROM settings WHERE key = ?"
-).bind("background_url").first();
-
-return json({
-  ok: true,
-  settings: {
-    school_classes: classes,
-    background_url: backgroundRow?.value || ""
-  }
-});
-      }
-
-      if (method === "PUT") {
-        const body = await readBody(request);
-
-        if (!body) {
-          return fail("Please provide valid settings.");
-        }
-
-        if (method === "PUT") {
-    const body = await readBody(request);
-
-    if (!body) {
-        return fail("Please provide valid settings.");
-    }
-
-    const suppliedClasses =
-        body.school_classes || body.classes;
-
-    if (suppliedClasses !== undefined) {
-        if (!Array.isArray(suppliedClasses)) {
-            return fail("School classes must be provided as a list.");
-        }
-
-        const classes = suppliedClasses
-            .map(item => cleanText(item, 50))
-            .filter(Boolean);
-
-        if (
-            classes.length < 1 ||
-            classes.length > 20 ||
-            new Set(classes).size !== classes.length
-        ) {
-            return fail("Provide between 1 and 20 unique class names.");
-        }
-
-        await env.DB.prepare(
-            `INSERT INTO settings (key, value)
-             VALUES (?, ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value`
-        ).bind(
-            "school_classes",
-            JSON.stringify(classes)
-        ).run();
-    }
-
-    if (body.background_url !== undefined) {
-        const backgroundUrl = cleanText(body.background_url, 1000);
-
-        if (
-            backgroundUrl &&
-            !backgroundUrl.startsWith("https://ik.imagekit.io/")
-        ) {
-            return fail("Please select a valid school background photo.");
-        }
-
-        await env.DB.prepare(
-            `INSERT INTO settings (key, value)
-             VALUES (?, ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value`
-        ).bind("background_url", backgroundUrl).run();
-    }
-
-    return json({
-        ok: true,
-        message: "Website settings updated successfully."
-    });
-        }
-        if (!Array.isArray(suppliedClasses)) {
-          return fail("School classes must be provided as a list.");
-        }
-
-        const classes = suppliedClasses
-          .map(item => cleanText(item, 50))
-          .filter(Boolean);
-
-        if (
-          classes.length < 1 ||
-          classes.length > 20 ||
-          new Set(classes).size !== classes.length
-        ) {
-          return fail(
-            "Provide between 1 and 20 unique class names."
-          );
-        }
-
-        await env.DB.prepare(
-          `INSERT INTO settings (key, value)
-           VALUES (?, ?)
-           ON CONFLICT(key) DO UPDATE SET value = excluded.value`
-        ).bind(
-          "school_classes",
-          JSON.stringify(classes)
-        ).run();
+            "SELECT value FROM settings WHERE key = ?"
+        ).bind("background_url").first();
 
         return json({
-          ok: true,
-          message: "School classes updated successfully.",
-          school_classes: classes
+            ok: true,
+            settings: {
+                school_classes: classes,
+                background_url: backgroundRow?.value || ""
+            }
         });
-      }
-
-      return fail("Method not allowed.", 405);
     }
+
+    if (method === "PUT") {
+        const body = await readBody(request);
+
+        if (!body || typeof body !== "object") {
+            return fail("Please provide valid settings.");
+        }
+
+        const suppliedClasses =
+            body.school_classes || body.classes;
+
+        if (suppliedClasses !== undefined) {
+            if (!Array.isArray(suppliedClasses)) {
+                return fail("School classes must be provided as a list.");
+            }
+
+            const classes = suppliedClasses
+                .map(item => cleanText(item, 50))
+                .filter(Boolean);
+
+            if (
+                classes.length < 1 ||
+                classes.length > 20 ||
+                new Set(classes).size !== classes.length
+            ) {
+                return fail("Provide between 1 and 20 unique class names.");
+            }
+
+            await env.DB.prepare(
+                `INSERT INTO settings (key, value)
+                 VALUES (?, ?)
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+            ).bind(
+                "school_classes",
+                JSON.stringify(classes)
+            ).run();
+        }
+
+        if (body.background_url !== undefined) {
+            const backgroundUrl = cleanText(body.background_url, 1000);
+
+            if (
+                backgroundUrl &&
+                !backgroundUrl.startsWith("https://ik.imagekit.io/")
+            ) {
+                return fail("Please select a valid school background photo.");
+            }
+
+            await env.DB.prepare(
+                `INSERT INTO settings (key, value)
+                 VALUES (?, ?)
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+            ).bind("background_url", backgroundUrl).run();
+        }
+
+        return json({
+            ok: true,
+            message: "Website settings updated successfully."
+        });
+    }
+
+    return fail("Method not allowed.", 405);
+              }
+    
 
 // ------------------------------------------------------------
 // END OF PART 4
