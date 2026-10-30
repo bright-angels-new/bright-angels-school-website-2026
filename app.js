@@ -1521,6 +1521,27 @@ async function renderWebsiteDesign() {
         }
     });
 }
+async function loadWebsiteBackground() {
+    try {
+        const result = await api('settings');
+        const backgroundUrl =
+            result.settings?.background_url || '';
+
+        if (backgroundUrl) {
+            document.body.style.backgroundImage =
+                `url("${backgroundUrl}")`;
+
+            document.body.style.backgroundSize = 'cover';
+            document.body.style.backgroundPosition = 'center';
+            document.body.style.backgroundAttachment = 'fixed';
+            document.body.style.backgroundRepeat = 'no-repeat';
+        } else {
+            document.body.style.backgroundImage = 'none';
+        }
+    } catch (error) {
+        console.error('Could not load website background:', error);
+    }
+                                         }
 /* ---------------------------------------------------------
    15. ADMISSION APPLICATIONS
    --------------------------------------------------------- */
