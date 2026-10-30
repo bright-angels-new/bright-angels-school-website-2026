@@ -541,9 +541,10 @@ export async function onRequest({ request, env }) {
     ]);
 
     const publicReadPaths = new Set([
-      "api/announcements",
-      "api/settings"
-    ]);
+  "api/announcements",
+  "api/settings",
+  "api/gallery"
+]);
 
     const publicSubmissionPaths = new Set([
       "api/admissions",
