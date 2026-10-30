@@ -1128,12 +1128,17 @@ if (path === "api/gallery") {
           }
         }
 
-        return json({
-          ok: true,
-          settings: {
-            school_classes: classes
-          }
-        });
+        const backgroundRow = await env.DB.prepare(
+  "SELECT value FROM settings WHERE key = ?"
+).bind("background_url").first();
+
+return json({
+  ok: true,
+  settings: {
+    school_classes: classes,
+    background_url: backgroundRow?.value || ""
+  }
+});
       }
 
       if (method === "PUT") {
