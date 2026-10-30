@@ -714,9 +714,13 @@ export async function onRequest({ request, env }) {
         );
         }
 
-        if (parentEmail && !isValidEmail(parentEmail)) {
-          return fail("Please enter a valid parent email address.");
-        }
+                if (
+          (parentEmail && !isValidEmail(parentEmail)) ||
+          (fatherEmail && !isValidEmail(fatherEmail)) ||
+          (motherEmail && !isValidEmail(motherEmail))
+        ) {
+          return fail("Please enter valid email addresses.");
+      }
 
         const savedClasses = await env.DB.prepare(
           "SELECT value FROM settings WHERE key = ?"
