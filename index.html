@@ -77,12 +77,140 @@
 <section id="admissions" class="section admission-section">
  <div class="admission-copy"><p class="eyebrow">JOIN OUR SCHOOL</p><h2>Start your child's <span class="gold-text">journey.</span></h2><p>Interested in joining Bright Angels Junior School? Send an application enquiry below. Our school team will follow up using the contact details you provide.</p><div class="admission-points"><span>✓ Friendly learning community</span><span>✓ Supportive home–school partnership</span><span>✓ A place to learn and grow</span></div></div>
  <form id="admissionForm" class="form-card">
-  <h3>Admission enquiry</h3><p class="form-intro">Fields marked * are required.</p>
-  <label>Child's full name *<input name="child_name" required maxlength="200" placeholder="Enter child's name"></label>
-  <div class="form-row"><label>Class applying for<select name="class_applied"><option value="">Select class</option><option>Baby Class</option><option>Middle Class</option><option>Top Class</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option><option>P5</option><option>P6</option><option>P7</option></select></label><label>Parent/guardian name<input name="parent_name" maxlength="200" placeholder="Your full name"></label></div>
-  <div class="form-row"><label>Phone number *<input name="phone" required type="tel" maxlength="80" placeholder="+256..."></label><label>Email address<input name="email" type="email" maxlength="250" placeholder="you@example.com"></label></div>
-  <label>Message<textarea name="message" rows="3" maxlength="4000" placeholder="Anything you would like us to know?"></textarea></label>
-  <button class="btn btn-navy" type="submit">Send enquiry <span>→</span></button><p class="form-status" id="admissionStatus" role="status"></p>
+
+  <h3>Student Admission Application</h3>
+  <p class="form-intro">Please complete all required fields marked *.</p>
+
+  <h4>1. STUDENT DETAILS</h4>
+
+  <label>Child's full name *
+    <input name="child_name" required maxlength="200" placeholder="Enter child's full name">
+  </label>
+
+  <div class="form-row">
+    <label>Date of birth *
+      <input type="date" name="date_of_birth" required>
+    </label>
+
+    <label>Gender *
+      <select name="gender" required>
+        <option value="">Select gender</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="form-row">
+    <label>Class applying for *
+      <select name="class_applying" required>
+        <option value="">Select class</option>
+        <option>Baby Class</option>
+        <option>Middle Class</option>
+        <option>Top Class</option>
+        <option>P1</option>
+        <option>P2</option>
+        <option>P3</option>
+        <option>P4</option>
+        <option>P5</option>
+        <option>P6</option>
+        <option>P7</option>
+      </select>
+    </label>
+
+    <label>Home address / Residence
+      <input name="address" maxlength="500" placeholder="Enter home address">
+    </label>
+  </div>
+
+  <h4>2. PARENT / GUARDIAN DETAILS</h4>
+
+  <label>Parent/guardian full name *
+    <input name="parent_name" required maxlength="150" placeholder="Full name">
+  </label>
+
+  <div class="form-row">
+    <label>Phone number *
+      <input name="phone" required type="tel" maxlength="50" placeholder="+256...">
+    </label>
+
+    <label>Email address
+      <input name="email" type="email" maxlength="250" placeholder="Email address">
+    </label>
+  </div>
+
+  <h4>3. FATHER'S DETAILS</h4>
+
+  <label>Father's full name
+    <input name="father_name" maxlength="150">
+  </label>
+
+  <div class="form-row">
+    <label>Phone number
+      <input name="father_phone" type="tel" maxlength="50">
+    </label>
+
+    <label>Email address
+      <input name="father_email" type="email" maxlength="250">
+    </label>
+  </div>
+
+  <h4>4. MOTHER'S DETAILS</h4>
+
+  <label>Mother's full name
+    <input name="mother_name" maxlength="150">
+  </label>
+
+  <div class="form-row">
+    <label>Phone number
+      <input name="mother_phone" type="tel" maxlength="50">
+    </label>
+
+    <label>Email address
+      <input name="mother_email" type="email" maxlength="250">
+    </label>
+  </div>
+
+  <h4>5. PREVIOUS SCHOOL</h4>
+
+  <label>Name of previous school
+    <input name="previous_school" maxlength="200" placeholder="Enter previous school or leave blank">
+  </label>
+
+  <h4>6. EMERGENCY CONTACT</h4>
+
+  <label>Emergency contact person's name
+    <input name="emergency_contact_name" maxlength="150">
+  </label>
+
+  <div class="form-row">
+    <label>Emergency phone number
+      <input name="emergency_contact_phone" type="tel" maxlength="50">
+    </label>
+
+    <label>Relationship to child
+      <input name="emergency_contact_relationship" maxlength="100">
+    </label>
+  </div>
+
+  <h4>7. MEDICAL INFORMATION</h4>
+
+  <label>Medical conditions or allergies
+    <textarea name="medical_information" rows="3" maxlength="2000" placeholder="Provide any important medical information"></textarea>
+  </label>
+
+  <h4>8. SPECIAL LEARNING NEEDS</h4>
+
+  <label>Does the child have any special learning needs?
+    <textarea name="special_learning_needs" rows="3" maxlength="2000" placeholder="Provide relevant information, if any"></textarea>
+  </label>
+
+  <button class="btn btn-navy" type="submit">
+    Submit Application <span>→</span>
+  </button>
+
+  <p class="form-status" id="admissionStatus" role="status"></p>
+
  </form>
 </section>
 <section id="contact" class="section contact-section">
