@@ -223,7 +223,36 @@ async function initialiseDatabase(db) {
   for (const statement of statements) {
     await db.prepare(statement).run();
   }
+  const admissionColumns = [
+    ["father_name", "TEXT NOT NULL DEFAULT ''"],
+    ["father_phone", "TEXT NOT NULL DEFAULT ''"],
+    ["father_email", "TEXT NOT NULL DEFAULT ''"],
+    ["mother_name", "TEXT NOT NULL DEFAULT ''"],
+    ["mother_phone", "TEXT NOT NULL DEFAULT ''"],
+    ["mother_email", "TEXT NOT NULL DEFAULT ''"],
+    ["previous_school", "TEXT NOT NULL DEFAULT ''"],
+    ["emergency_contact_name", "TEXT NOT NULL DEFAULT ''"],
+    ["emergency_contact_phone", "TEXT NOT NULL DEFAULT ''"],
+    ["emergency_contact_relationship", "TEXT NOT NULL DEFAULT ''"],
+    ["medical_information", "TEXT NOT NULL DEFAULT ''"],
+    ["special_learning_needs", "TEXT NOT NULL DEFAULT ''"]
+  ];
 
+  const existingColumns = await db.prepare(
+    "PRAGMA table_info(applications)"
+  ).all();
+
+  const existingColumnNames = new Set(
+    (existingColumns.results || []).map(column => column.name)
+  );
+
+  for (const [column, definition] of admissionColumns) {
+    if (!existingColumnNames.has(column)) {
+      await db.prepare(
+        `ALTER TABLE applications ADD COLUMN ${column} ${definition}`
+      ).run();
+    }
+  }
   await db.prepare(
     `INSERT OR IGNORE INTO settings (key, value)
      VALUES (?, ?)`
