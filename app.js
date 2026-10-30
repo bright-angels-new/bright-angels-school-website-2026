@@ -197,7 +197,27 @@ function actionButton(label, action, id, danger = false) {
         </button>
     `;
 }
+async function uploadGalleryPhoto(formData) {
+    const response = await fetch('/api/gallery', {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: formData
+    });
 
+    let result = {};
+
+    try {
+        result = await response.json();
+    } catch {
+        result = {};
+    }
+
+    if (!response.ok || result.ok === false) {
+        throw new Error(result.error || 'Photo upload failed.');
+    }
+
+    return result;
+}
 /* ---------------------------------------------------------
    3. PUBLIC ANNOUNCEMENTS
    --------------------------------------------------------- */
