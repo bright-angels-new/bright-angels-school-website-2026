@@ -1148,9 +1148,65 @@ return json({
           return fail("Please provide valid settings.");
         }
 
-        const suppliedClasses =
-          body.school_classes || body.classes;
+        if (method === "PUT") {
+    const body = await readBody(request);
 
+    if (!body) {
+        return fail("Please provide valid settings.");
+    }
+
+    const suppliedClasses =
+        body.school_classes || body.classes;
+
+    if (suppliedClasses !== undefined) {
+        if (!Array.isArray(suppliedClasses)) {
+            return fail("School classes must be provided as a list.");
+        }
+
+        const classes = suppliedClasses
+            .map(item => cleanText(item, 50))
+            .filter(Boolean);
+
+        if (
+            classes.length < 1 ||
+            classes.length > 20 ||
+            new Set(classes).size !== classes.length
+        ) {
+            return fail("Provide between 1 and 20 unique class names.");
+        }
+
+        await env.DB.prepare(
+            `INSERT INTO settings (key, value)
+             VALUES (?, ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+        ).bind(
+            "school_classes",
+            JSON.stringify(classes)
+        ).run();
+    }
+
+    if (body.background_url !== undefined) {
+        const backgroundUrl = cleanText(body.background_url, 1000);
+
+        if (
+            backgroundUrl &&
+            !backgroundUrl.startsWith("https://ik.imagekit.io/")
+        ) {
+            return fail("Please select a valid school background photo.");
+        }
+
+        await env.DB.prepare(
+            `INSERT INTO settings (key, value)
+             VALUES (?, ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+        ).bind("background_url", backgroundUrl).run();
+    }
+
+    return json({
+        ok: true,
+        message: "Website settings updated successfully."
+    });
+        }
         if (!Array.isArray(suppliedClasses)) {
           return fail("School classes must be provided as a list.");
         }
