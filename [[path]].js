@@ -202,7 +202,7 @@ return json({ok:true,id:r.meta.last_row_id},201);
 if(resource==='subjects'&&method==='DELETE'&&id){
 return fail('Subject deletion is disabled to protect historical marks.');
 }
-     if(resource==='marks'&&method==='GET'){
+if(resource==='marks'&&method==='GET'){
     const sid=num(url.searchParams.get('student_id'));
     const term=str(url.searchParams.get('term'),30);
     const year=num(url.searchParams.get('year'));
@@ -210,13 +210,17 @@ return fail('Subject deletion is disabled to protect historical marks.');
     let sql=`
         SELECT
             m.*,
-            st.name AS student_name,
+            st.full_name AS student_name,
             st.admission_number,
             st.class_name,
-            su.name AS subject_name
-        FROM ba_marks m
-        JOIN ba_students st ON st.id=m.student_id
-        JOIN ba_subjects su ON su.id=m.subject_id
+            su.subject_name AS subject_name,
+            m.academic_year AS year,
+            m.marks_obtained AS score,
+            m.maximum_marks AS out_of,
+            m.remarks AS comment
+        FROM marks m
+        JOIN students st ON st.id=m.student_id
+        JOIN subjects su ON su.id=m.subject_id
         WHERE 1=1
     `;
 
@@ -233,19 +237,66 @@ return fail('Subject deletion is disabled to protect historical marks.');
     }
 
     if(year){
-        sql+=' AND m.year=?';
+        sql+=' AND m.academic_year=?';
         p.push(year);
     }
 
-    sql += ' ORDER BY st.class_name,st.name,su.name';
+    sql+=' ORDER BY st.class_name,st.full_name,su.subject_name';
 
     return json({
-        data: await all(env.DB,sql,...p)
+        ok:true,
+        marks:await all(env.DB,sql,...p)
     });
-     }
-  if(resource==='marks'&&method==='POST'&&!id){const b=await readBody(request),sid=num(b.student_id),sub=num(b.subject_id),term=str(b.term,30),year=num(b.year),score=num(b.score??b.marks),out=num(b.out_of??100);if(!sid||!sub||!term||!year)return fail('Student, subject, term and year are required.');if(score<0||out<=0||score>out)return fail('Score must be between zero and the maximum mark.');if(!await has(env.DB,'ba_students',sid)||!await has(env.DB,'ba_subjects',sub))return fail('Student or subject not found.',404);const r=await env.DB.prepare('INSERT INTO ba_marks(student_id,subject_id,term,year,score,out_of,comment) VALUES(?,?,?,?,?,?,?)').bind(sid,sub,term,year,score,out,str(b.comment,500)).run();return json({ok:true,id:r.meta.last_row_id},201)}
-  if(resource==='marks'&&method==='DELETE'&&id){if(!await has(env.DB,'ba_marks',id))return fail('Mark record not found.',404);await env.DB.prepare('DELETE FROM ba_marks WHERE id=?').bind(id).run();return json({ok:true})}
-  if(resource==='fees'&&method==='GET'){const sid=num(url.searchParams.get('student_id')),term=str(url.searchParams.get('term'),30),year=num(url.searchParams.get('year'));let sql='SELECT f.*,st.name AS student_name,st.admission_number,st.class_name FROM ba_fees f JOIN ba_students st ON st.id=f.student_id WHERE 1=1',p=[];if(sid){sql+=' AND f.student_id=?';p.push(sid)}if(term){sql+=' AND f.term=?';p.push(term)}if(year){sql+=' AND f.year=?';p.push(year)}return json({data:await all(env.DB,sql+' ORDER BY st.class_name,st.name',...p)})}
+}
+
+if(resource==='marks'&&method==='POST'&&!id){
+    const b=await readBody(request);
+    const sid=num(b.student_id);
+    const sub=num(b.subject_id);
+    const term=str(b.term,30);
+    const year=num(b.year);
+    const score=num(b.score);
+    const out=num(b.out_of);
+    const assessment=str(b.assessment_type,10);
+    const allowed=['BOT','MOT','EOT'];
+
+    if(!sid||!sub||!term||!year)
+        return fail('Student, subject, term and year are required.');
+
+    if(!allowed.includes(assessment))
+        return fail('Select BOT, MOT or EOT.');
+
+    if(score<0||out<=0||score>out)
+        return fail('Score must be between zero and the maximum mark.');
+
+    const student=await env.DB.prepare(
+        'SELECT id FROM students WHERE id=?'
+    ).bind(sid).first();
+
+    const subject=await env.DB.prepare(
+        'SELECT id FROM subjects WHERE id=?'
+    ).bind(sub).first();
+
+    if(!student||!subject)
+        return fail('Student or subject not found.',404);
+
+    const r=await env.DB.prepare(`
+        INSERT INTO marks
+        (student_id,subject_id,academic_year,term,assessment_type,
+         marks_obtained,maximum_marks,remarks)
+        VALUES(?,?,?,?,?,?,?,?)
+    `).bind(
+        sid,sub,year,term,assessment,score,out,
+        str(b.comment,500)
+    ).run();
+
+    return json({ok:true,id:r.meta.last_row_id},201);
+}
+
+if(resource==='marks'&&method==='DELETE'&&id){
+    return fail('Deleting academic marks is disabled to protect historical records.');
+}     
+     if(resource==='fees'&&method==='GET'){const sid=num(url.searchParams.get('student_id')),term=str(url.searchParams.get('term'),30),year=num(url.searchParams.get('year'));let sql='SELECT f.*,st.name AS student_name,st.admission_number,st.class_name FROM ba_fees f JOIN ba_students st ON st.id=f.student_id WHERE 1=1',p=[];if(sid){sql+=' AND f.student_id=?';p.push(sid)}if(term){sql+=' AND f.term=?';p.push(term)}if(year){sql+=' AND f.year=?';p.push(year)}return json({data:await all(env.DB,sql+' ORDER BY st.class_name,st.name',...p)})}
   if(resource==='fees'&&method==='POST'&&!id){const b=await readBody(request),sid=num(b.student_id),term=str(b.term,30),year=num(b.year),paid=num(b.amount_paid),bal=num(b.balance);if(!sid||!term||!year)return fail('Student, term and year are required.');if(paid<0||bal<0)return fail('Fee amounts cannot be negative.');if(!await has(env.DB,'ba_students',sid))return fail('Student not found.',404);const r=await env.DB.prepare('INSERT INTO ba_fees(student_id,term,year,amount_paid,balance,reference) VALUES(?,?,?,?,?,?)').bind(sid,term,year,paid,bal,str(b.reference,150)).run();return json({ok:true,id:r.meta.last_row_id},201)}
   if(resource==='announcements'&&method==='POST'){const b=await readBody(request),title=str(b.title,200),body=str(b.body??b.message);if(!title||!body)return fail('Announcement title and message are required.');const r=await env.DB.prepare('INSERT INTO ba_announcements(title,body) VALUES(?,?)').bind(title,body).run();return json({ok:true,id:r.meta.last_row_id},201)}
   if(resource==='announcements'&&method==='DELETE'&&id){if(!await has(env.DB,'ba_announcements',id))return fail('Announcement not found.',404);await env.DB.prepare('DELETE FROM ba_announcements WHERE id=?').bind(id).run();return json({ok:true})}
