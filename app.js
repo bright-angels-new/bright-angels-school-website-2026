@@ -985,6 +985,14 @@ async function renderMarks() {
                 </label>
 
                 <label>Marks obtained
+                <label>Assessment
+    <select name="assessment_type" required>
+        <option value="">Select assessment</option>
+        <option value="BOT">BOT</option>
+        <option value="MOT">MOT</option>
+        <option value="EOT">EOT</option>
+    </select>
+</label>
                     <input
                         name="score"
                         type="number"
