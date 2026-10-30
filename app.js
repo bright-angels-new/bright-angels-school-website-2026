@@ -682,6 +682,9 @@ async function renderTab(tab) {
 case 'gallery':
     await renderAdminGallery();
     break;
+              case 'design':
+    await renderWebsiteDesign();
+    break;
             case 'applications':
                 await renderApplications();
                 break;
