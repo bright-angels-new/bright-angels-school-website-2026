@@ -1418,6 +1418,109 @@ async function renderAdminGallery() {
         }
     });
 }
+async function renderWebsiteDesign() {
+    const [galleryResult, settingsResult] = await Promise.all([
+        api('gallery'),
+        api('settings')
+    ]);
+
+    const photos = Array.isArray(galleryResult.data)
+        ? galleryResult.data
+        : [];
+
+    const currentBackground =
+        settingsResult.settings?.background_url || '';
+
+    adminContent.innerHTML = `
+        <section class="admin-section">
+            <h2>Website Design</h2>
+
+            <p>Choose a photo from your uploaded school photos
+            to use as the website background.</p>
+
+            <form id="backgroundForm">
+
+                <label>Select website background</label>
+
+                <select id="backgroundChoice">
+                    <option value="">No background photo</option>
+
+                    ${photos.map(photo => `
+                        <option
+                            value="${escapeHTML(photo.image_url)}"
+                            ${photo.image_url === currentBackground ? 'selected' : ''}
+                        >
+                            ${escapeHTML(photo.caption || 'School photo')}
+                        </option>
+                    `).join('')}
+                </select>
+
+                <div id="backgroundPreview" style="margin:15px 0;">
+                    ${
+                        currentBackground
+                            ? `<img src="${escapeHTML(currentBackground)}"
+                                alt="Current background"
+                                style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;">`
+                            : '<p>No background selected.</p>'
+                    }
+                </div>
+
+                <button type="submit">Save Website Background</button>
+
+                <p id="backgroundStatus" class="form-status"></p>
+            </form>
+        </section>
+    `;
+
+    const choice = $('#backgroundChoice');
+    const preview = $('#backgroundPreview');
+
+    choice?.addEventListener('change', () => {
+        const url = choice.value;
+
+        preview.innerHTML = url
+            ? `<img src="${escapeHTML(url)}"
+                alt="Background preview"
+                style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;">`
+            : '<p>No background selected.</p>';
+    });
+
+    $('#backgroundForm')?.addEventListener('submit', async event => {
+        event.preventDefault();
+
+        const button = event.currentTarget.querySelector(
+            '[type="submit"]'
+        );
+
+        const status = $('#backgroundStatus');
+
+        button.disabled = true;
+        showStatus(status, 'Saving website background...');
+
+        try {
+            await api('settings', {
+                method: 'PUT',
+                body: {
+                    background_url: choice.value
+                }
+            });
+
+            showStatus(
+                status,
+                'Website background saved successfully.',
+                'success'
+            );
+        } catch (error) {
+            showStatus(
+                status,
+                `Could not save background: ${error.message}`,
+                'error'
+            );
+        } finally {
+            button.disabled = false;
+        }
+    });
+}
 /* ---------------------------------------------------------
    15. ADMISSION APPLICATIONS
    --------------------------------------------------------- */
