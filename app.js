@@ -948,7 +948,7 @@ async function renderMarks() {
                         <option value="">Select pupil</option>
                         ${students.map(student => `
                             <option value="${escapeHTML(student.id)}">
-                                ${escapeHTML(student.name)}
+                                ${escapeHTML(student.full_name)}
                                 (${escapeHTML(student.admission_number || '')})
                             </option>
                         `).join('')}
@@ -960,7 +960,7 @@ async function renderMarks() {
                         <option value="">Select subject</option>
                         ${subjects.map(subject => `
                             <option value="${escapeHTML(subject.id)}">
-                                ${escapeHTML(subject.name)}
+                                ${escapeHTML(subject.subject_name)}
                                 (${escapeHTML(subject.class_name || '')})
                             </option>
                         `).join('')}
