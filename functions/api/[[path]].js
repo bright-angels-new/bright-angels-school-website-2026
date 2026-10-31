@@ -224,6 +224,7 @@ async function initialiseDatabase(db) {
     await db.prepare(statement).run();
   }
   const admissionColumns = [
+    ["reference", "TEXT NOT NULL DEFAULT ''"],
    ["date_of_birth", "TEXT NOT NULL DEFAULT ''"], 
     ["father_name", "TEXT NOT NULL DEFAULT ''"],
     ["father_phone", "TEXT NOT NULL DEFAULT ''"],
