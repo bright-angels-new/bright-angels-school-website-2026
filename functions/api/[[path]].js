@@ -225,6 +225,9 @@ async function initialiseDatabase(db) {
   }
   const admissionColumns = [
     ["reference", "TEXT NOT NULL DEFAULT ''"],
+    ["confirmed_class", "TEXT NOT NULL DEFAULT ''"],
+["admission_number", "TEXT NOT NULL DEFAULT ''"],
+["approved_at", "TEXT NOT NULL DEFAULT ''"],
    ["date_of_birth", "TEXT NOT NULL DEFAULT ''"], 
     ["father_name", "TEXT NOT NULL DEFAULT ''"],
     ["father_phone", "TEXT NOT NULL DEFAULT ''"],
