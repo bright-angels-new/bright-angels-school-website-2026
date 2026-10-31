@@ -1381,10 +1381,15 @@ async function renderReportCards() {
                 return `
                     <article class="report-page">
                         <header>
-                            <h1>BRIGHT ANGELS JUNIOR SCHOOL</h1>
-                            <p>If others can, we can</p>
-                            <h2>${escapeHTML(assessment)} REPORT CARD</h2>
-                        </header>
+    <img
+        src="${window.location.origin}/school-logo.jpg"
+        alt="Bright Angels School Badge"
+        class="report-school-logo">
+
+    <h1>BRIGHT ANGELS JUNIOR SCHOOL</h1>
+    <p>If others can, we can</p>
+    <h2>${escapeHTML(assessment)} REPORT CARD</h2>
+</header>
 
                         <div class="pupil-details">
                             <p><strong>Pupil:</strong>
