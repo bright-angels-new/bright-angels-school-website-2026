@@ -448,9 +448,14 @@ if(resource==='marks'&&method==='DELETE'&&id){
         ).run();
     }
 
-    await env.DB.prepare(
-        "UPDATE ba_admissions SET status = 'Approved' WHERE id = ?"
-    ).bind(id).run();
+    await env.DB.prepare(`
+    UPDATE ba_admissions
+    SET status = 'Approved',
+        confirmed_class = ?,
+        admission_number = ?,
+        approved_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+`).bind(className, admissionNumber, id).run();
 
     return json({
         ok: true,
