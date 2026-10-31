@@ -1435,6 +1435,13 @@ async function renderReportCards() {
                 <head>
                     <title>Bright Angels Report Cards</title>
                     <style>
+                    .report-school-logo {
+    width: 95px;
+    height: 95px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto 10px;
+}
                         body {
                             font-family: Arial, sans-serif;
                             color: #17243b;
