@@ -244,6 +244,10 @@ if(resource==='marks'&&method==='GET'){
             st.class_name,
             su.subject_name AS subject_name,
             m.academic_year AS year,
+m.marks_obtained AS score,
+m.maximum_marks AS out_of,
+m.remarks AS comment
+            m.academic_year AS year,
             m.marks_obtained AS score,
             m.maximum_marks AS out_of,
             m.remarks AS comment
