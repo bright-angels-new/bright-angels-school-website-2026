@@ -1114,7 +1114,455 @@ async function renderMarks() {
         }
     });
            }
-                
+     /* ---------------------------------------------------------
+   REPORT CARDS
+   --------------------------------------------------------- */
+
+async function renderReportCards() {
+    const [marksResult, studentsResult, subjectsResult] =
+        await Promise.all([
+            api('marks'),
+            api('students'),
+            api('subjects')
+        ]);
+
+    const marks = marksResult.marks || [];
+    const students = studentsResult.students || [];
+    const subjects = subjectsResult.subjects || [];
+
+    const classes = [
+        'Baby Class', 'Middle Class', 'Top Class',
+        'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7'
+    ];
+
+    adminContent.innerHTML = `
+        <section class="admin-section">
+            <h2>Report Cards</h2>
+            <p>Generate and print pupil report cards.</p>
+
+            <form id="reportCardForm">
+
+                <label>Academic year
+                    <input name="year" type="number"
+                        value="${escapeHTML(currentAcademicYear())}"
+                        required>
+                </label>
+
+                <label>Term
+                    <select name="term" required>
+                        <option value="">Select term</option>
+                        <option>Term 1</option>
+                        <option>Term 2</option>
+                        <option>Term 3</option>
+                    </select>
+                </label>
+
+                <label>Assessment
+                    <select name="assessment_type" required>
+                        <option value="">Select assessment</option>
+                        <option value="BOT">BOT</option>
+                        <option value="MOT">MOT</option>
+                        <option value="EOT">EOT</option>
+                    </select>
+                </label>
+
+                <label>Class
+                    <select name="class_name" required>
+                        <option value="">Select class</option>
+                        <option value="ALL">All Classes</option>
+                        ${classes.map(c => `
+                            <option value="${escapeHTML(c)}">
+                                ${escapeHTML(c)}
+                            </option>
+                        `).join('')}
+                    </select>
+                </label>
+
+                <button type="submit">Generate Report Cards</button>
+                <p id="reportCardStatus" class="form-status"></p>
+            </form>
+
+            <div id="reportCardPreview"></div>
+        </section>
+    `;
+
+    $('#reportCardForm').addEventListener('submit', event => {
+        event.preventDefault();
+
+        const form = event.currentTarget;
+        const values = formValues(form);
+
+        const year = Number(values.year);
+        const term = values.term;
+        const assessment = values.assessment_type;
+        const selectedClass = values.class_name;
+
+        let pupils = students.filter(student =>
+            student.status !== 'Archived'
+        );
+
+        if (selectedClass !== 'ALL') {
+            pupils = pupils.filter(student =>
+                String(student.class_name).toUpperCase() ===
+                selectedClass.toUpperCase()
+            );
+        }
+
+        pupils.sort((a, b) =>
+            String(a.class_name).localeCompare(String(b.class_name)) ||
+            String(a.full_name).localeCompare(String(b.full_name))
+        );
+
+        const reports = pupils.map(student => {
+            const pupilSubjects = subjects.filter(subject => {
+                const sameClass =
+                    String(subject.class_name || '').toUpperCase() ===
+                    String(student.class_name || '').toUpperCase();
+
+                const sameYear =
+                    !subject.academic_year ||
+                    Number(subject.academic_year) === year;
+
+                return sameClass && sameYear;
+            });
+
+            const pupilMarks = marks.filter(mark =>
+                String(mark.student_id) === String(student.id) &&
+                Number(mark.academic_year ?? mark.year) === year &&
+                String(mark.term).toLowerCase() === term.toLowerCase() &&
+                String(mark.assessment_type).toUpperCase() === assessment
+            );
+
+            const rows = pupilSubjects.map(subject => {
+                const mark = pupilMarks.find(item =>
+                    String(item.subject_id) === String(subject.id)
+                );
+
+                const score = mark
+                    ? Number(mark.marks_obtained ?? mark.score)
+                    : null;
+
+                const maximum = mark
+                    ? Number(mark.maximum_marks ?? mark.out_of)
+                    : null;
+
+                const percentage =
+                    score !== null && maximum > 0
+                        ? (score / maximum) * 100
+                        : null;
+
+                return {
+                    subject: subject.name || subject.subject_name || '',
+                    score,
+                    maximum,
+                    percentage,
+                    grade: percentage === null
+                        ? ''
+                        : getReportGrade(student.class_name, percentage)
+                };
+            });
+
+            const completedRows = rows.filter(row =>
+                row.score !== null && row.maximum > 0
+            );
+
+            const total = completedRows.reduce(
+                (sum, row) => sum + row.score, 0
+            );
+
+            const totalMaximum = completedRows.reduce(
+                (sum, row) => sum + row.maximum, 0
+            );
+
+            const overallPercentage = totalMaximum > 0
+                ? (total / totalMaximum) * 100
+                : 0;
+
+            return {
+                student,
+                rows,
+                total,
+                totalMaximum,
+                overallPercentage
+            };
+        });
+
+        const rankedGroups = {};
+
+        reports.forEach(report => {
+            const className = report.student.class_name;
+            const group = getReportGroup(className);
+
+            if (group === 'early' || group === 'lower') {
+                if (!rankedGroups[className]) {
+                    rankedGroups[className] = [];
+                }
+
+                rankedGroups[className].push(report);
+            }
+        });
+
+        Object.values(rankedGroups).forEach(group => {
+            group.sort((a, b) => b.total - a.total);
+
+            let position = 0;
+            let previousTotal = null;
+
+            group.forEach((report, index) => {
+                if (report.total !== previousTotal) {
+                    position = index + 1;
+                }
+
+                report.position = position;
+                previousTotal = report.total;
+            });
+        });
+
+        const preview = $('#reportCardPreview');
+
+        if (!reports.length) {
+            showStatus(
+                $('#reportCardStatus'),
+                'No pupils found for the selected class.',
+                'error'
+            );
+            return;
+        }
+
+        preview.innerHTML = `
+            <h3>Generated Report Cards: ${reports.length}</h3>
+            <button type="button" id="printReportCards">
+                Print Report Cards
+            </button>
+            <p>Each pupil's report card will be printed on a separate page.</p>
+        `;
+
+        $('#printReportCards').addEventListener('click', () => {
+            const printWindow = window.open('', '_blank');
+
+            if (!printWindow) {
+                showStatus(
+                    $('#reportCardStatus'),
+                    'Please allow pop-ups to print report cards.',
+                    'error'
+                );
+                return;
+            }
+
+            const pages = reports.map(report => {
+                const group = getReportGroup(report.student.class_name);
+
+                const subjectRows = report.rows.map(row => {
+                    if (group === 'early') {
+                        return `
+                            <tr>
+                                <td>${escapeHTML(row.subject)}</td>
+                                <td>${row.score ?? ''}</td>
+                                <td>${escapeHTML(row.grade)}</td>
+                            </tr>
+                        `;
+                    }
+
+                    return `
+                        <tr>
+                            <td>${escapeHTML(row.subject)}</td>
+                            <td>${row.score ?? ''}</td>
+                            <td>${row.maximum ?? ''}</td>
+                            <td>${escapeHTML(row.grade)}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                const position =
+                    report.position
+                        ? `<p><strong>Class Position:</strong> ${report.position}</p>`
+                        : '';
+
+                return `
+                    <article class="report-page">
+                        <header>
+                            <h1>BRIGHT ANGELS JUNIOR SCHOOL</h1>
+                            <p>If others can, we can</p>
+                            <h2>${escapeHTML(assessment)} REPORT CARD</h2>
+                        </header>
+
+                        <div class="pupil-details">
+                            <p><strong>Pupil:</strong>
+                                ${escapeHTML(report.student.full_name)}</p>
+                            <p><strong>Admission No:</strong>
+                                ${escapeHTML(report.student.admission_number || '')}</p>
+                            <p><strong>Class:</strong>
+                                ${escapeHTML(report.student.class_name)}</p>
+                            <p><strong>Academic Year:</strong> ${year}</p>
+                            <p><strong>Term:</strong> ${escapeHTML(term)}</p>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    ${group === 'early'
+                                        ? '<th>Learning Area</th><th>Marks</th><th>Grade</th>'
+                                        : '<th>Subject</th><th>Marks</th><th>Maximum</th><th>Grade</th>'}
+                                </tr>
+                            </thead>
+                            <tbody>${subjectRows}</tbody>
+                        </table>
+
+                        <div class="totals">
+                            <p><strong>Total Marks:</strong>
+                                ${report.total} / ${report.totalMaximum}</p>
+                            ${position}
+                        </div>
+
+                        <footer>
+                            <p>Class Teacher's Comment: __________________________</p>
+                            <p>Head Teacher's Comment: __________________________</p>
+                            <p>Class Teacher's Signature: ________________________</p>
+                            <p>Head Teacher's Signature: ________________________</p>
+                        </footer>
+                    </article>
+                `;
+            }).join('');
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Bright Angels Report Cards</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            color: #17243b;
+                            margin: 0;
+                        }
+
+                        .report-page {
+                            box-sizing: border-box;
+                            padding: 25px;
+                            min-height: 270mm;
+                            page-break-after: always;
+                        }
+
+                        header {
+                            text-align: center;
+                            border-bottom: 3px solid #c99a35;
+                            padding-bottom: 12px;
+                        }
+
+                        header h1 {
+                            color: #142747;
+                            margin-bottom: 5px;
+                        }
+
+                        header h2 {
+                            color: #b18428;
+                        }
+
+                        .pupil-details {
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            gap: 0 20px;
+                            margin: 20px 0;
+                        }
+
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 20px;
+                        }
+
+                        th, td {
+                            border: 1px solid #777;
+                            padding: 9px;
+                            text-align: left;
+                        }
+
+                        th {
+                            background: #142747;
+                            color: white;
+                        }
+
+                        .totals {
+                            margin-top: 20px;
+                            font-size: 16px;
+                        }
+
+                        footer {
+                            margin-top: 50px;
+                            line-height: 2;
+                        }
+
+                        @media print {
+                            .report-page {
+                                page-break-after: always;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${pages}
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+
+            printWindow.document.close();
+        });
+
+        showStatus(
+            $('#reportCardStatus'),
+            'Report cards generated successfully.',
+            'success'
+        );
+    });
+}
+
+function getReportGroup(className) {
+    const c = String(className || '').toUpperCase();
+
+    if (['BABY CLASS', 'MIDDLE CLASS', 'TOP CLASS'].includes(c)) {
+        return 'early';
+    }
+
+    if (['P1', 'P2', 'P3'].includes(c)) {
+        return 'lower';
+    }
+
+    return 'upper';
+}
+
+function getReportGrade(className, percentage) {
+    const group = getReportGroup(className);
+
+    if (group === 'early') {
+        if (percentage >= 80) return 'E';
+        if (percentage >= 65) return 'VG';
+        if (percentage >= 50) return 'G';
+        if (percentage >= 35) return 'D';
+        return 'NI';
+    }
+
+    if (group === 'lower') {
+        if (percentage >= 80) return '4';
+        if (percentage >= 65) return '3';
+        if (percentage >= 40) return '2';
+        return '1';
+    }
+
+    if (percentage >= 85) return 'D1';
+    if (percentage >= 70) return 'D2';
+    if (percentage >= 60) return 'C3';
+    if (percentage >= 50) return 'C4';
+    if (percentage >= 45) return 'C5';
+    if (percentage >= 40) return 'C6';
+    if (percentage >= 35) return 'P7';
+    if (percentage >= 30) return 'P8';
+    return 'F9';
+}           
 /* ---------------------------------------------------------
    13. SCHOOL FEES
    --------------------------------------------------------- */
