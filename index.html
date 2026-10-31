@@ -223,8 +223,29 @@
 </section>
 <section id="admin" class="section admin-section">
  <div class="admin-intro"><p class="eyebrow">SCHOOL STAFF</p><h2>School management</h2><p>Authorised staff can sign in to manage learner records, marks, fees, announcements and applications.</p></div>
- <div class="admin-login-card" id="loginCard"><form id="loginForm"><h3>Administrator login</h3><label>Admin email<input name="email" type="email" value="brightangels26@gmail.com" required></label><label>Password<input name="password" type="password" required autocomplete="current-password"></label><button class="btn btn-navy" type="submit">Sign in securely</button><p class="form-status" id="loginStatus" role="status"></p></form></div>
- <div id="adminPanel" class="admin-panel" hidden>
+ <div class="admin-login-card" id="loginCard">
+    <form id="loginForm">
+        <h3>Administrator login</h3>
+
+        <label>
+            Admin email
+            <input name="email" type="email" value="brightangels26@gmail.com" required>
+        </label>
+
+        <label>
+            Password
+            <input name="password" type="password" required autocomplete="current-password">
+        </label>
+
+        <button class="btn btn-navy" type="submit">Sign in securely</button>
+        <p class="form-status" id="loginStatus" role="status"></p>
+    </form>
+
+    <a class="text-link" href="/">
+        ← Back to School Website
+    </a>
+ </div>
+  <div id="adminPanel" class="admin-panel" hidden>
 <div class="admin-top">
     <div>
         <p class="eyebrow">ADMIN DASHBOARD</p>
