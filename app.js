@@ -2351,27 +2351,38 @@ async function renderApplications() {
 
                             </div>
 
-                            ${application.status === 'Pending' ? `
-                                <div class="admission-actions">
-                                    ${actionButton(
-                                        'Approve Application',
-                                        'approve-admission',
-                                        application.id
-                                    )}
+                            ${['Pending', 'Under Review'].includes(application.status || 'Pending') ? `
+    <div class="admission-placement">
+        <h4>Confirm Class Placement</h4>
 
-                                    ${actionButton(
-                                        'Reject Application',
-                                        'reject-admission',
-                                        application.id,
-                                        true
-                                    )}
-                                </div>
-                            ` : `
-                                <p class="admission-processed">
-                                    Current application status:
-                                    <strong>${safeCell(application.status)}</strong>
-                                </p>
-                            `}
+        <label>
+            Class to be admitted into
+            <select class="admission-class-placement"
+                data-id="${application.id}">
+                ${[
+                    'Baby Class', 'Middle Class', 'Top Class',
+                    'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7'
+                ].map(className => `
+                    <option value="${escapeHTML(className)}"
+                        ${className === application.class_applied ? 'selected' : ''}>
+                        ${escapeHTML(className)}
+                    </option>
+                `).join('')}
+            </select>
+        </label>
+
+        <div class="admission-actions">
+            ${actionButton('Approve Application', 'approve-admission', application.id)}
+            ${actionButton('Mark Under Review', 'review-admission', application.id)}
+            ${actionButton('Reject Application', 'reject-admission', application.id, true)}
+        </div>
+    </div>
+` : `
+    <p class="admission-processed">
+        Current application status:
+        <strong>${safeCell(application.status)}</strong>
+    </p>
+`}
 
                         </div>
                     </details>
