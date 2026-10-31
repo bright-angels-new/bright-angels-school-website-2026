@@ -925,7 +925,6 @@ async function renderSubjects() {
 /* ---------------------------------------------------------
    12. ACADEMIC MARKS
    --------------------------------------------------------- */
-
 async function renderMarks() {
     const [marksResult, studentsResult, subjectsResult] =
         await Promise.all([
@@ -934,15 +933,17 @@ async function renderMarks() {
             api('subjects')
         ]);
 
-    const marks=marksResult.marks||[],
-      students=studentsResult.students||[],
-      subjects=subjectsResult.subjects||[];
+    const marks = marksResult.marks || [];
+    const students = studentsResult.students || [];
+    const subjects = subjectsResult.subjects || [];
+
     adminContent.innerHTML = `
         <section class="admin-section">
             <h2>Academic Marks</h2>
             <p>Record and review pupils' academic marks.</p>
 
             <form id="marksForm">
+
                 <label>Pupil
                     <select name="student_id" required>
                         <option value="">Select pupil</option>
@@ -957,13 +958,7 @@ async function renderMarks() {
 
                 <label>Subject
                     <select name="subject_id" required>
-                        <option value="">Select subject</option>
-                        ${subjects.map(subject => `
-                            <option value="${escapeHTML(subject.id)}">
-                                ${escapeHTML(subject.subject_name)}
-                                (${escapeHTML(subject.class_name || '')})
-                            </option>
-                        `).join('')}
+                        <option value="">Select pupil first</option>
                     </select>
                 </label>
 
@@ -984,15 +979,16 @@ async function renderMarks() {
                     </select>
                 </label>
 
-                <label>Marks obtained
                 <label>Assessment
-    <select name="assessment_type" required>
-        <option value="">Select assessment</option>
-        <option value="BOT">BOT</option>
-        <option value="MOT">MOT</option>
-        <option value="EOT">EOT</option>
-    </select>
-</label>
+                    <select name="assessment_type" required>
+                        <option value="">Select assessment</option>
+                        <option value="BOT">BOT</option>
+                        <option value="MOT">MOT</option>
+                        <option value="EOT">EOT</option>
+                    </select>
+                </label>
+
+                <label>Marks obtained
                     <input
                         name="score"
                         type="number"
@@ -1022,24 +1018,24 @@ async function renderMarks() {
             <h3>Recorded Marks (${marks.length})</h3>
 
             ${makeTable(
-    [
-        'Pupil',
-        'Admission No.',
-        'Class',
-        'Subject',
-        'Assessment',
-        'Term',
-        'Year',
-        'Score',
-        'Maximum',
-        'Remarks'
+                [
+                    'Pupil',
+                    'Admission No.',
+                    'Class',
+                    'Subject',
+                    'Assessment',
+                    'Term',
+                    'Year',
+                    'Score',
+                    'Maximum',
+                    'Remarks'
                 ],
                 marks.map(mark => [
                     safeCell(mark.student_name),
                     safeCell(mark.admission_number),
                     safeCell(mark.class_name),
-                   safeCell(mark.assessment_type),
                     safeCell(mark.subject_name),
+                    safeCell(mark.assessment_type),
                     safeCell(mark.term),
                     safeCell(mark.year),
                     safeCell(mark.score),
@@ -1050,10 +1046,43 @@ async function renderMarks() {
         </section>
     `;
 
-    $('#marksForm')?.addEventListener('submit', async event => {
+    const form = $('#marksForm');
+    const studentSelect = form.querySelector(
+        '[name="student_id"]'
+    );
+    const subjectSelect = form.querySelector(
+        '[name="subject_id"]'
+    );
+
+    studentSelect.addEventListener('change', () => {
+        const selectedStudent = students.find(
+            student => String(student.id) === studentSelect.value
+        );
+
+        const pupilClass = selectedStudent?.class_name;
+
+        const classSubjects = subjects.filter(
+            subject => subject.class_name === pupilClass
+        );
+
+        subjectSelect.innerHTML = `
+            <option value="">Select subject</option>
+            ${classSubjects.map(subject => `
+                <option value="${escapeHTML(subject.id)}">
+                    ${escapeHTML(subject.subject_name)}
+                </option>
+            `).join('')}
+        `;
+
+        if (!classSubjects.length) {
+            subjectSelect.innerHTML =
+                '<option value="">No subjects assigned to this class</option>';
+        }
+    });
+
+    form.addEventListener('submit', async event => {
         event.preventDefault();
 
-        const form = event.currentTarget;
         const status = $('#marksStatus');
         const button = form.querySelector('[type="submit"]');
 
@@ -1080,7 +1109,8 @@ async function renderMarks() {
             if (button) button.disabled = false;
         }
     });
-}
+           }
+                
 /* ---------------------------------------------------------
    13. SCHOOL FEES
    --------------------------------------------------------- */
