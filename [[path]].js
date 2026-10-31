@@ -81,7 +81,37 @@ return json({
     reference_number: referenceNumber,
     message: 'Application submitted successfully. Status: Pending.'
 }, 201);
-     if(path==='messages'&&method==='POST'){const b=await readBody(request);if(!str(b.message))return fail('Message is required.');const r=await env.DB.prepare('INSERT INTO ba_messages(name,email,phone,message) VALUES(?,?,?,?)').bind(str(b.name,200),str(b.email,250),str(b.phone,80),str(b.message)).run();return json({ok:true,id:r.meta.last_row_id},201)}
+if (path === 'admissions-status' && method === 'POST') {
+    const b = await readBody(request);
+    const reference = str(b.reference_number, 50).toUpperCase();
+    const phone = str(b.phone, 80);
+
+    if (!reference || !phone) {
+        return fail('Reference number and parent phone are required.');
+    }
+
+    const application = await env.DB.prepare(`
+        SELECT reference_number, status, class_applied,
+               confirmed_class, admission_number, approved_at
+        FROM ba_admissions
+        WHERE reference_number = ? AND phone = ?
+    `).bind(reference, phone).first();
+
+    if (!application) {
+        return fail('Application not found. Check your reference number and phone.', 404);
+    }
+
+    return json({
+        ok: true,
+        reference_number: application.reference_number,
+        status: application.status,
+        class_applied: application.class_applied,
+        confirmed_class: application.confirmed_class,
+        admission_number: application.admission_number,
+        approved_at: application.approved_at
+    });
+}
+      if(path==='messages'&&method==='POST'){const b=await readBody(request);if(!str(b.message))return fail('Message is required.');const r=await env.DB.prepare('INSERT INTO ba_messages(name,email,phone,message) VALUES(?,?,?,?)').bind(str(b.name,200),str(b.email,250),str(b.phone,80),str(b.message)).run();return json({ok:true,id:r.meta.last_row_id},201)}
  if(path==='gallery'&&method==='GET')return json({data:await all(env.DB,'SELECT * FROM ba_gallery ORDER BY id DESC')});
  if(path==='announcements'&&method==='GET')return json({data:await all(env.DB,'SELECT * FROM ba_announcements ORDER BY id DESC')});
   if(path==='content'&&method==='GET')return json({data:await all(env.DB,'SELECT * FROM ba_content ORDER BY key')});
