@@ -108,3 +108,214 @@
         width: 100%;
     }
 }
+/* BRIGHT ANGELS ADMISSIONS DASHBOARD */
+
+.mobile-admissions {
+    padding: 20px;
+}
+
+.admissions-heading h2 {
+    color: #10264b;
+    margin-bottom: 6px;
+}
+
+.admissions-heading p {
+    color: #64748b;
+}
+
+.admission-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 22px 0;
+}
+
+.admission-stat {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-left: 4px solid #c49a35;
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.admission-stat span {
+    display: block;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.admission-stat strong {
+    display: block;
+    font-size: 26px;
+    color: #10264b;
+    margin-top: 8px;
+}
+
+.admission-stat.pending { border-left-color: #e5a000; }
+.admission-stat.reviewing { border-left-color: #2878c8; }
+.admission-stat.approved { border-left-color: #16834a; }
+.admission-stat.rejected { border-left-color: #c43d3d; }
+
+.admission-toolbar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.admission-search,
+.admission-toolbar select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d5dbe5;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+}
+
+.admission-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.admission-card summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.admission-card summary::-webkit-details-marker {
+    display: none;
+}
+
+.admission-summary-main {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+}
+
+.admission-summary-main strong {
+    color: #10264b;
+}
+
+.admission-summary-main span {
+    color: #64748b;
+    font-size: 13px;
+}
+
+.admission-badge {
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    background: #fff2cc;
+    color: #805b00;
+}
+
+.admission-badge.approved {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.admission-badge.rejected,
+.admission-badge.denied {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.admission-badge.under-review {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.admission-arrow {
+    color: #c49a35;
+    font-size: 20px;
+}
+
+.admission-details {
+    padding: 18px;
+    border-top: 1px solid #e5e7eb;
+    background: #f8fafc;
+}
+
+.admission-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+.admission-info-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+    padding: 15px;
+}
+
+.admission-info-card h4 {
+    color: #10264b;
+    margin-bottom: 12px;
+}
+
+.admission-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.admission-field strong {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.admission-field span {
+    color: #172b4d;
+    overflow-wrap: anywhere;
+}
+
+.admission-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.admission-processed {
+    margin-top: 15px;
+    color: #475569;
+}
+
+.admission-empty {
+    padding: 35px 15px;
+    text-align: center;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+}
+
+@media (max-width: 600px) {
+    .mobile-admissions {
+        padding: 12px;
+    }
+
+    .admission-card summary {
+        flex-wrap: wrap;
+    }
+
+    .admission-summary-main {
+        min-width: 55%;
+    }
+
+    .admission-actions button {
+        width: 100%;
+    }
+}
