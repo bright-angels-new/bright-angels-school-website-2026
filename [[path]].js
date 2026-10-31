@@ -45,8 +45,39 @@ export async function onRequest({request,env}){
    return json({ok:true},200,{'set-cookie':setCookie(encodeURIComponent(t+'.'+await sign(t,env.SESSION_SECRET)),28800)});
   }
   if(path==='logout'&&method==='POST'){const t=cookieValue(request).split('.')[0];if(t)await env.DB.prepare('DELETE FROM ba_sessions WHERE token_hash = ?').bind(await hash(t)).run();return json({ok:true},200,{'set-cookie':setCookie('',0)})}
-  if(path==='admissions'&&method==='POST'){const b=await readBody(request);if(!str(b.child_name))return fail('Child name is required.');const r=await env.DB.prepare('INSERT INTO ba_admissions(child_name,class_applied,parent_name,phone,email,message) VALUES(?,?,?,?,?,?)').bind(str(b.child_name,200),str(b.class_applied,80),str(b.parent_name,200),str(b.phone,80),str(b.email,250),str(b.message)).run();return json({ok:true,id:r.meta.last_row_id},201)}
-  if(path==='messages'&&method==='POST'){const b=await readBody(request);if(!str(b.message))return fail('Message is required.');const r=await env.DB.prepare('INSERT INTO ba_messages(name,email,phone,message) VALUES(?,?,?,?)').bind(str(b.name,200),str(b.email,250),str(b.phone,80),str(b.message)).run();return json({ok:true,id:r.meta.last_row_id},201)}
+  if (path === 'admissions' && method === 'POST') {
+    const b = await readBody(request);
+
+    const childName = str(b.child_name, 200);
+    const classApplied = str(b.class_applied, 80);
+    const parentName = str(b.parent_name, 200);
+    const phone = str(b.phone, 80);
+
+    if (!childName) return fail('Child name is required.');
+    if (!classApplied) return fail('Please select a class.');
+    if (!parentName) return fail('Parent/guardian name is required.');
+    if (!phone) return fail('Parent/guardian phone is required.');
+
+    const result = await env.DB.prepare(`
+        INSERT INTO ba_admissions
+        (child_name, class_applied, parent_name, phone, email, message, status)
+        VALUES (?, ?, ?, ?, ?, ?, 'Pending')
+    `).bind(
+        childName,
+        classApplied,
+        parentName,
+        phone,
+        str(b.email, 250),
+        str(b.message)
+    ).run();
+
+    return json({
+        ok: true,
+        id: result.meta.last_row_id,
+        message: 'Application submitted successfully. Status: Pending.'
+    }, 201);
+  }
+     if(path==='messages'&&method==='POST'){const b=await readBody(request);if(!str(b.message))return fail('Message is required.');const r=await env.DB.prepare('INSERT INTO ba_messages(name,email,phone,message) VALUES(?,?,?,?)').bind(str(b.name,200),str(b.email,250),str(b.phone,80),str(b.message)).run();return json({ok:true,id:r.meta.last_row_id},201)}
  if(path==='gallery'&&method==='GET')return json({data:await all(env.DB,'SELECT * FROM ba_gallery ORDER BY id DESC')});
  if(path==='announcements'&&method==='GET')return json({data:await all(env.DB,'SELECT * FROM ba_announcements ORDER BY id DESC')});
   if(path==='content'&&method==='GET')return json({data:await all(env.DB,'SELECT * FROM ba_content ORDER BY key')});
