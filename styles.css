@@ -80,3 +80,31 @@
         height: 260px;
     }
 }
+/* ADMIN DASHBOARD HEADER BUTTONS */
+.admin-top-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.admin-top-actions .btn {
+    white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+    .admin-top {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .admin-top-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .admin-top-actions .btn {
+        width: 100%;
+    }
+}
