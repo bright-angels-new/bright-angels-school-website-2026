@@ -81,6 +81,7 @@ return json({
     reference_number: referenceNumber,
     message: 'Application submitted successfully. Status: Pending.'
 }, 201);
+  }     
 if (path === 'admissions-status' && method === 'POST') {
     const b = await readBody(request);
     const reference = str(b.reference_number, 50).toUpperCase();
