@@ -900,8 +900,9 @@ if (path === "api/admissions-status" && method === "POST") {
   }
 
   const application = await env.DB.prepare(
-    `SELECT reference, status, class_applying
-     FROM applications
+    SELECT reference, status, class_applying,
+       confirmed_class, admission_number
+FROM applications
      WHERE reference = ? AND parent_phone = ?
      LIMIT 1`
   ).bind(reference, phone).first();
