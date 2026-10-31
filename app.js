@@ -1070,7 +1070,7 @@ async function renderMarks() {
             <option value="">Select subject</option>
             ${classSubjects.map(subject => `
                 <option value="${escapeHTML(subject.id)}">
-                    ${escapeHTML(subject.subject_name)}
+                    ${escapeHTML(subject.name || subject.subject_name || '')}
                 </option>
             `).join('')}
         `;
