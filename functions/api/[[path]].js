@@ -632,9 +632,9 @@ export async function onRequest({ request, env }) {
         );
 
         const classApplying = cleanText(
-          body.class_applying || body.classApplying || body.class,
-          50
-        );
+  body.class_applying || body.class_applied || body.classApplying || body.class,
+  50
+);
 
         const parentName = cleanText(
           body.parent_name || body.parentName,
