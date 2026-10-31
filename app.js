@@ -2210,9 +2210,16 @@ async function renderApplications() {
     ];
 
     applications.sort((a, b) => {
-        return classOrder.indexOf(a.class_applied) -
-               classOrder.indexOf(b.class_applied);
+        const ai = classOrder.indexOf(a.class_applied);
+        const bi = classOrder.indexOf(b.class_applied);
+        return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
     });
+
+    const count = status =>
+        applications.filter(a =>
+            String(a.status || 'Pending').toLowerCase() ===
+            status.toLowerCase()
+        ).length;
 
     const field = (label, value) => `
         <div class="admission-field">
@@ -2221,32 +2228,106 @@ async function renderApplications() {
         </div>
     `;
 
+    const statusClass = status =>
+        String(status || 'Pending')
+            .toLowerCase()
+            .replace(/[^a-z]/g, '-');
+
     adminContent.innerHTML = `
         <section class="admin-section mobile-admissions">
-            <h2>Admission Applications</h2>
-            <p>Review and process pupil applications.</p>
 
-            <input type="search"
-                id="admissionSearch"
-                placeholder="Search by child's name..."
-                class="admission-search">
+            <div class="admissions-heading">
+                <h2>Admissions Management</h2>
+                <p>Review applications, confirm class placement
+                and manage pupil admissions.</p>
+            </div>
+
+            <div class="admission-stat-grid">
+
+                <div class="admission-stat">
+                    <span>Total Applications</span>
+                    <strong>${applications.length}</strong>
+                </div>
+
+                <div class="admission-stat pending">
+                    <span>Pending</span>
+                    <strong>${count('Pending')}</strong>
+                </div>
+
+                <div class="admission-stat reviewing">
+                    <span>Under Review</span>
+                    <strong>${count('Under Review')}</strong>
+                </div>
+
+                <div class="admission-stat approved">
+                    <span>Approved</span>
+                    <strong>${count('Approved')}</strong>
+                </div>
+
+                <div class="admission-stat rejected">
+                    <span>Denied / Rejected</span>
+                    <strong>${count('Rejected') + count('Denied')}</strong>
+                </div>
+
+            </div>
+
+            <div class="admission-toolbar">
+
+                <input type="search"
+                    id="admissionSearch"
+                    placeholder="Search pupil or parent name..."
+                    class="admission-search">
+
+                <select id="admissionStatusFilter">
+                    <option value="all">All Applications</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Under Review">Under Review</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="Denied">Denied</option>
+                </select>
+
+                <select id="admissionClassFilter">
+                    <option value="all">All Classes</option>
+                    ${classOrder.map(c => `
+                        <option value="${escapeHTML(c)}">
+                            ${escapeHTML(c)}
+                        </option>
+                    `).join('')}
+                </select>
+
+            </div>
 
             <div class="admission-list">
-                ${applications.map(application => `
-                    <details class="admission-card">
+
+                ${applications.length ? applications.map(application => `
+                    <details class="admission-card"
+                        data-status="${escapeHTML(application.status || 'Pending')}"
+                        data-class="${escapeHTML(application.class_applied || '')}">
+
                         <summary>
-                            <span class="admission-child">
-                                ${safeCell(application.child_name)}
+                            <div class="admission-summary-main">
+                                <strong>
+                                    ${safeCell(application.child_name)}
+                                </strong>
+                                <span>
+                                    ${safeCell(application.class_applied || 'Class not provided')}
+                                </span>
+                            </div>
+
+                            <span class="admission-badge ${statusClass(application.status)}">
+                                ${safeCell(application.status || 'Pending')}
                             </span>
-                            <span>${safeCell(application.class_applied)}</span>
-                            <span>${safeCell(application.status)}</span>
+
                             <span class="admission-arrow">⌄</span>
                         </summary>
 
                         <div class="admission-details">
+
                             <h3>Application Details</h3>
 
                             <div class="admission-grid">
+
                                 <div class="admission-info-card">
                                     <h4>Child Information</h4>
                                     ${field('Full Name', application.child_name)}
@@ -2255,46 +2336,86 @@ async function renderApplications() {
 
                                 <div class="admission-info-card">
                                     <h4>Parent / Guardian</h4>
-                                    ${field('Name', application.parent_name)}
-                                    ${field('Phone', application.phone)}
-                                    ${field('Email', application.email)}
+                                    ${field('Full Name', application.parent_name)}
+                                    ${field('Phone Number', application.phone)}
+                                    ${field('Email Address', application.email)}
                                 </div>
 
                                 <div class="admission-info-card">
-                                    <h4>Additional Information</h4>
-                                    ${field('Message', application.message)}
+                                    <h4>Application Information</h4>
+                                    ${field('Application ID', application.id)}
                                     ${field('Date Received', application.created_at)}
-                                    ${field('Status', application.status)}
+                                    ${field('Additional Message', application.message)}
+                                    ${field('Current Status', application.status || 'Pending')}
                                 </div>
+
                             </div>
 
                             ${application.status === 'Pending' ? `
                                 <div class="admission-actions">
-                                    ${actionButton('Approve', 'approve-admission', application.id)}
-                                    ${actionButton('Reject', 'reject-admission', application.id, true)}
+                                    ${actionButton(
+                                        'Approve Application',
+                                        'approve-admission',
+                                        application.id
+                                    )}
+
+                                    ${actionButton(
+                                        'Reject Application',
+                                        'reject-admission',
+                                        application.id,
+                                        true
+                                    )}
                                 </div>
                             ` : `
-                                <p>Application already processed.</p>
+                                <p class="admission-processed">
+                                    Current application status:
+                                    <strong>${safeCell(application.status)}</strong>
+                                </p>
                             `}
+
                         </div>
                     </details>
-                `).join('')}
+                `).join('') : `
+                    <div class="admission-empty">
+                        <h3>No Applications Yet</h3>
+                        <p>New admission applications will appear here.</p>
+                    </div>
+                `}
+
             </div>
         </section>
     `;
 
     const search = document.getElementById('admissionSearch');
+    const statusFilter = document.getElementById('admissionStatusFilter');
+    const classFilter = document.getElementById('admissionClassFilter');
 
-    search.addEventListener('input', () => {
+    function filterApplications() {
         const term = search.value.toLowerCase();
+        const selectedStatus = statusFilter.value;
+        const selectedClass = classFilter.value;
 
-        document.querySelectorAll('.admission-card').forEach(item => {
-            item.style.display =
-                item.innerText.toLowerCase().includes(term) ? '' : 'none';
+        document.querySelectorAll('.admission-card').forEach(card => {
+            const text = card.innerText.toLowerCase();
+            const status = card.dataset.status;
+            const className = card.dataset.class;
+
+            const matchesSearch = text.includes(term);
+            const matchesStatus =
+                selectedStatus === 'all' || status === selectedStatus;
+            const matchesClass =
+                selectedClass === 'all' || className === selectedClass;
+
+            card.style.display =
+                matchesSearch && matchesStatus && matchesClass ? '' : 'none';
         });
-    });
-}
-            
+    }
+
+    search.addEventListener('input', filterApplications);
+    statusFilter.addEventListener('change', filterApplications);
+    classFilter.addEventListener('change', filterApplications);
+                                       }
+                            
                                 
     
 
