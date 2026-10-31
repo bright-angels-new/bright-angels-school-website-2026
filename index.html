@@ -179,7 +179,34 @@
 
   <p class="form-status" id="admissionStatus" role="status"></p>
 
- </form>
+  </form>
+
+ <div class="form-card admission-tracker">
+    <h3>Check Your Application Status</h3>
+    <p class="form-intro">
+        Enter your application reference number and parent phone number.
+    </p>
+
+    <form id="admissionStatusForm">
+        <label>Application reference number *
+            <input name="reference_number" required
+                   placeholder="e.g. BA-APP-2026-XXXXXXXX">
+        </label>
+
+        <label>Parent/guardian phone number *
+            <input name="phone" type="tel" required
+                   placeholder="Enter the phone number used">
+        </label>
+
+        <button class="btn btn-navy" type="submit">
+            Check Application <span>→</span>
+        </button>
+
+        <div id="admissionTrackingResult"
+             class="form-status" role="status"></div>
+    </form>
+ </div>
+
 </section>
 <section id="contact" class="section contact-section">
  <div><p class="eyebrow">CONTACT OUR SCHOOL</p><h2>Let's talk about your child's future.</h2><p>Reach out for admissions, school information or general enquiries.</p>
