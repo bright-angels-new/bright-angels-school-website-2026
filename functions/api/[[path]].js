@@ -922,6 +922,123 @@ if (path === "api/admissions-status" && method === "POST") {
     admission_number: ""
   });
 }
+   // ------------------------------------------------------------
+// APPROVE, REVIEW OR REJECT AN APPLICATION
+// PUT /api/admissions/:id
+// ------------------------------------------------------------
+
+const admissionMatch = path.match(/^api\/admissions\/(\d+)$/);
+
+if (admissionMatch && method === "PUT") {
+  const id = Number(admissionMatch[1]);
+  const body = await readBody(request);
+
+  if (!body) {
+    return fail("Invalid application details.");
+  }
+
+  const status = cleanText(body.status, 30);
+  const allowedStatuses = ["Approved", "Under Review", "Rejected"];
+
+  if (!allowedStatuses.includes(status)) {
+    return fail("Invalid application status.");
+  }
+
+  const application = await env.DB.prepare(
+    "SELECT * FROM applications WHERE id = ?"
+  ).bind(id).first();
+
+  if (!application) {
+    return fail("Application not found.", 404);
+  }
+
+  if (status !== "Approved") {
+    await env.DB.prepare(
+      "UPDATE applications SET status = ? WHERE id = ?"
+    ).bind(status, id).run();
+
+    return json({
+      ok: true,
+      status,
+      message: `Application marked as ${status}.`
+    });
+  }
+
+  // Prevent duplicate student registration.
+  if (application.admission_number) {
+    return json({
+      ok: true,
+      status: "Approved",
+      admission_number: application.admission_number,
+      confirmed_class: application.confirmed_class,
+      message: "This application has already been approved."
+    });
+  }
+
+  const confirmedClass = cleanText(
+    body.confirmed_class || application.class_applying,
+    50
+  );
+
+  if (!confirmedClass) {
+    return fail("Please select a confirmed class.");
+  }
+
+  const year = new Date().getFullYear();
+  const admissionNumber =
+    `BA/${year}/${String(id).padStart(3, "0")}`;
+
+  const existingStudent = await env.DB.prepare(
+    "SELECT id FROM students WHERE admission_number = ?"
+  ).bind(admissionNumber).first();
+
+  if (existingStudent) {
+    return fail("Admission number already exists. Please contact the administrator.", 409);
+  }
+
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO students (
+        admission_number,
+        full_name,
+        class_name,
+        gender,
+        date_of_birth,
+        parent_name,
+        parent_phone
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      admissionNumber,
+      application.child_name,
+      confirmedClass,
+      application.gender,
+      application.date_of_birth,
+      application.parent_name,
+      application.parent_phone
+    ),
+
+    env.DB.prepare(
+      `UPDATE applications SET
+        status = 'Approved',
+        confirmed_class = ?,
+        admission_number = ?,
+        approved_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND admission_number = ''`
+    ).bind(
+      confirmedClass,
+      admissionNumber,
+      id
+    )
+  ]);
+
+  return json({
+    ok: true,
+    status: "Approved",
+    admission_number: admissionNumber,
+    confirmed_class: confirmedClass,
+    message: "Application approved and student registered."
+  });
+} 
 // ------------------------------------------------------------
 // CONTACT MESSAGES
 // POST /api/messages: Public message submission
