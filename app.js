@@ -2344,54 +2344,72 @@ async function renderMessages() {
 if (adminContent) {
     adminContent.addEventListener('click', async event => {
         const button = event.target.closest('[data-action]');
-
         if (!button) return;
 
         const action = button.dataset.action;
         const id = button.dataset.id;
-
         if (!id) return;
 
-        const deleteRoutes = {
-    'delete-student': 'students',
-    'delete-subject': 'subjects',
-    'delete-announcement': 'announcements',
-    'delete-gallery': 'gallery'
-};
+        if (action === 'approve-admission' || action === 'reject-admission') {
+            const approved = action === 'approve-admission';
 
-        const endpoint = deleteRoutes[action];
+            const message = approved
+                ? 'Approve this application and register the pupil in the class applied for?'
+                : 'Are you sure you want to reject this application?';
 
-        if (!endpoint) return;
+            if (!confirm(message)) return;
 
-        if (!confirm(
-            'Are you sure you want to delete this record?'
-        )) {
+            button.disabled = true;
+
+            try {
+                const result = await api(`admissions/${id}`, {
+                    method: 'PUT',
+                    body: {
+                        status: approved ? 'Approved' : 'Rejected'
+                    }
+                });
+
+                alert(approved
+                    ? `Application approved. Admission number: ${result.admission_number}`
+                    : 'Application rejected.');
+
+                await renderTab(activeTab);
+            } catch (error) {
+                alert(`Could not process application: ${error.message}`);
+                button.disabled = false;
+            }
+
             return;
         }
+
+        const deleteRoutes = {
+            'delete-student': 'students',
+            'delete-subject': 'subjects',
+            'delete-announcement': 'announcements',
+            'delete-gallery': 'gallery'
+        };
+
+        const endpoint = deleteRoutes[action];
+        if (!endpoint) return;
+
+        if (!confirm('Are you sure you want to delete this record?')) return;
 
         button.disabled = true;
 
         try {
-           await api(`${endpoint}/${id}`, {
-    method: 'DELETE'
-}); 
+            await api(`${endpoint}/${id}`, { method: 'DELETE' });
 
             if (action === 'delete-announcement') {
                 await loadAnnouncements();
             }
 
             await renderTab(activeTab);
-
         } catch (error) {
-            alert(
-                `Could not delete the record: ${error.message}`
-            );
-
+            alert(`Could not delete the record: ${error.message}`);
             button.disabled = false;
         }
     });
-}
-
+               }
 /* ---------------------------------------------------------
    18. STARTUP
    --------------------------------------------------------- */
