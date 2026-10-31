@@ -672,6 +672,9 @@ async function renderTab(tab) {
             case 'marks':
                 await renderMarks();
                 break;
+                          case 'report-cards':
+                await renderReportCards();
+                break;
 
             case 'fees':
                 await renderFees();
