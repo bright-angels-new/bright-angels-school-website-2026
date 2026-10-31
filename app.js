@@ -717,18 +717,148 @@ case 'gallery':
    10. STUDENT RECORDS
    --------------------------------------------------------- */
 
-async function renderStudents() {
+   async function renderStudents() {
     const result = await api('students');
     const students = result.students || [];
     const classes = await classSelect();
 
+    const classOrder = [
+        'Baby Class',
+        'Middle Class',
+        'Top Class',
+        'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7'
+    ];
+
+    const activeStudents = students.filter(
+        student => student.status !== 'Archived'
+    );
+
+    const classCards = classOrder.map(className => {
+        const pupils = activeStudents.filter(
+            student =>
+                String(student.class_name || '').toLowerCase() ===
+                className.toLowerCase()
+        );
+
+        const boys = pupils.filter(
+            pupil => pupil.gender === 'Male'
+        ).length;
+
+        const girls = pupils.filter(
+            pupil => pupil.gender === 'Female'
+        ).length;
+
+        const missing = pupils.filter(
+            pupil =>
+                !['Male', 'Female'].includes(pupil.gender)
+        ).length;
+
+        return `
+            <details class="student-class-card">
+                <summary>
+                    <div>
+                        <h3>${escapeHTML(className)}</h3>
+                        <p>
+                            👦 Boys: ${boys}
+                            &nbsp; | &nbsp;
+                            👧 Girls: ${girls}
+                            &nbsp; | &nbsp;
+                            <strong>Total: ${pupils.length}</strong>
+                        </p>
+                        ${
+                            missing
+                                ? `<small class="gender-warning">
+                                    ⚠ ${missing} pupil(s) with gender not recorded
+                                   </small>`
+                                : ''
+                        }
+                    </div>
+                    <span>View Students ▾</span>
+                </summary>
+
+                ${
+                    pupils.length
+                        ? `
+                            <div class="student-class-search">
+                                <input
+                                    type="search"
+                                    placeholder="Search this class..."
+                                    class="class-pupil-search">
+                            </div>
+
+                            ${makeTable(
+                                [
+                                    'Admission No.',
+                                    'Student Name',
+                                    'Gender',
+                                    'Parent/Guardian',
+                                    'Phone',
+                                    'Actions'
+                                ],
+                                pupils.map(student => [
+                                    safeCell(student.admission_number),
+                                    safeCell(student.full_name),
+                                    safeCell(
+                                        student.gender || 'Not recorded'
+                                    ),
+                                    safeCell(student.parent_name),
+                                    safeCell(student.parent_phone),
+                                    actionButton(
+                                        'Delete',
+                                        'delete-student',
+                                        student.id,
+                                        true
+                                    )
+                                ])
+                            )}
+                        `
+                        : '<p class="empty-class">No pupils registered in this class yet.</p>'
+                }
+            </details>
+        `;
+    }).join('');
+
+    const totalBoys = activeStudents.filter(
+        student => student.gender === 'Male'
+    ).length;
+
+    const totalGirls = activeStudents.filter(
+        student => student.gender === 'Female'
+    ).length;
+
+    const missingGender = activeStudents.length -
+        totalBoys - totalGirls;
+
     adminContent.innerHTML = `
         <section class="admin-section">
-            <h2>Student Records</h2>
-            <p>Add and manage pupil records.</p>
+            <h2>Student Management</h2>
+            <p>Manage pupils, class groups and student records.</p>
+
+            <div class="student-overview">
+                <div class="student-stat">
+                    <h3>${activeStudents.length}</h3>
+                    <p>Total Students</p>
+                </div>
+
+                <div class="student-stat">
+                    <h3>${totalBoys}</h3>
+                    <p>👦 Boys</p>
+                </div>
+
+                <div class="student-stat">
+                    <h3>${totalGirls}</h3>
+                    <p>👧 Girls</p>
+                </div>
+
+                <div class="student-stat">
+                    <h3>${missingGender}</h3>
+                    <p>Gender Not Recorded</p>
+                </div>
+            </div>
+
+            <h3>Register New Student</h3>
 
             <form id="studentForm">
-
                 <label>Full name
                     <input name="full_name" required>
                 </label>
@@ -742,7 +872,7 @@ async function renderStudents() {
                 </label>
 
                 <label>Gender
-                    <select name="gender">
+                    <select name="gender" required>
                         <option value="">Select gender</option>
                         ${option('Male', 'Male')}
                         ${option('Female', 'Female')}
@@ -750,9 +880,7 @@ async function renderStudents() {
                 </label>
 
                 <label>Date of birth
-                    <input
-                        type="date"
-                        name="date_of_birth">
+                    <input type="date" name="date_of_birth">
                 </label>
 
                 <label>Parent/Guardian name
@@ -760,45 +888,60 @@ async function renderStudents() {
                 </label>
 
                 <label>Parent/Guardian phone
-                    <input
-                        name="parent_phone"
-                        type="tel">
+                    <input name="parent_phone" type="tel">
                 </label>
 
                 <button type="submit">Save Student</button>
-
                 <p id="studentStatus" class="form-status"></p>
             </form>
 
-            <h3>Registered Pupils (${students.length})</h3>
+            <h3>Students by Class</h3>
 
-            ${makeTable(
-                [
-                    'Admission No.',
-                    'Full Name',
-                    'Class',
-                    'Gender',
-                    'Parent/Guardian',
-                    'Phone',
-                    'Actions'
-                ],
-                students.map(student => [
-                    safeCell(student.admission_number),
-                    safeCell(student.full_name),
-                    safeCell(student.class_name),
-                    safeCell(student.gender),
-                    safeCell(student.parent_name),
-                    safeCell(student.parent_phone),
-                    actionButton(
-                        'Delete',
-                        'delete-student',
-                        student.id,
-                        true
-                    )
-                ])
-            )}
+            <input
+                type="search"
+                id="studentGlobalSearch"
+                placeholder="Search all students by name or admission number...">
+
+            <div id="studentClassGroups">
+                ${classCards}
+            </div>
         </section>
     `;
+
+    $('#studentGlobalSearch')?.addEventListener(
+        'input',
+        event => {
+            const query = event.target.value.toLowerCase();
+
+            $$('#studentClassGroups .student-class-card')
+                .forEach(card => {
+                    const match = card.textContent
+                        .toLowerCase()
+                        .includes(query);
+
+                    card.hidden = !match;
+
+                    if (query && match) {
+                        card.open = true;
+                    }
+                });
+        }
+    );
+
+    $$('.class-pupil-search').forEach(input => {
+        input.addEventListener('input', event => {
+            const query = event.target.value.toLowerCase();
+            const table = event.target
+                .closest('.student-class-card')
+                ?.querySelector('table');
+
+            table?.querySelectorAll('tbody tr').forEach(row => {
+                row.hidden = !row.textContent
+                    .toLowerCase()
+                    .includes(query);
+            });
+        });
+    });
 
     $('#studentForm')?.addEventListener(
         'submit',
@@ -807,9 +950,7 @@ async function renderStudents() {
 
             const form = event.currentTarget;
             const status = $('#studentStatus');
-            const button = form.querySelector(
-                '[type="submit"]'
-            );
+            const button = form.querySelector('[type="submit"]');
 
             if (button) button.disabled = true;
 
@@ -823,25 +964,20 @@ async function renderStudents() {
 
                 await renderStudents();
 
-                const newStatus = $('#studentStatus');
-
                 showStatus(
-                    newStatus,
+                    $('#studentStatus'),
                     'Student saved successfully.',
                     'success'
                 );
             } catch (error) {
-                showStatus(
-                    status,
-                    error.message,
-                    'error'
-                );
+                showStatus(status, error.message, 'error');
 
                 if (button) button.disabled = false;
             }
         }
     );
-}
+                                       }
+            
 /* ---------------------------------------------------------
    11. SUBJECTS
    --------------------------------------------------------- */
