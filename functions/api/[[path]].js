@@ -873,7 +873,52 @@ const result = await env.DB.prepare(
 
       return fail("Method not allowed.", 405);
     }
+// ------------------------------------------------------------
+// PARENT APPLICATION STATUS CHECK
+// POST /api/admissions-status
+// ------------------------------------------------------------
 
+if (path === "api/admissions-status" && method === "POST") {
+  const body = await readBody(request);
+
+  if (!body) {
+    return fail("Please enter your application details.");
+  }
+
+  const reference = cleanText(
+    body.reference_number || body.reference,
+    100
+  );
+
+  const phone = cleanText(body.phone, 50);
+
+  if (!reference || !phone) {
+    return fail("Enter your application reference and phone number.");
+  }
+
+  const application = await env.DB.prepare(
+    `SELECT reference, status, class_applying
+     FROM applications
+     WHERE reference = ? AND parent_phone = ?
+     LIMIT 1`
+  ).bind(reference, phone).first();
+
+  if (!application) {
+    return fail(
+      "No application was found. Check your reference number and phone number.",
+      404
+    );
+  }
+
+  return json({
+    ok: true,
+    reference_number: application.reference,
+    status: application.status,
+    class_applied: application.class_applying,
+    confirmed_class: "",
+    admission_number: ""
+  });
+}
 // ------------------------------------------------------------
 // CONTACT MESSAGES
 // POST /api/messages: Public message submission
