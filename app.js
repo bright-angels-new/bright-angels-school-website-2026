@@ -2482,37 +2482,59 @@ if (adminContent) {
         const id = button.dataset.id;
         if (!id) return;
 
-        if (action === 'approve-admission' || action === 'reject-admission') {
-            const approved = action === 'approve-admission';
+        if (
+    action === 'approve-admission' ||
+    action === 'reject-admission' ||
+    action === 'review-admission'
+) {
+    const card = button.closest('.admission-card');
+    const classSelect = card?.querySelector('.admission-class-placement');
+    const approved = action === 'approve-admission';
 
-            const message = approved
-                ? 'Approve this application and register the pupil in the class applied for?'
-                : 'Are you sure you want to reject this application?';
+    const status = approved
+        ? 'Approved'
+        : action === 'review-admission'
+            ? 'Under Review'
+            : 'Rejected';
 
-            if (!confirm(message)) return;
+    const selectedClass = classSelect?.value;
 
-            button.disabled = true;
+    if (approved && !selectedClass) {
+        alert('Please select the class first.');
+        return;
+    }
 
-            try {
-                const result = await api(`admissions/${id}`, {
-                    method: 'PUT',
-                    body: {
-                        status: approved ? 'Approved' : 'Rejected'
-                    }
-                });
+    const message = approved
+        ? `Approve this application and register the pupil in ${selectedClass}?`
+        : status === 'Under Review'
+            ? 'Mark this application as Under Review?'
+            : 'Are you sure you want to reject this application?';
 
-                alert(approved
-                    ? `Application approved. Admission number: ${result.admission_number}`
-                    : 'Application rejected.');
+    if (!confirm(message)) return;
 
-                await renderTab(activeTab);
-            } catch (error) {
-                alert(`Could not process application: ${error.message}`);
-                button.disabled = false;
+    button.disabled = true;
+
+    try {
+        const result = await api(`admissions/${id}`, {
+            method: 'PUT',
+            body: {
+                status,
+                confirmed_class: selectedClass || ''
             }
+        });
 
-            return;
-        }
+        alert(approved
+            ? `Application approved!\nAdmission number: ${result.admission_number}\nClass: ${result.confirmed_class}`
+            : `Application marked as ${status}.`);
+
+        await renderTab(activeTab);
+    } catch (error) {
+        alert(`Could not process application: ${error.message}`);
+        button.disabled = false;
+    }
+
+    return;
+}
 
         const deleteRoutes = {
             'delete-student': 'students',
