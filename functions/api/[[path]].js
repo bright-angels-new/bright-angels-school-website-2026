@@ -919,8 +919,8 @@ FROM applications
     reference_number: application.reference,
     status: application.status,
     class_applied: application.class_applying,
-    confirmed_class: "",
-    admission_number: ""
+    confirmed_class: application.confirmed_class || "",
+admission_number: application.admission_number || ""
   });
 }
    // ------------------------------------------------------------
