@@ -1030,18 +1030,18 @@ async function renderMarks() {
                     'Maximum',
                     'Remarks'
                 ],
-                marks.map(mark => [
-                    safeCell(mark.student_name),
-                    safeCell(mark.admission_number),
-                    safeCell(mark.class_name),
-                    safeCell(mark.subject_name),
-                    safeCell(mark.assessment_type),
-                    safeCell(mark.term),
-                    safeCell(mark.year),
-                    safeCell(mark.score),
-                    safeCell(mark.out_of),
-                    safeCell(mark.comment)
-                ])
+               marks.map(mark => [
+    safeCell(mark.student_name),
+    safeCell(mark.admission_number),
+    safeCell(mark.class_name),
+    safeCell(mark.subject_name),
+    safeCell(mark.assessment_type),
+    safeCell(mark.term),
+    safeCell(mark.year ?? mark.academic_year),
+    safeCell(mark.score ?? mark.marks_obtained),
+    safeCell(mark.out_of ?? mark.maximum_marks),
+    safeCell(mark.comment ?? mark.remarks)
+]) 
             )}
         </section>
     `;
