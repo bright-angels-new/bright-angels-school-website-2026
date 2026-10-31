@@ -180,27 +180,56 @@ return json({ok:true});
 
 }
      if(resource==='subjects'&&method==='GET'&&!id){
-const subjects=await all(env.DB,
-'SELECT * FROM subjects ORDER BY subject_name'
-);
-return json({ok:true,subjects});
+    const subjects=await all(env.DB,`
+        SELECT
+            s.id,
+            s.subject_name,
+            s.subject_name AS name,
+            a.class_name,
+            a.academic_year
+        FROM subjects s
+        LEFT JOIN subject_class_allocations a
+            ON a.subject_id=s.id
+        ORDER BY s.subject_name, a.class_name
+    `);
+
+    return json({ok:true,subjects});
 }
 
 if(resource==='subjects'&&method==='POST'&&!id){
-const b=await readBody(request);
-const name=str(b.name??b.subject_name,120);
+    const b=await readBody(request);
+    const name=str(b.name??b.subject_name,120).trim();
+    const className=str(b.class_name,50).trim();
+    const year=num(b.academic_year)||new Date().getFullYear();
 
-if(!name)return fail('Subject name is required.');
+    if(!name)return fail('Subject name is required.');
+    if(!className)return fail('Please select a class.');
 
-const r=await env.DB.prepare(
-'INSERT INTO subjects(subject_name) VALUES(?)'
-).bind(name).run();
+    await env.DB.prepare(`
+        INSERT INTO subjects(subject_name)
+        SELECT ?
+        WHERE NOT EXISTS (
+            SELECT 1 FROM subjects
+            WHERE LOWER(subject_name)=LOWER(?)
+        )
+    `).bind(name,name).run();
 
-return json({ok:true,id:r.meta.last_row_id},201);
+    const subject=await env.DB.prepare(`
+        SELECT id FROM subjects
+        WHERE LOWER(subject_name)=LOWER(?)
+    `).bind(name).first();
+
+    await env.DB.prepare(`
+        INSERT OR IGNORE INTO subject_class_allocations
+        (subject_id,class_name,academic_year)
+        VALUES(?,?,?)
+    `).bind(subject.id,className,year).run();
+
+    return json({ok:true,id:subject.id},201);
 }
 
 if(resource==='subjects'&&method==='DELETE'&&id){
-return fail('Subject deletion is disabled to protect historical marks.');
+    return fail('Subject deletion is disabled to protect historical marks.');
 }
 if(resource==='marks'&&method==='GET'){
     const sid=num(url.searchParams.get('student_id'));
