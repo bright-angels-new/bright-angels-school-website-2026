@@ -1061,9 +1061,10 @@ async function renderMarks() {
 
         const pupilClass = selectedStudent?.class_name;
 
-        const classSubjects = subjects.filter(
-            subject => subject.class_name === pupilClass
-        );
+        const classSubjects = subjects.filter(subject =>
+    String(subject.class_name || '').trim().toUpperCase() ===
+    String(pupilClass || '').trim().toUpperCase()
+);
 
         subjectSelect.innerHTML = `
             <option value="">Select subject</option>
