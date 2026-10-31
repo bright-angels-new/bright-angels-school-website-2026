@@ -584,9 +584,10 @@ export async function onRequest({ request, env }) {
 ]);
 
     const publicSubmissionPaths = new Set([
-      "api/admissions",
-      "api/messages"
-    ]);
+  "api/admissions",
+  "api/admissions-status",
+  "api/messages"
+]);
 
     const isApiPath = path.startsWith("api/");
 
