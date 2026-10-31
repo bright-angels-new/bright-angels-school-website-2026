@@ -221,49 +221,6 @@
  </div>
  <form id="contactForm" class="form-card contact-form"><h3>Send us a message</h3><label>Your name<input name="name" required maxlength="200"></label><div class="form-row"><label>Email<input name="email" type="email" maxlength="250"></label><label>Phone<input name="phone" type="tel" maxlength="80"></label></div><label>Message<textarea name="message" required rows="4" maxlength="4000"></textarea></label><button class="btn btn-navy" type="submit">Send message →</button><p class="form-status" id="contactStatus" role="status"></p></form>
 </section>
-<section id="admin" class="section admin-section">
- <div class="admin-intro"><p class="eyebrow">SCHOOL STAFF</p><h2>School management</h2><p>Authorised staff can sign in to manage learner records, marks, fees, announcements and applications.</p></div>
- <div class="admin-login-card" id="loginCard">
-    <form id="loginForm">
-        <h3>Administrator login</h3>
-
-        <label>
-            Admin email
-            <input name="email" type="email" value="brightangels26@gmail.com" required>
-        </label>
-
-        <label>
-            Password
-            <input name="password" type="password" required autocomplete="current-password">
-        </label>
-
-        <button class="btn btn-navy" type="submit">Sign in securely</button>
-        <p class="form-status" id="loginStatus" role="status"></p>
-    </form>
-
-    <a class="text-link" href="/">
-        ← Back to School Website
-    </a>
- </div>
-  <div id="adminPanel" class="admin-panel" hidden>
-<div class="admin-top">
-    <div>
-        <p class="eyebrow">ADMIN DASHBOARD</p>
-        <h3>School records</h3>
-    </div>
-    <div class="admin-top-actions">
-        <a class="btn btn-gold" href="/" target="_blank" rel="noopener">
-            Visit School Website ↗
-        </a>
-        <button class="btn btn-outline dark-outline" id="logoutBtn">
-            Sign out
-        </button>
-    </div>
-</div>
-   <div class="admin-tabs" role="tablist"><button class="active" data-tab="students">Students</button><button data-tab="subjects">Subjects</button><button data-tab="marks">Record marks</button><button data-tab="report-cards">Report Cards</button><button data-tab="fees">Fees</button><button data-tab="announcements">Announcements</button><button data-tab="gallery">Photos</button><button data-tab="design">Website Design</button><button data-tab="applications">Applications</button><button data-tab="messages">Messages</button></div>
-  <div id="adminContent" class="admin-content"><p>Choose a section to manage school records.</p></div>
- </div>
-</section>
 </main>
 <footer><div class="footer-brand"><img src="/school-logo.jpg" alt=""><div><b>Bright Angels Junior School</b><small>“If others can, we can.”</small></div></div><p>Wakiso District, Lukwanga–Kataluko Sentema Road</p><small>© <span id="year"></span> Bright Angels Junior School. All rights reserved.</small></footer>
 <script src="/app.js" defer></script>
