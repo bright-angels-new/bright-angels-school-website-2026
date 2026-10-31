@@ -850,13 +850,14 @@ const result = await env.DB.prepare(
           ].join("\n")
         );
         return json(
-          {
-            ok: true,
-            id: applicationId,
-            message: "Your application has been received."
-          },
-          201
-        );
+  {
+    ok: true,
+    id: applicationId,
+    reference: applicationReference,
+    message: "Your application has been received."
+  },
+  201
+);
       }
 
       if (method === "GET") {
