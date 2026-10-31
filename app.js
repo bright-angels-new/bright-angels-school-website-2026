@@ -1287,13 +1287,27 @@ async function renderReportCards() {
             };
         });
 
-        const rankedGroups = {};
+                const rankedGroups = {};
 
         reports.forEach(report => {
             const className = report.student.class_name;
             const group = getReportGroup(className);
 
-            if (group === 'early' || group === 'lower') {
+            const completeMarks =
+                report.rows.length > 0 &&
+                report.rows.every(row =>
+                    row.score !== null &&
+                    row.score !== undefined &&
+                    row.score !== '' &&
+                    Number(row.maximum) > 0
+                );
+
+            report.complete = completeMarks;
+
+            if (
+                (group === 'early' || group === 'lower') &&
+                completeMarks
+            ) {
                 if (!rankedGroups[className]) {
                     rankedGroups[className] = [];
                 }
@@ -1327,7 +1341,7 @@ async function renderReportCards() {
                 'error'
             );
             return;
-        }
+               }
 
         preview.innerHTML = `
             <h3>Generated Report Cards: ${reports.length}</h3>
