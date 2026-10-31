@@ -247,10 +247,6 @@ if(resource==='marks'&&method==='GET'){
 m.marks_obtained AS score,
 m.maximum_marks AS out_of,
 m.remarks AS comment
-            m.academic_year AS year,
-            m.marks_obtained AS score,
-            m.maximum_marks AS out_of,
-            m.remarks AS comment
         FROM marks m
         JOIN students st ON st.id=m.student_id
         JOIN subjects su ON su.id=m.subject_id
