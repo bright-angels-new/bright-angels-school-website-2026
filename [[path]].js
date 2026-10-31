@@ -332,8 +332,73 @@ if(resource==='marks'&&method==='DELETE'&&id){
   if(resource==='messages'&&method==='GET')return json({data:await all(env.DB,'SELECT * FROM ba_messages ORDER BY id DESC')});
   if(resource==='messages'&&method==='DELETE'&&id){if(!await has(env.DB,'ba_messages',id))return fail('Message not found.',404);await env.DB.prepare('DELETE FROM ba_messages WHERE id=?').bind(id).run();return json({ok:true})}
   if(resource==='admissions'&&method==='GET')return json({data:await all(env.DB,'SELECT * FROM ba_admissions ORDER BY id DESC')});
-  if(resource==='admissions'&&method==='PUT'&&id){const b=await readBody(request),status=str(b.status,40);if(!await has(env.DB,'ba_admissions',id))return fail('Admission application not found.',404);if(!status)return fail('Status is required.');await env.DB.prepare('UPDATE ba_admissions SET status=? WHERE id=?').bind(status,id).run();return json({ok:true})}
-  if(resource==='admissions'&&method==='DELETE'&&id){if(!await has(env.DB,'ba_admissions',id))return fail('Admission application not found.',404);await env.DB.prepare('DELETE FROM ba_admissions WHERE id=?').bind(id).run();return json({ok:true})}
+  if(resource==='admissions'&&method==='PUT'&&id){
+    const b = await readBody(request);
+    const status = str(b.status, 40);
+
+    const application = await env.DB.prepare(
+        'SELECT * FROM ba_admissions WHERE id = ?'
+    ).bind(id).first();
+
+    if(!application){
+        return fail('Admission application not found.', 404);
+    }
+
+    if(!status){
+        return fail('Status is required.');
+    }
+
+    if(status.toLowerCase() !== 'approved'){
+        await env.DB.prepare(
+            'UPDATE ba_admissions SET status = ? WHERE id = ?'
+        ).bind(status, id).run();
+
+        return json({ok:true});
+    }
+
+    const childName = str(application.child_name, 200);
+    const className = str(application.class_applied, 80);
+    const parentName = str(application.parent_name, 200);
+    const parentPhone = str(application.phone, 80);
+
+    if(!childName || !className || !parentName || !parentPhone){
+        return fail(
+            'Cannot approve: child name, class, parent name and phone are required.'
+        );
+    }
+
+    const admissionNumber =
+        `BA-${new Date().getFullYear()}-${String(id).padStart(6,'0')}`;
+
+    await env.DB.prepare(`
+        INSERT INTO students
+        (admission_number, full_name, class_name,
+         parent_name, parent_phone, parent_email, status)
+        SELECT ?, ?, ?, ?, ?, ?, 'Active'
+        WHERE NOT EXISTS (
+            SELECT 1 FROM students WHERE admission_number = ?
+        )
+    `).bind(
+        admissionNumber,
+        childName,
+        className,
+        parentName,
+        parentPhone,
+        str(application.email, 250) || null,
+        admissionNumber
+    ).run();
+
+    await env.DB.prepare(
+        "UPDATE ba_admissions SET status = 'Approved' WHERE id = ?"
+    ).bind(id).run();
+
+    return json({
+        ok:true,
+        message:'Application approved and pupil registered.',
+        admission_number:admissionNumber
+    });
+            }
+     if(resource==='admissions'&&method==='DELETE'&&id){if(!await has(env.DB,'ba_admissions',id))return fail('Admission application not found.',404);await env.DB.prepare('DELETE FROM ba_admissions WHERE id=?').bind(id).run();return json({ok:true})}
   return fail('API route not found.',404);
  }catch(e){console.error('Bright Angels API error',e);if(e?.message?.includes('UNIQUE constraint failed'))return fail('This record already exists. Check duplicate admission numbers or subjects.',409);return fail('Server error. Check Cloudflare deployment logs.',500)}
 }
