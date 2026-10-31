@@ -2202,27 +2202,18 @@ async function loadWebsiteBackground() {
    --------------------------------------------------------- */
 async function renderApplications() {
     const result = await api('admissions');
-    const applications = result.applications || [];
-const classOrder = [
-    'Baby Class',
-    'Middle Class',
-    'Top Class',
-    'P1',
-    'P2',
-    'P3',
-    'P4',
-    'P5',
-    'P6',
-    'P7'
-];
+    const applications = result.data || result.applications || [];
 
-applications.sort((a, b) => {
-    const classA = classOrder.indexOf(a.class_applying);
-    const classB = classOrder.indexOf(b.class_applying);
+    const classOrder = [
+        'Baby Class', 'Middle Class', 'Top Class',
+        'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7'
+    ];
 
-    return (classA === -1 ? 999 : classA) -
-           (classB === -1 ? 999 : classB);
-});
+    applications.sort((a, b) => {
+        return classOrder.indexOf(a.class_applied) -
+               classOrder.indexOf(b.class_applied);
+    });
+
     const field = (label, value) => `
         <div class="admission-field">
             <strong>${label}</strong>
@@ -2230,104 +2221,64 @@ applications.sort((a, b) => {
         </div>
     `;
 
-    const card = (title, content) => `
-        <div class="admission-info-card">
-            <h4>${title}</h4>
-            ${content}
-        </div>
-    `;
-
     adminContent.innerHTML = `
         <section class="admin-section mobile-admissions">
-
             <h2>Admission Applications</h2>
+            <p>Review and process pupil applications.</p>
 
-            <p>View complete student admission applications.</p>
-
-            <input
-                type="search"
+            <input type="search"
                 id="admissionSearch"
                 placeholder="Search by child's name..."
-                class="admission-search"
-            >
+                class="admission-search">
 
             <div class="admission-list">
-
                 ${applications.map(application => `
                     <details class="admission-card">
-
                         <summary>
                             <span class="admission-child">
                                 ${safeCell(application.child_name)}
                             </span>
-
-                            <span>
-                                ${safeCell(application.date_of_birth || application.dob)}
-                            </span>
-
-                            <span>
-                                ${safeCell(application.class_applying)}
-                            </span>
-
+                            <span>${safeCell(application.class_applied)}</span>
+                            <span>${safeCell(application.status)}</span>
                             <span class="admission-arrow">⌄</span>
                         </summary>
 
                         <div class="admission-details">
-
                             <h3>Application Details</h3>
 
                             <div class="admission-grid">
-
-                                ${card('Student Information', `
+                                <div class="admission-info-card">
+                                    <h4>Child Information</h4>
                                     ${field('Full Name', application.child_name)}
-                                    ${field('Date of Birth', application.date_of_birth || application.dob)}
-                                    ${field('Gender', application.gender)}
-                                    ${field('Class', application.class_applying)}
-                                    ${field('Home Address', application.address)}
-                                `)}
+                                    ${field('Class Applied', application.class_applied)}
+                                </div>
 
-                                ${card('Parent / Guardian Details', `
-                                    ${field('Name', application.guardian_name)}
+                                <div class="admission-info-card">
+                                    <h4>Parent / Guardian</h4>
+                                    ${field('Name', application.parent_name)}
                                     ${field('Phone', application.phone)}
-                                    ${field('Email', application.guardian_email)}
-                                `)}
+                                    ${field('Email', application.email)}
+                                </div>
 
-                                ${card("Father's Details", `
-                                    ${field('Name', application.father_name)}
-                                    ${field('Phone', application.father_phone)}
-                                    ${field('Email', application.father_email)}
-                                `)}
-
-                                ${card("Mother's Details", `
-                                    ${field('Name', application.mother_name)}
-                                    ${field('Phone', application.mother_phone)}
-                                    ${field('Email', application.mother_email)}
-                                `)}
-
-                                ${card('Additional Information', `
-                                    ${field('Previous School', application.previous_school)}
-                                    ${field('Emergency Contact', application.emergency_contact_name)}
-                                    ${field('Emergency Phone', application.emergency_contact_phone)}
-                                    ${field('Relationship', application.emergency_contact_relationship)}
-                                    ${field('Medical Information', application.medical_information)}
-                                    ${field('Special Learning Needs', application.special_learning_needs)}
+                                <div class="admission-info-card">
+                                    <h4>Additional Information</h4>
+                                    ${field('Message', application.message)}
                                     ${field('Date Received', application.created_at)}
-                                `)}
-
+                                    ${field('Status', application.status)}
+                                </div>
                             </div>
 
-                            <button
-                                type="button"
-                                class="btn btn-navy"
-                                onclick="this.closest('details').open = false"
-                            >
-                                Close Details
-                            </button>
-
+                            ${application.status === 'Pending' ? `
+                                <div class="admission-actions">
+                                    ${actionButton('Approve', 'approve-admission', application.id)}
+                                    ${actionButton('Reject', 'reject-admission', application.id, true)}
+                                </div>
+                            ` : `
+                                <p>Application already processed.</p>
+                            `}
                         </div>
                     </details>
                 `).join('')}
-
             </div>
         </section>
     `;
@@ -2339,13 +2290,13 @@ applications.sort((a, b) => {
 
         document.querySelectorAll('.admission-card').forEach(item => {
             item.style.display =
-                item.innerText.toLowerCase().includes(term)
-                    ? ''
-                    : 'none';
+                item.innerText.toLowerCase().includes(term) ? '' : 'none';
         });
     });
 }
- 
+            
+                                
+    
 
 /* ---------------------------------------------------------
    16. CONTACT MESSAGES
