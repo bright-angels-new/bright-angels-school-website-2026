@@ -385,7 +385,50 @@ if (admissionForm) {
         }
     });
 }
+const admissionStatusForm = $('#admissionStatusForm');
 
+if (admissionStatusForm) {
+    admissionStatusForm.addEventListener('submit', async event => {
+        event.preventDefault();
+
+        const resultBox = $('#admissionTrackingResult');
+        const button = admissionStatusForm.querySelector(
+            '[type="submit"]'
+        );
+
+        const values = formValues(admissionStatusForm);
+
+        showStatus(resultBox, 'Checking your application...');
+
+        if (button) button.disabled = true;
+
+        try {
+            const result = await api('admissions-status', {
+                method: 'POST',
+                body: values
+            });
+
+            resultBox.innerHTML = `
+                <strong>Application found</strong><br>
+                Reference: ${safeCell(result.reference_number)}<br>
+                Status: ${safeCell(result.status)}<br>
+                Class applied for: ${safeCell(result.class_applied)}<br>
+                Confirmed class: ${safeCell(result.confirmed_class || 'Not yet confirmed')}<br>
+                Admission number: ${safeCell(result.admission_number || 'Not yet assigned')}
+            `;
+
+            resultBox.classList.add('success');
+        } catch (error) {
+            showStatus(
+                resultBox,
+                error.message || 'Application could not be found.',
+                'error'
+            );
+        } finally {
+            if (button) button.disabled = false;
+        }
+    });
+   }
 /* ---------------------------------------------------------
    5. PUBLIC CONTACT FORM
    --------------------------------------------------------- */
