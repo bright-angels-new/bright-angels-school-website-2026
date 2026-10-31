@@ -753,60 +753,53 @@ export async function onRequest({ request, env }) {
         }
         
         const applicationReference = `BA-${crypto.randomUUID()}`;
-
 const result = await env.DB.prepare(
   `INSERT INTO applications (
     reference,
     child_name,
-    dob,
     date_of_birth,
     gender,
     class_applying,
-    previous_school,
-    guardian_name,
-    relationship,
-    phone,
-    guardian_email,
-    district,
+    parent_name,
+    parent_phone,
+    parent_email,
     address,
-    notes,
     passport_key,
+    status,
     father_name,
     father_phone,
     father_email,
     mother_name,
     mother_phone,
     mother_email,
+    previous_school,
     emergency_contact_name,
     emergency_contact_phone,
     emergency_contact_relationship,
     medical_information,
     special_learning_needs
   ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
   )`
 ).bind(
   applicationReference,
   childName,
   dateOfBirth,
-  dateOfBirth,
   gender,
   classApplying,
-  previousSchool,
   parentName,
-  "Parent/Guardian",
   parentPhone,
   parentEmail,
-  "",
   address,
   "",
-  "",
+  "Pending",
   fatherName,
   fatherPhone,
   fatherEmail,
   motherName,
   motherPhone,
   motherEmail,
+  previousSchool,
   emergencyContactName,
   emergencyContactPhone,
   emergencyContactRelationship,
