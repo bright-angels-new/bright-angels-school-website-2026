@@ -242,6 +242,14 @@ async function initialiseDatabase(db) {
     ["emergency_contact_relationship", "TEXT NOT NULL DEFAULT ''"],
     ["medical_information", "TEXT NOT NULL DEFAULT ''"],
     ["special_learning_needs", "TEXT NOT NULL DEFAULT ''"]
+["child_name", "TEXT NOT NULL DEFAULT ''"],
+["gender", "TEXT NOT NULL DEFAULT ''"],
+["class_applying", "TEXT NOT NULL DEFAULT ''"],
+["parent_name", "TEXT NOT NULL DEFAULT ''"],
+["parent_phone", "TEXT NOT NULL DEFAULT ''"],
+["parent_email", "TEXT NOT NULL DEFAULT ''"],
+["address", "TEXT NOT NULL DEFAULT ''"],
+["passport_key", "TEXT NOT NULL DEFAULT ''"],
   ];
 
   const existingColumns = await db.prepare(
