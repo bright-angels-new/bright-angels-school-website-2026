@@ -908,20 +908,20 @@ if (path === "api/admissions-status" && method === "POST") {
 ).bind(reference, phone).first();
 
   if (!application) {
-    return fail(
-      "No application was found. Check your reference number and phone number.",
-      404
-    );
-  }
+  return fail(
+    "No application was found. Check your reference number and phone number.",
+    404
+  );
+}
 
-  return json({
-    ok: true,
-    reference_number: application.reference,
-    status: application.status,
-    class_applied: application.class_applying,
-    confirmed_class: application.confirmed_class || "",
-admission_number: application.admission_number || ""
-  });
+return json({
+  ok: true,
+  reference_number: application.reference,
+  status: application.status,
+  class_applied: application.class_applying,
+  confirmed_class: application.confirmed_class || "",
+  admission_number: application.admission_number || ""
+});
 }
    // ------------------------------------------------------------
 // APPROVE, REVIEW OR REJECT AN APPLICATION
