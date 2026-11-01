@@ -2346,7 +2346,7 @@ async function renderApplications() {
                 ${applications.length ? applications.map(application => `
                     <details class="admission-card"
                         data-status="${escapeHTML(application.status || 'Pending')}"
-                        data-class="${escapeHTML(application.class_applied || '')}">
+                        data-class="${escapeHTML(application.class_applying || '')}">
 
                         <summary>
                             <div class="admission-summary-main">
@@ -2354,7 +2354,7 @@ async function renderApplications() {
                                     ${safeCell(application.child_name)}
                                 </strong>
                                 <span>
-                                    ${safeCell(application.class_applied || 'Class not provided')}
+                                    ${safeCell(application.class_applying || 'Class not provided')}
                                 </span>
                             </div>
 
@@ -2374,7 +2374,7 @@ async function renderApplications() {
                                 <div class="admission-info-card">
                                     <h4>Child Information</h4>
                                     ${field('Full Name', application.child_name)}
-                                    ${field('Class Applied', application.class_applied)}
+                                    ${field('Class Applied', application.class_applying)}
                                 </div>
 
                                 <div class="admission-info-card">
@@ -2407,7 +2407,7 @@ async function renderApplications() {
                     'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7'
                 ].map(className => `
                     <option value="${escapeHTML(className)}"
-                        ${className === application.class_applied ? 'selected' : ''}>
+                        ${className === application.class_applying? 'selected' : ''}>
                         ${escapeHTML(className)}
                     </option>
                 `).join('')}
