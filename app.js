@@ -2380,8 +2380,8 @@ async function renderApplications() {
                                 <div class="admission-info-card">
                                     <h4>Parent / Guardian</h4>
                                     ${field('Full Name', application.parent_name)}
-                                    ${field('Phone Number', application.phone)}
-                                    ${field('Email Address', application.email)}
+                                    ${field('Phone Number', application.parent_phone)}
+                                    ${field('Email Address', application.parent_email)}
                                 </div>
 
                                 <div class="admission-info-card">
