@@ -227,9 +227,9 @@ async function initialiseDatabase(db) {
     ["status", "TEXT NOT NULL DEFAULT 'Pending'"],
     ["reference", "TEXT NOT NULL DEFAULT ''"],
     ["confirmed_class", "TEXT NOT NULL DEFAULT ''"],
-["admission_number", "TEXT NOT NULL DEFAULT ''"],
-["approved_at", "TEXT NOT NULL DEFAULT ''"],
-   ["date_of_birth", "TEXT NOT NULL DEFAULT ''"], 
+    ["admission_number", "TEXT NOT NULL DEFAULT ''"],
+    ["approved_at", "TEXT NOT NULL DEFAULT ''"],
+    ["date_of_birth", "TEXT NOT NULL DEFAULT ''"],
     ["father_name", "TEXT NOT NULL DEFAULT ''"],
     ["father_phone", "TEXT NOT NULL DEFAULT ''"],
     ["father_email", "TEXT NOT NULL DEFAULT ''"],
@@ -241,16 +241,16 @@ async function initialiseDatabase(db) {
     ["emergency_contact_phone", "TEXT NOT NULL DEFAULT ''"],
     ["emergency_contact_relationship", "TEXT NOT NULL DEFAULT ''"],
     ["medical_information", "TEXT NOT NULL DEFAULT ''"],
-    ["special_learning_needs", "TEXT NOT NULL DEFAULT ''"]
-["child_name", "TEXT NOT NULL DEFAULT ''"],
-["gender", "TEXT NOT NULL DEFAULT ''"],
-["class_applying", "TEXT NOT NULL DEFAULT ''"],
-["parent_name", "TEXT NOT NULL DEFAULT ''"],
-["parent_phone", "TEXT NOT NULL DEFAULT ''"],
-["parent_email", "TEXT NOT NULL DEFAULT ''"],
-["address", "TEXT NOT NULL DEFAULT ''"],
-["passport_key", "TEXT NOT NULL DEFAULT ''"],
-  ];
+    ["special_learning_needs", "TEXT NOT NULL DEFAULT ''"],
+    ["child_name", "TEXT NOT NULL DEFAULT ''"],
+    ["gender", "TEXT NOT NULL DEFAULT ''"],
+    ["class_applying", "TEXT NOT NULL DEFAULT ''"],
+    ["parent_name", "TEXT NOT NULL DEFAULT ''"],
+    ["parent_phone", "TEXT NOT NULL DEFAULT ''"],
+    ["parent_email", "TEXT NOT NULL DEFAULT ''"],
+    ["address", "TEXT NOT NULL DEFAULT ''"],
+    ["passport_key", "TEXT NOT NULL DEFAULT ' '"]
+];
 
   const existingColumns = await db.prepare(
     "PRAGMA table_info(applications)"
