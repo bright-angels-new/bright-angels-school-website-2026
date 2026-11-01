@@ -2375,6 +2375,8 @@ async function renderApplications() {
                                     <h4>Child Information</h4>
                                     ${field('Full Name', application.child_name)}
                                     ${field('Class Applied', application.class_applying)}
+                                    ${field('Date of Birth', application.date_of_birth)}
+${field('Gender', application.gender)}
                                 </div>
 
                                 <div class="admission-info-card">
@@ -2388,7 +2390,7 @@ async function renderApplications() {
                                     <h4>Application Information</h4>
                                     ${field('Application ID', application.id)}
                                     ${field('Date Received', application.created_at)}
-                                    ${field('Additional Message', application.message)}
+                                    ${field('Home Address', application.address)}
                                     ${field('Current Status', application.status || 'Pending')}
                                 </div>
 
