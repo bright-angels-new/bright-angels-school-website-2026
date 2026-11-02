@@ -1004,6 +1004,7 @@ if (path === "api/admissions-status" && method === "POST") {
 
 return json({
   ok: true,
+  child_name: application.child_name,
   reference_number: application.reference,
   status: application.status,
   class_applied: application.class_applying,
