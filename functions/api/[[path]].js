@@ -270,15 +270,7 @@ async function initialiseDatabase(db) {
       ).run();
     }
   }
-  await db.prepare(
-    `INSERT OR IGNORE INTO settings (key, value)
-     VALUES (?, ?)`
-  ).bind(
-    "school_classes",
-    JSON.stringify(DEFAULT_CLASSES)
-  ).run();
-}
-const studentColumns = await db.prepare(
+  const studentColumns = await db.prepare(
   "PRAGMA table_info(students)"
 ).all();
 
@@ -291,6 +283,15 @@ if (!studentColumnNames.has("study_mode")) {
     "ALTER TABLE students ADD COLUMN study_mode TEXT NOT NULL DEFAULT ''"
   ).run();
 }
+  await db.prepare(
+    `INSERT OR IGNORE INTO settings (key, value)
+     VALUES (?, ?)`
+  ).bind(
+    "school_classes",
+    JSON.stringify(DEFAULT_CLASSES)
+  ).run();
+}
+
 // ============================================================
 // EMAIL NOTIFICATIONS
 // Uses existing Cloudflare environment variables.
