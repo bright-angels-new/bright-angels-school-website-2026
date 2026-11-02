@@ -1977,16 +1977,27 @@ const announcements = Array.isArray(result.announcements)
                     ),
                     safeCell(item.title),
                     safeCell(item.content),
-                    actionButton(
-                        'Delete',
-                        'delete-announcement',
-                        item.id,
-                        true
-                    )
+                    `<button type="button" class="secondary-button" data-action="edit-announcement" data-id="${escapeHTML(item.id)}">Edit</button>
+                    <button type="button" class="danger-button" data-action="delete-announcement" data-id="${escapeHTML(item.id)}">Delete</button>`
                 ])
             )}
         </section>
     `;
+
+    adminContent.querySelectorAll('[data-action="edit-announcement"]').forEach(button => {
+        button.addEventListener('click', () => {
+            const item = announcements.find(row => String(row.id) === button.dataset.id);
+            if (!item) return;
+            const form = $('#announcementForm');
+            form.elements.title.value = item.title || '';
+            form.elements.content.value = item.content || '';
+            form.elements.date.value = item.date || '';
+            form.dataset.editId = item.id;
+            const submit = form.querySelector('[type="submit"]');
+            submit.textContent = 'Save Changes';
+            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
 
     $('#announcementForm')?.addEventListener(
         'submit',
@@ -2008,14 +2019,17 @@ const announcements = Array.isArray(result.announcements)
 
             console.log('Announcement data:', values);
 
+            const editingId = form.dataset.editId;
             const result = await api('announcements', {
-                method: 'POST',
-                body: values
+                method: editingId ? 'PUT' : 'POST',
+                body: editingId ? { ...values, id: Number(editingId) } : values
             });
 
             console.log('Announcement save result:', result);
 
             form.reset();
+            delete form.dataset.editId;
+            form.querySelector('[type="submit"]').textContent = 'Publish Announcement';
 
             await loadAnnouncements();
             await renderAdminAnnouncements();
