@@ -835,3 +835,34 @@ body:not(:has(#adminPanel)) footer { border-top:4px solid #d7ad54; }
   body:not(:has(#adminPanel)) .class-grid { grid-template-columns:1fr; }
   body:not(:has(#adminPanel)) .class-card { min-height:0; }
 }
+
+/* Cinematic diagonal reveal for the school photo slideshow */
+.gallery-slideshow img.slide-reveal {
+    animation: schoolPhotoReveal 900ms cubic-bezier(.22,.75,.25,1) both;
+    will-change: clip-path, transform, opacity;
+}
+.gallery-slideshow .photo-caption.caption-reveal {
+    animation: schoolCaptionReveal 650ms 180ms ease-out both;
+}
+@keyframes schoolPhotoReveal {
+    0% {
+        clip-path: inset(0 0 0 100% round 5px);
+        transform: scale(1.075);
+        opacity: .72;
+    }
+    100% {
+        clip-path: inset(0 0 0 0 round 5px);
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+@keyframes schoolCaptionReveal {
+    0% { opacity: 0; transform: translateY(14px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .gallery-slideshow img.slide-reveal,
+    .gallery-slideshow .photo-caption.caption-reveal {
+        animation: none;
+    }
+}
