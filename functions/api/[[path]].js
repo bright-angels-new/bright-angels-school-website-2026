@@ -748,7 +748,7 @@ if (parentEmail && !isValidEmail(parentEmail)) {
           return fail("Please select a valid class.");
         }
         
-        
+       const applicationReference = `BA-${crypto.randomUUID()}`; 
         const result = await env.DB.prepare(
   `INSERT INTO applications (
     reference,
