@@ -291,8 +291,8 @@ async function initialiseDatabase(db) {
 
   // Convert legacy aggregate payments into opening ledger entries once.
   await db.prepare(`INSERT INTO fee_payments
-    (fee_id, student_id, amount, payment_date, payment_method, reference, notes)
-    SELECT f.id, f.student_id, f.amount_paid, DATE('now'), 'Legacy balance',
+    (fee_id, student_id, academic_year, term, amount, payment_date, payment_method, reference, notes)
+    SELECT f.id, f.student_id, f.academic_year, f.term, f.amount_paid, DATE('now'), 'Legacy balance',
            'LEGACY-OPENING-' || f.id, 'Opening payment migrated from the previous fees record'
     FROM fees f
     WHERE f.amount_paid > 0
@@ -1965,8 +1965,8 @@ if (path === "api/gallery") {
         const fee = await env.DB.prepare("SELECT id, student_id, amount_due FROM fees WHERE id = ?").bind(feeId).first();
         if (!fee) return fail("Fee record not found.", 404);
         await env.DB.prepare(`INSERT INTO fee_payments
-          (fee_id, student_id, amount, payment_date, payment_method, reference, notes)
-          VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(feeId, fee.student_id, amount, paymentDate, paymentMethod, reference, notes).run();
+          (fee_id, student_id, academic_year, term, amount, payment_date, payment_method, reference, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(feeId, fee.student_id, fee.academic_year, fee.term, amount, paymentDate, paymentMethod, reference, notes).run();
         const totals = await env.DB.prepare(`SELECT COALESCE(SUM(amount), 0) AS paid
           FROM fee_payments WHERE fee_id = ?`).bind(feeId).first();
         const paid = Number(totals?.paid || 0);
