@@ -763,6 +763,7 @@ if (!["Day", "Boarding"].includes(studyMode)) {
     date_of_birth,
     gender,
     class_applying,
+    study_mode,
     parent_name,
     parent_phone,
     parent_email,
