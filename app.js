@@ -387,13 +387,16 @@ if (admissionForm) {
                 body: values
             });
 
+            // Clear the fields first, then display a persistent confirmation.
+            admissionForm.reset();
+
             showStatus(
                 status,
-                `Application submitted successfully. Your reference number is ${result.reference}. Keep it safe to check your application status.`,
+                `✓ APPLICATION SUBMITTED SUCCESSFULLY! Your application reference number is: ${result.reference}. Please write it down and keep it safe. You will need it together with your child's full name to check the application status.`,
                 'success'
             );
-
-            admissionForm.reset();
+            status.setAttribute('role', 'alert');
+            status.setAttribute('aria-live', 'assertive');
         } catch (error) {
             showStatus(
                 status,
@@ -476,14 +479,16 @@ if (contactForm) {
                 body: formValues(contactForm)
             });
 
+            // Reset the fields before showing the confirmation so it remains visible.
+            contactForm.reset();
+
             showStatus(
                 status,
-                result.message ||
-                    'Your message has been received.',
+                `✓ MESSAGE SENT SUCCESSFULLY! ${result.message || 'Your message has been received. Thank you for contacting Bright Angels Junior School.'}`,
                 'success'
             );
-
-            contactForm.reset();
+            status.setAttribute('role', 'alert');
+            status.setAttribute('aria-live', 'assertive');
         } catch (error) {
             showStatus(
                 status,
