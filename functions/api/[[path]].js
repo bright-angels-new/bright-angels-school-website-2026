@@ -250,6 +250,14 @@ async function initialiseDatabase(db) {
   for (const statement of statements) {
     await db.prepare(statement).run();
   }
+  // Older installations may have a legacy marks table without the score column.
+  // Add it before copying legacy marks into the new assessment table.
+  const legacyMarkColumns = await db.prepare("PRAGMA table_info(marks)").all();
+  const hasLegacyScore = (legacyMarkColumns.results || []).some(column => column.name === "score");
+  if (!hasLegacyScore) {
+    await db.prepare("ALTER TABLE marks ADD COLUMN score REAL NOT NULL DEFAULT 0").run();
+  }
+
   // Preserve legacy marks and fee balances while introducing separate assessment
   // records and a payment ledger. Legacy fee totals are not rewritten.
   await db.prepare(`INSERT OR IGNORE INTO assessment_marks
