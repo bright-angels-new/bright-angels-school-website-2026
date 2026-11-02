@@ -25,17 +25,28 @@ const menuToggle = $('#menuToggle');
 const mainNav = $('#mainNav');
 
 if (menuToggle && mainNav) {
-    menuToggle.addEventListener('click', () => {
-        mainNav.classList.toggle('open');
+    menuToggle.setAttribute('type', 'button');
+    menuToggle.setAttribute('aria-expanded', 'false');
+
+    menuToggle.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        const isOpen = mainNav.classList.toggle('open');
+        menuToggle.setAttribute('aria-expanded', String(isOpen));
+        menuToggle.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+        menuToggle.textContent = isOpen ? '✕' : '☰';
+    });
+
+    // Close the menu after a navigation choice.
+    $('#mainNav a').forEach(link => {
+        link.addEventListener('click', () => {
+            mainNav.classList.remove('open');
+            menuToggle.setAttribute('aria-expanded', 'false');
+            menuToggle.setAttribute('aria-label', 'Open navigation');
+            menuToggle.textContent = '☰';
+        });
     });
 }
-
-// Close the mobile navigation after a link is selected.
-$$('#mainNav a').forEach(link => {
-    link.addEventListener('click', () => {
-        mainNav?.classList.remove('open');
-    });
-});
 
 // Explicitly navigate to the administrator login section.
 const adminLoginLink = $('.nav-admin');
