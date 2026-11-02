@@ -980,48 +980,50 @@ if (admissionMatch && method === "PUT") {
   }
 
   await env.DB.batch([
-    env.DB.prepare(
-      `INSERT INTO students (
-        admission_number,
-        full_name,
-        class_name,
-        gender,
-        date_of_birth,
-        parent_name,
-        parent_phone
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      admissionNumber,
-      application.child_name,
-      confirmedClass,
-      application.gender,
-      application.date_of_birth,
-      application.parent_name,
-      application.parent_phone
-    ),
+  env.DB.prepare(
+    `INSERT INTO students (
+      admission_number,
+      full_name,
+      class_name,
+      gender,
+      date_of_birth,
+      parent_name,
+      parent_phone,
+      study_mode
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    admissionNumber,
+    application.child_name,
+    confirmedClass,
+    application.gender,
+    application.date_of_birth,
+    application.parent_name,
+    application.parent_phone,
+    application.study_mode
+  ),
 
-    env.DB.prepare(
-      `UPDATE applications SET
-        status = 'Approved',
-        confirmed_class = ?,
-        admission_number = ?,
-        approved_at = CURRENT_TIMESTAMP
-       WHERE id = ? AND admission_number = ''`
-    ).bind(
-      confirmedClass,
-      admissionNumber,
-      id
-    )
-  ]);
+  env.DB.prepare(
+    `UPDATE applications SET
+      status = 'Approved',
+      confirmed_class = ?,
+      admission_number = ?,
+      approved_at = CURRENT_TIMESTAMP
+     WHERE id = ? AND admission_number = ''`
+  ).bind(
+    confirmedClass,
+    admissionNumber,
+    id
+  )
+]);
 
-  return json({
-    ok: true,
-    status: "Approved",
-    admission_number: admissionNumber,
-    confirmed_class: confirmedClass,
-    message: "Application approved and student registered."
-  });
-} 
+return json({
+  ok: true,
+  status: "Approved",
+  admission_number: admissionNumber,
+  confirmed_class: confirmedClass,
+  message: "Application approved and student registered."
+});
+}
 // ------------------------------------------------------------
 // CONTACT MESSAGES
 // POST /api/messages: Public message submission
