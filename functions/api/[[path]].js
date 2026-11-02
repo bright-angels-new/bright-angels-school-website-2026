@@ -852,7 +852,7 @@ return json(
   },
   201
 );
-
+      }
       if (method === "GET") {
         const applications = await env.DB.prepare(
           "SELECT * FROM applications ORDER BY id DESC"
