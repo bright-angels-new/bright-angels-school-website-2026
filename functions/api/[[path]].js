@@ -278,7 +278,19 @@ async function initialiseDatabase(db) {
     JSON.stringify(DEFAULT_CLASSES)
   ).run();
 }
+const studentColumns = await db.prepare(
+  "PRAGMA table_info(students)"
+).all();
 
+const studentColumnNames = new Set(
+  (studentColumns.results || []).map(column => column.name)
+);
+
+if (!studentColumnNames.has("study_mode")) {
+  await db.prepare(
+    "ALTER TABLE students ADD COLUMN study_mode TEXT NOT NULL DEFAULT ''"
+  ).run();
+}
 // ============================================================
 // EMAIL NOTIFICATIONS
 // Uses existing Cloudflare environment variables.
