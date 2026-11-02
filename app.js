@@ -2458,6 +2458,13 @@ async function renderApplications() {
             .toLowerCase()
             .replace(/[^a-z]/g, '-');
 
+    const applicationGroups = classOrder.map(className => ({
+        className,
+        items: applications.filter(a => a.class_applying === className)
+    })).filter(group => group.items.length);
+    const unlistedApplications = applications.filter(a => !classOrder.includes(a.class_applying));
+    if (unlistedApplications.length) applicationGroups.push({className:'Other / Unassigned',items:unlistedApplications});
+
     adminContent.innerHTML = `
         <section class="admin-section mobile-admissions">
 
@@ -2525,7 +2532,11 @@ async function renderApplications() {
 
             <div class="admission-list">
 
-                ${applications.length ? applications.map(application => `
+                ${applications.length ? applicationGroups.map(group => `
+                    <section class="admission-class-group" data-admission-group="${escapeHTML(group.className)}">
+                        <h3>${escapeHTML(group.className)} <span>(${group.items.length})</span></h3>
+                        <div class="admission-class-items">
+                        ${group.items.map(application => `
                     <details class="admission-card"
                         data-status="${escapeHTML(application.status || 'Pending')}"
                         data-class="${escapeHTML(application.class_applying || '')}">
@@ -2623,6 +2634,9 @@ ${field('Gender', application.gender)}
 
                         </div>
                     </details>
+                `).join('')}
+                        </div>
+                    </section>
                 `).join('') : `
                     <div class="admission-empty">
                         <h3>No Applications Yet</h3>
@@ -2656,6 +2670,10 @@ ${field('Gender', application.gender)}
 
             card.style.display =
                 matchesSearch && matchesStatus && matchesClass ? '' : 'none';
+        });
+        document.querySelectorAll('.admission-class-group').forEach(group => {
+            group.hidden = ![...group.querySelectorAll('.admission-card')]
+                .some(card => card.style.display !== 'none');
         });
     }
 
