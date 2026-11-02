@@ -213,6 +213,32 @@ async function initialiseDatabase(db) {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
 
+    `CREATE TABLE IF NOT EXISTS assessment_marks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL,
+      subject_id INTEGER NOT NULL,
+      term TEXT NOT NULL DEFAULT '',
+      academic_year TEXT NOT NULL DEFAULT '',
+      assessment_type TEXT NOT NULL DEFAULT 'EOT',
+      score REAL NOT NULL DEFAULT 0,
+      maximum_marks REAL NOT NULL DEFAULT 100,
+      remarks TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (student_id, subject_id, term, academic_year, assessment_type)
+    )`,
+
+    `CREATE TABLE IF NOT EXISTS fee_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      fee_id INTEGER NOT NULL,
+      student_id INTEGER NOT NULL,
+      amount REAL NOT NULL DEFAULT 0,
+      payment_date TEXT NOT NULL DEFAULT '',
+      payment_method TEXT NOT NULL DEFAULT '',
+      reference TEXT NOT NULL DEFAULT '',
+      notes TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+
     `CREATE TABLE IF NOT EXISTS ba_gallery (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       image_url TEXT NOT NULL,
@@ -224,6 +250,13 @@ async function initialiseDatabase(db) {
   for (const statement of statements) {
     await db.prepare(statement).run();
   }
+  // Preserve legacy marks and fee balances while introducing separate assessment
+  // records and a payment ledger. Legacy fee totals are not rewritten.
+  await db.prepare(`INSERT OR IGNORE INTO assessment_marks
+    (student_id, subject_id, term, academic_year, assessment_type, score, maximum_marks, remarks)
+    SELECT student_id, subject_id, term, academic_year, 'EOT', score, 100, remarks
+    FROM marks`).run();
+
   const admissionColumns = [
     ["study_mode", "TEXT NOT NULL DEFAULT ''"],
     ["dob", "TEXT NOT NULL DEFAULT ''"],
@@ -1797,23 +1830,21 @@ if (path === "api/gallery") {
 // ------------------------------------------------------------
 
     if (path === "api/marks") {
-
       if (method === "GET") {
         const result = await env.DB.prepare(
-  `SELECT marks.*,
-          students.full_name AS student_name,
-          students.admission_number,
-          students.class_name,
-          ba_subjects.name AS subject_name
-   FROM marks
-   LEFT JOIN students ON students.id = marks.student_id
-   LEFT JOIN ba_subjects ON ba_subjects.id = marks.subject_id
-   ORDER BY marks.academic_year DESC, marks.term, students.full_name`
-).all();
-        return json({
-          ok: true,
-          marks: result.results || []
-        });
+          `SELECT assessment_marks.*,
+                  students.full_name AS student_name,
+                  students.admission_number,
+                  students.class_name,
+                  ba_subjects.name AS subject_name
+           FROM assessment_marks
+           LEFT JOIN students ON students.id = assessment_marks.student_id
+           LEFT JOIN ba_subjects ON ba_subjects.id = assessment_marks.subject_id
+           ORDER BY assessment_marks.academic_year DESC,
+                    assessment_marks.term, students.full_name,
+                    assessment_marks.assessment_type`
+        ).all();
+        return json({ ok: true, marks: result.results || [] });
       }
 
       if (method === "POST") {
@@ -1823,73 +1854,38 @@ if (path === "api/gallery") {
         const studentId = Number(body.student_id || body.studentId);
         const subjectId = Number(body.subject_id || body.subjectId);
         const term = cleanText(body.term, 50);
-        const academicYear = cleanText(
-          body.academic_year || body.academicYear || body.year, 20
-        );
+        const academicYear = cleanText(body.academic_year || body.academicYear || body.year, 20);
         const score = Number(body.score);
+        const maximumMarks = Number(body.maximum_marks ?? body.maximumMarks ?? 100);
+        const assessmentType = cleanText(body.assessment_type || body.assessmentType || "EOT", 20).toUpperCase();
         const remarks = cleanText(body.remarks || body.comment, 500);
 
-        if (
-          !Number.isInteger(studentId) || studentId < 1 ||
-          !Number.isInteger(subjectId) || subjectId < 1 ||
-          !term || !academicYear ||
-          !Number.isFinite(score) || score < 0 || score > 100
-        ) {
-          return fail(
-            "Provide valid student, subject, term, year and a score from 0 to 100."
-          );
+        if (!Number.isInteger(studentId) || studentId < 1 ||
+            !Number.isInteger(subjectId) || subjectId < 1 ||
+            !term || !academicYear ||
+            !["BOT", "MOT", "EOT"].includes(assessmentType) ||
+            !Number.isFinite(maximumMarks) || maximumMarks <= 0 ||
+            !Number.isFinite(score) || score < 0 || score > maximumMarks) {
+          return fail("Provide valid pupil, subject, term, year, assessment and marks.");
         }
-const student = await env.DB.prepare(
-  "SELECT id FROM students WHERE id = ?"
-).bind(studentId).first();
-        const subject = await env.DB.prepare(
-  "SELECT id FROM ba_subjects WHERE id = ?"
-).bind(subjectId).first();
 
-     if (!student || !subject) {
-  return fail("The selected student or subject does not exist.");
-}
+        const student = await env.DB.prepare("SELECT id FROM students WHERE id = ?").bind(studentId).first();
+        const subject = await env.DB.prepare("SELECT id FROM ba_subjects WHERE id = ?").bind(subjectId).first();
+        if (!student || !subject) return fail("The selected pupil or subject does not exist.");
 
-const assessmentType = cleanText(
-  body.assessment_type || body.assessmentType || "Exam",
-  50
-);
+        await env.DB.prepare(
+          `INSERT INTO assessment_marks
+            (student_id, subject_id, term, academic_year, assessment_type, score, maximum_marks, remarks)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(student_id, subject_id, term, academic_year, assessment_type)
+           DO UPDATE SET score = excluded.score,
+                         maximum_marks = excluded.maximum_marks,
+                         remarks = excluded.remarks`
+        ).bind(studentId, subjectId, term, academicYear, assessmentType, score, maximumMarks, remarks).run();
 
-const maximumMarks = Number(
-  body.maximum_marks || body.maximumMarks || 100
-);
-
-if (
-  !Number.isFinite(maximumMarks) ||
-  maximumMarks <= 0 ||
-  score < 0 ||
-  score > maximumMarks
-) {
-  return fail("Enter a valid score and maximum mark.");
-}
-
-await env.DB.prepare(
-  `INSERT INTO marks (
-    student_id, subject_id, term, academic_year, score, remarks
-  ) VALUES (?, ?, ?, ?, ?, ?)
-  ON CONFLICT(student_id, subject_id, term, academic_year)
-  DO UPDATE SET
-    score = excluded.score,
-    remarks = excluded.remarks`
-).bind(
-  studentId,
-  subjectId,
-  term,
-  academicYear,
-  score,
-  remarks
-).run();
-
-return json({
-  ok: true,
-  message: "Student mark saved successfully."
-}, 201);   
+        return json({ ok: true, message: "Assessment mark saved successfully." }, 201);
       }
+      return fail("Method not allowed.", 405);
     }
 
 // ------------------------------------------------------------
