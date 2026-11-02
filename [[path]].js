@@ -60,7 +60,10 @@ export async function onRequest({request,env}){
     const classApplied = str(b.class_applied, 80);
     const parentName = str(b.parent_name, 200);
     const phone = str(b.phone, 80);
-
+    const studyMode = str(b.study_mode, 20);
+    if (!['Day', 'Boarding'].includes(studyMode)) {
+        return fail('Please select Day or Boarding.');
+    }
     if (!childName) return fail('Child name is required.');
     if (!classApplied) return fail('Please select a class.');
     if (!parentName) return fail('Parent/guardian name is required.');
