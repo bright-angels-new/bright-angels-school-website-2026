@@ -814,6 +814,7 @@ await sendSchoolEmail(
     `Date of birth: ${dateOfBirth}`,
     `Gender: ${gender}`,
     `Class applying for: ${classApplying}`,
+    `Study mode: ${studyMode}`,
     "",
     "PARENT / GUARDIAN DETAILS",
     `Name: ${parentName}`,
