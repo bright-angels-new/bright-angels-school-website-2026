@@ -1914,6 +1914,50 @@ if (path === "api/gallery") {
 // DELETE /api/fees: Delete a fee record
 // ------------------------------------------------------------
 
+    // ------------------------------------------------------------
+    // FEE PAYMENT LEDGER
+    // GET /api/fee-payments
+    // POST /api/fee-payments
+    // ------------------------------------------------------------
+    if (path === "api/fee-payments") {
+      if (method === "GET") {
+        const feeId = Number(url.searchParams.get("fee_id") || 0);
+        const result = feeId
+          ? await env.DB.prepare(`SELECT * FROM fee_payments WHERE fee_id = ? ORDER BY payment_date DESC, id DESC`).bind(feeId).all()
+          : await env.DB.prepare(`SELECT p.*, s.full_name AS student_name, s.admission_number
+              FROM fee_payments p LEFT JOIN students s ON s.id = p.student_id
+              ORDER BY p.payment_date DESC, p.id DESC`).all();
+        return json({ ok: true, payments: result.results || [] });
+      }
+
+      if (method === "POST") {
+        const body = await readBody(request);
+        if (!body) return fail("Please provide payment details.");
+        const feeId = Number(body.fee_id || body.feeId);
+        const amount = Number(body.amount);
+        const paymentDate = cleanText(body.payment_date || body.paymentDate || new Date().toISOString().slice(0, 10), 20);
+        const paymentMethod = cleanText(body.payment_method || body.paymentMethod, 50);
+        const reference = cleanText(body.reference, 100);
+        const notes = cleanText(body.notes, 1000);
+        if (!Number.isInteger(feeId) || feeId < 1 || !Number.isFinite(amount) || amount <= 0 || !paymentDate) {
+          return fail("Enter a valid fee record and payment amount.");
+        }
+        const fee = await env.DB.prepare("SELECT id, student_id, amount_due FROM fees WHERE id = ?").bind(feeId).first();
+        if (!fee) return fail("Fee record not found.", 404);
+        await env.DB.prepare(`INSERT INTO fee_payments
+          (fee_id, student_id, amount, payment_date, payment_method, reference, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(feeId, fee.student_id, amount, paymentDate, paymentMethod, reference, notes).run();
+        const totals = await env.DB.prepare(`SELECT COALESCE(SUM(amount), 0) AS paid
+          FROM fee_payments WHERE fee_id = ?`).bind(feeId).first();
+        const paid = Number(totals?.paid || 0);
+        const balance = Number(fee.amount_due || 0) - paid;
+        await env.DB.prepare("UPDATE fees SET amount_paid = ?, balance = ? WHERE id = ?")
+          .bind(paid, balance, feeId).run();
+        return json({ ok: true, amount_paid: paid, balance, message: "Payment recorded successfully." }, 201);
+      }
+      return fail("Method not allowed.", 405);
+    }
+
     if (path === "api/fees") {
 
       if (method === "GET") {
