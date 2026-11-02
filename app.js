@@ -293,17 +293,28 @@ async function loadGallerySlideshow() {
 
         if (!galleryPhotos.length) return;
 
-        function showPhoto(index) {
+        function showPhoto(index, animate = true) {
             currentPhotoIndex =
                 (index + galleryPhotos.length) % galleryPhotos.length;
 
             const photo = galleryPhotos[currentPhotoIndex];
 
+            if (animate) {
+                image.classList.remove('slide-reveal');
+                caption.classList.remove('caption-reveal');
+                void image.offsetWidth;
+            }
+
             image.src = photo.image_url;
             caption.textContent = photo.caption || 'Bright Angels Junior School';
+
+            if (animate) {
+                image.classList.add('slide-reveal');
+                caption.classList.add('caption-reveal');
+            }
         }
 
-        showPhoto(0);
+        showPhoto(0, false);
 
         $('#previousPhoto')?.addEventListener('click', () => {
             showPhoto(currentPhotoIndex - 1);
