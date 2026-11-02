@@ -641,104 +641,88 @@ export async function onRequest({ request, env }) {
         }
 
         const childName = cleanText(
-          body.child_name || body.childName,
-          150
-        );
+  body.child_name || body.childName,
+  150
+);
 
-        const classApplying = cleanText(
-  body.class_applying || body.class_applied || body.classApplying || body.class,
+const classApplying = cleanText(
+  body.class_applying || body.class_applied ||
+  body.classApplying || body.class,
   50
 );
 
-        const parentName = cleanText(
-          body.parent_name || body.parentName,
-          150
-        );
+const parentName = cleanText(
+  body.parent_name || body.parentName,
+  150
+);
 
-        const parentPhone = cleanText(
-          body.parent_phone || body.parentPhone || body.phone,
-          50
-        );
+const parentPhone = cleanText(
+  body.parent_phone || body.parentPhone || body.phone,
+  50
+);
 
-        const parentEmail = normaliseEmail(
-          body.parent_email || body.parentEmail || body.email
-        );
+const parentEmail = normaliseEmail(
+  body.parent_email || body.parentEmail || body.email
+);
 
-        const dateOfBirth = cleanText(
-          body.date_of_birth || body.dateOfBirth,
-          30
-        );
+const dateOfBirth = cleanText(
+  body.date_of_birth || body.dateOfBirth,
+  30
+);
 
-        const gender = cleanText(body.gender, 30);
+const gender = cleanText(body.gender, 30);
 
-        const address = cleanText(
-          body.address || body.residence,
-          500
-        );
-                // Father's details
-        const fatherName = cleanText(body.father_name, 150);
-        const fatherPhone = cleanText(body.father_phone, 50);
-        const fatherEmail = normaliseEmail(body.father_email);
+const address = cleanText(
+  body.address || body.residence,
+  500
+);
 
-        // Mother's details
-        const motherName = cleanText(body.mother_name, 150);
-        const motherPhone = cleanText(body.mother_phone, 50);
-        const motherEmail = normaliseEmail(body.mother_email);
+const previousSchool = cleanText(
+  body.previous_school,
+  200
+);
 
-        // Previous school
-        const previousSchool = cleanText(
-          body.previous_school,
-          200
-        );
+const emergencyContactName = cleanText(
+  body.emergency_contact_name,
+  150
+);
 
-        // Emergency contact
-        const emergencyContactName = cleanText(
-          body.emergency_contact_name,
-          150
-        );
+const emergencyContactPhone = cleanText(
+  body.emergency_contact_phone,
+  50
+);
 
-        const emergencyContactPhone = cleanText(
-          body.emergency_contact_phone,
-          50
-        );
+const emergencyContactRelationship = cleanText(
+  body.emergency_contact_relationship,
+  100
+);
 
-        const emergencyContactRelationship = cleanText(
-          body.emergency_contact_relationship,
-          100
-        );
+const medicalInformation = cleanText(
+  body.medical_information,
+  2000
+);
 
-        // Medical and learning information
-        const medicalInformation = cleanText(
-          body.medical_information,
-          2000
-        );
+const specialLearningNeeds = cleanText(
+  body.special_learning_needs,
+  2000
+);
 
-        const specialLearningNeeds = cleanText(
-          body.special_learning_needs,
-          2000
-        );
+// Required fields validation
+if (
+  !childName ||
+  !classApplying ||
+  !parentName ||
+  !parentPhone
+) {
+  return fail(
+    "Please provide the child's name, class, parent name and phone number."
+  );
+}
 
-        // Required fields validation
-        if (
-          !childName ||
-          !classApplying ||
-          !parentName ||
-          !parentPhone
-        ) {
-          return fail(
-            "Please provide the child's name, class, parent name and phone number."
-          );
-        }
-               
-
-                if (
-          (parentEmail && !isValidEmail(parentEmail)) ||
-          (fatherEmail && !isValidEmail(fatherEmail)) ||
-          (motherEmail && !isValidEmail(motherEmail))
-        ) {
-          return fail("Please enter valid email addresses.");
-      }
-
+if (parentEmail && !isValidEmail(parentEmail)) {
+  return fail("Please enter a valid parent/guardian email address.");
+  }
+        
         const savedClasses = await env.DB.prepare(
           "SELECT value FROM settings WHERE key = ?"
         ).bind("school_classes").first();
