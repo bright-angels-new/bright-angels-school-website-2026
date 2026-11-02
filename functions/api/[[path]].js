@@ -724,7 +724,11 @@ if (
 if (parentEmail && !isValidEmail(parentEmail)) {
   return fail("Please enter a valid parent/guardian email address.");
   }
-        
+       const studyMode = cleanText(body.study_mode, 20);
+
+if (!["Day", "Boarding"].includes(studyMode)) {
+  return fail("Please select Day or Boarding.");
+} 
         const savedClasses = await env.DB.prepare(
           "SELECT value FROM settings WHERE key = ?"
         ).bind("school_classes").first();
