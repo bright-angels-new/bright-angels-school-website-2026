@@ -74,11 +74,12 @@ export async function onRequest({request,env}){
 
 const result = await env.DB.prepare(`
     INSERT INTO ba_admissions
-    (child_name, class_applied, parent_name, phone, email, message, status, reference_number)
-    VALUES (?, ?, ?, ?, ?, ?, 'Pending', ?)
+(child_name, class_applied, study_mode, parent_name, phone, email, message, status, reference_number)
+VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', ?)
 `).bind(
     childName,
     classApplied,
+    studyMode,
     parentName,
     phone,
     str(b.email, 250),
