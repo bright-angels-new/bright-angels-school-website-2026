@@ -842,6 +842,32 @@ case 'gallery':
                                     )
                                 ])
                             )}
+                            <div class="student-detail-list">
+                                ${pupils.map(student => `
+                                    <details class="student-detail-card">
+                                        <summary>Full record: ${safeCell(student.full_name)}</summary>
+                                        <div class="admission-grid">
+                                            ${[
+                                                ['Admission Number',student.admission_number],
+                                                ['Date of Birth',student.date_of_birth],
+                                                ['Parent/Guardian',student.parent_name],
+                                                ['Parent Phone',student.parent_phone],
+                                                ['Parent Email',student.parent_email],
+                                                ['Study Mode',student.study_mode],
+                                                ['Address',student.address],
+                                                ['Previous School',student.previous_school],
+                                                ['Emergency Contact',student.emergency_contact_name],
+                                                ['Emergency Phone',student.emergency_contact_phone],
+                                                ['Emergency Relationship',student.emergency_contact_relationship],
+                                                ['Medical Information',student.medical_information],
+                                                ['Special Learning Needs',student.special_learning_needs]
+                                            ].map(([label,value]) => `
+                                                <div class="admission-field"><strong>${label}</strong><span>${safeCell(value || 'Not provided')}</span></div>
+                                            `).join('')}
+                                        </div>
+                                    </details>
+                                `).join('')}
+                            </div>
                         `
                         : '<p class="empty-class">No pupils registered in this class yet.</p>'
                 }
@@ -927,6 +953,30 @@ case 'gallery':
 
                 <label>Parent/Guardian phone
                     <input name="parent_phone" type="tel">
+                </label>
+                <label>Parent/Guardian email
+                    <input name="parent_email" type="email">
+                </label>
+                <label>Home address
+                    <textarea name="address"></textarea>
+                </label>
+                <label>Previous school
+                    <input name="previous_school">
+                </label>
+                <label>Emergency contact name
+                    <input name="emergency_contact_name">
+                </label>
+                <label>Emergency contact phone
+                    <input name="emergency_contact_phone" type="tel">
+                </label>
+                <label>Emergency contact relationship
+                    <input name="emergency_contact_relationship">
+                </label>
+                <label>Medical information
+                    <textarea name="medical_information"></textarea>
+                </label>
+                <label>Special learning needs
+                    <textarea name="special_learning_needs"></textarea>
                 </label>
 
                 <button type="submit">Save Student</button>
