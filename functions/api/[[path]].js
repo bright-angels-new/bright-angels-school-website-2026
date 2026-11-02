@@ -257,6 +257,15 @@ async function initialiseDatabase(db) {
     SELECT student_id, subject_id, term, academic_year, 'EOT', score, 100, remarks
     FROM marks`).run();
 
+  // Convert legacy aggregate payments into opening ledger entries once.
+  await db.prepare(`INSERT INTO fee_payments
+    (fee_id, student_id, amount, payment_date, payment_method, reference, notes)
+    SELECT f.id, f.student_id, f.amount_paid, DATE('now'), 'Legacy balance',
+           'LEGACY-OPENING-' || f.id, 'Opening payment migrated from the previous fees record'
+    FROM fees f
+    WHERE f.amount_paid > 0
+      AND NOT EXISTS (SELECT 1 FROM fee_payments p WHERE p.fee_id = f.id)`).run();
+
   const admissionColumns = [
     ["study_mode", "TEXT NOT NULL DEFAULT ''"],
     ["dob", "TEXT NOT NULL DEFAULT ''"],
@@ -2088,34 +2097,54 @@ if (path === "api/gallery") {
         return fail("Student not found.", 404);
       }
 
+      const assessmentType = cleanText(
+        url.searchParams.get("assessment_type") || "EOT", 10
+      ).toUpperCase();
+      if (!["BOT", "MOT", "EOT"].includes(assessmentType)) {
+        return fail("Assessment must be BOT, MOT or EOT.");
+      }
+
       const marksResult = await env.DB.prepare(
         `SELECT ba_subjects.name AS subject_name,
-                marks.score,
-                marks.remarks
-         FROM marks
-         INNER JOIN ba_subjects ON ba_subjects.id = marks.subject_id
-         WHERE marks.student_id = ?
-           AND marks.term = ?
-           AND marks.academic_year = ?
+                assessment_marks.score,
+                assessment_marks.maximum_marks,
+                assessment_marks.remarks,
+                assessment_marks.assessment_type
+         FROM assessment_marks
+         INNER JOIN ba_subjects ON ba_subjects.id = assessment_marks.subject_id
+         WHERE assessment_marks.student_id = ?
+           AND assessment_marks.term = ?
+           AND assessment_marks.academic_year = ?
+           AND assessment_marks.assessment_type = ?
          ORDER BY ba_subjects.name`
-      ).bind(studentId, term, academicYear).all();
+      ).bind(studentId, term, academicYear, assessmentType).all();
 
-      const marks = marksResult.results || [];
-      const total = marks.reduce(
-        (sum, item) => sum + Number(item.score || 0),
-        0
-      );
-
-      const average = marks.length ? total / marks.length : 0;
-
+      const marks = (marksResult.results || []).map(item => ({
+        ...item,
+        percentage: Number(item.maximum_marks) > 0
+          ? Number((Number(item.score) / Number(item.maximum_marks) * 100).toFixed(2))
+          : 0
+      }));
+      const total = marks.reduce((sum, item) => sum + Number(item.score || 0), 0);
+      const totalMaximum = marks.reduce((sum, item) => sum + Number(item.maximum_marks || 0), 0);
+      const average = totalMaximum ? total / totalMaximum * 100 : 0;
+      const group = ["BABY CLASS", "MIDDLE CLASS", "TOP CLASS"].includes(
+        String(student.class_name || "").toUpperCase()
+      ) ? "early" : ["P1", "P2", "P3"].includes(
+        String(student.class_name || "").toUpperCase()
+      ) ? "lower" : "upper";
       let overallGrade = "N/A";
-
-      if (marks.length) {
-        if (average >= 80) overallGrade = "A";
-        else if (average >= 70) overallGrade = "B";
-        else if (average >= 60) overallGrade = "C";
-        else if (average >= 50) overallGrade = "D";
-        else overallGrade = "E";
+      if (marks.length && group === "early") {
+        overallGrade = average >= 80 ? "E" : average >= 65 ? "VG" :
+          average >= 50 ? "G" : average >= 35 ? "D" : "NI";
+      } else if (marks.length && group === "lower") {
+        overallGrade = average >= 80 ? "4" : average >= 65 ? "3" :
+          average >= 40 ? "2" : "1";
+      } else if (marks.length) {
+        overallGrade = average >= 85 ? "D1" : average >= 70 ? "D2" :
+          average >= 60 ? "C3" : average >= 50 ? "C4" :
+          average >= 45 ? "C5" : average >= 40 ? "C6" :
+          average >= 35 ? "P7" : average >= 30 ? "P8" : "F9";
       }
 
       const feeResult = await env.DB.prepare(
@@ -2135,7 +2164,9 @@ if (path === "api/gallery") {
           term,
           academic_year: academicYear,
           subjects: marks,
+          assessment_type: assessmentType,
           total_marks: total,
+          total_maximum: totalMaximum,
           average: Number(average.toFixed(2)),
           overall_grade: overallGrade,
           fee_summary: feeResult || {
