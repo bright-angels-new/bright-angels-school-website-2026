@@ -653,3 +653,65 @@ body:has(#adminPanel) #adminContent .admin-box form {
     justify-self: stretch;
   }
 }
+
+
+/* FEES STATUS SUMMARY AND CLEARANCE LABELS */
+body:has(#adminPanel) .fee-status-overview {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 12px;
+  margin: 20px 0 26px;
+}
+body:has(#adminPanel) .fee-status-overview > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 16px 18px;
+  border: 1px solid #e1e8f0;
+  border-radius: 10px;
+  background: #f7f9fc;
+}
+body:has(#adminPanel) .fee-status-overview span {
+  color: #64748b;
+  font-size: .78rem;
+  font-weight: 700;
+}
+body:has(#adminPanel) .fee-status-overview strong {
+  color: #163b68;
+  font: 800 1.55rem Manrope,sans-serif;
+}
+body:has(#adminPanel) .fee-status-overview .fee-cleared {
+  background: #f0faf4;
+  border-color: #cdebd8;
+}
+body:has(#adminPanel) .fee-status-overview .fee-cleared strong {
+  color: #187343;
+}
+body:has(#adminPanel) .fee-status-overview .fee-outstanding {
+  background: #fff8ed;
+  border-color: #f1dfbf;
+}
+body:has(#adminPanel) .fee-status-overview .fee-outstanding strong {
+  color: #a36512;
+}
+body:has(#adminPanel) .fee-status-badge {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+body:has(#adminPanel) .fee-status-badge.cleared {
+  color: #176b3d;
+  background: #e8f7ee;
+}
+body:has(#adminPanel) .fee-status-badge.due {
+  color: #92580d;
+  background: #fff2d9;
+}
+@media(max-width:600px) {
+  body:has(#adminPanel) .fee-status-overview {
+    grid-template-columns: 1fr;
+  }
+}
