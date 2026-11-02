@@ -791,7 +791,7 @@ if (!["Day", "Boarding"].includes(studyMode)) {
     medical_information,
     special_learning_needs
   ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
   )`
 ).bind(
   applicationReference,
@@ -800,6 +800,7 @@ if (!["Day", "Boarding"].includes(studyMode)) {
   dateOfBirth,
   gender,
   classApplying,
+  studyMode,
   parentName,
   parentPhone,
   parentEmail,
@@ -889,19 +890,19 @@ if (path === "api/admissions-status" && method === "POST") {
     100
   );
 
-  const phone = cleanText(body.phone, 50);
+  const childName = cleanText(body.child_name || body.childName, 200);
 
-  if (!reference || !phone) {
-    return fail("Enter your application reference and phone number.");
+  if (!reference || !childName) {
+    return fail("Enter your application reference and child's full name.");
   }
 
   const application = await env.DB.prepare(
-  `SELECT reference, status, class_applying,
+  `SELECT reference, child_name, status, class_applying,
           confirmed_class, admission_number
    FROM applications
-   WHERE reference = ? AND parent_phone = ?
+   WHERE reference = ? AND LOWER(TRIM(child_name)) = LOWER(TRIM(?))
    LIMIT 1`
-).bind(reference, phone).first();
+).bind(reference, childName).first();
 
   if (!application) {
   return fail(
