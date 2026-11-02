@@ -175,7 +175,7 @@ async function initialiseDatabase(db) {
   parent_phone TEXT NOT NULL DEFAULT '',
   study_mode TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-),
+)`,
 
     `CREATE TABLE IF NOT EXISTS subjects (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
