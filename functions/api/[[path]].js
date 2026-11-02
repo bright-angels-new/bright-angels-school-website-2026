@@ -164,17 +164,18 @@ async function initialiseDatabase(db) {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
 
-    `CREATE TABLE IF NOT EXISTS students (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      admission_number TEXT NOT NULL DEFAULT '',
-      full_name TEXT NOT NULL,
-      class_name TEXT NOT NULL DEFAULT '',
-      gender TEXT NOT NULL DEFAULT '',
-      date_of_birth TEXT NOT NULL DEFAULT '',
-      parent_name TEXT NOT NULL DEFAULT '',
-      parent_phone TEXT NOT NULL DEFAULT '',
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`,
+    CREATE TABLE IF NOT EXISTS students (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  admission_number TEXT NOT NULL DEFAULT '',
+  full_name TEXT NOT NULL,
+  class_name TEXT NOT NULL DEFAULT '',
+  gender TEXT NOT NULL DEFAULT '',
+  date_of_birth TEXT NOT NULL DEFAULT '',
+  parent_name TEXT NOT NULL DEFAULT '',
+  parent_phone TEXT NOT NULL DEFAULT '',
+  study_mode TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+),
 
     `CREATE TABLE IF NOT EXISTS subjects (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
