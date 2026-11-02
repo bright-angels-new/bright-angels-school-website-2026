@@ -1583,7 +1583,8 @@ async function renderReportCards() {
                         : '';
 
                 return `
-                    <article class="report-page">
+                    <article class="report-page ${group === 'early' ? 'early-years-report' : 'formal-report'}">
+                        ${group === 'early' ? '<div class="early-banner">★ MY LITTLE LEARNER ★</div>' : ''}
                         <header>
     <img
         src="${window.location.origin}/school-logo.jpg"
@@ -1593,6 +1594,7 @@ async function renderReportCards() {
     <h1>BRIGHT ANGELS JUNIOR SCHOOL</h1>
     <p>If others can, we can</p>
     <h2>${escapeHTML(assessment)} REPORT CARD</h2>
+    ${group === 'early' ? '<p class="early-subtitle">A special record of my learning and growing!</p><div class="star-row">★　✿　★　✿　★</div>' : ''}
 </header>
 
                         <div class="pupil-details">
@@ -1624,6 +1626,7 @@ async function renderReportCards() {
                         </div>
 
                         <footer>
+                            ${group === 'early' ? '<div class="little-star">✿ Keep learning, keep smiling! ✿</div>' : ''}
                             <p>Class Teacher's Comment: __________________________</p>
                             <p>Head Teacher's Comment: __________________________</p>
                             <p>Class Teacher's Signature: ________________________</p>
@@ -1708,10 +1711,99 @@ async function renderReportCards() {
                             line-height: 2;
                         }
 
+                        .early-years-report {
+                            background: #fffdf5;
+                            border: 5px solid #f2c94c;
+                            border-radius: 22px;
+                            margin: 8mm;
+                            padding: 20px;
+                            color: #253858;
+                            background-image: radial-gradient(circle at 8% 8%, #fff0b8 0 5px, transparent 6px), radial-gradient(circle at 92% 14%, #dff4ff 0 6px, transparent 7px);
+                        }
+                        .early-years-report header {
+                            border: 0;
+                            border-bottom: 4px dotted #72b7d2;
+                            border-radius: 16px;
+                            background: #eef9ff;
+                            padding: 14px 10px;
+                        }
+                        .early-years-report header h1 {
+                            color: #24527a;
+                            font-size: 23px;
+                            letter-spacing: 1px;
+                        }
+                        .early-years-report header h2 {
+                            display: inline-block;
+                            background: #ffe39a;
+                            color: #754d00;
+                            border-radius: 18px;
+                            padding: 8px 22px;
+                            margin: 10px 0 4px;
+                        }
+                        .early-banner {
+                            text-align: center;
+                            color: #8a5a00;
+                            font-weight: bold;
+                            letter-spacing: 2px;
+                            padding: 8px;
+                            background: #fff0bf;
+                            border-radius: 14px;
+                            margin-bottom: 12px;
+                        }
+                        .early-subtitle {
+                            color: #397b91;
+                            font-weight: bold;
+                            margin: 5px 0;
+                        }
+                        .star-row, .little-star {
+                            color: #d69b20;
+                            text-align: center;
+                            font-size: 19px;
+                            letter-spacing: 3px;
+                            margin: 8px 0;
+                        }
+                        .early-years-report .pupil-details {
+                            background: #f1f8e8;
+                            border: 2px solid #b7d99a;
+                            border-radius: 14px;
+                            padding: 8px 16px;
+                        }
+                        .early-years-report table {
+                            border-collapse: separate;
+                            border-spacing: 0;
+                            overflow: hidden;
+                            border: 2px solid #82b9c9;
+                            border-radius: 13px;
+                        }
+                        .early-years-report th {
+                            background: #6baec2;
+                            color: #fff;
+                            text-align: center;
+                        }
+                        .early-years-report td {
+                            border-color: #c9e1e5;
+                            background: #fff;
+                            padding: 11px;
+                        }
+                        .early-years-report tbody tr:nth-child(even) td {
+                            background: #f0f8ff;
+                        }
+                        .early-years-report .totals {
+                            background: #fff0bf;
+                            border: 2px dashed #d8aa42;
+                            border-radius: 14px;
+                            padding: 8px 16px;
+                        }
+                        .early-years-report footer {
+                            background: #f4f0ff;
+                            border-radius: 14px;
+                            padding: 10px 16px;
+                            margin-top: 24px;
+                        }
+                        .formal-report .report-school-logo { width: 95px; height: 95px; }
                         @media print {
-                            .report-page {
-                                page-break-after: always;
-                            }
+                            .report-page { page-break-after: always; }
+                            .early-years-report { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
                         }
                     </style>
                 </head>
