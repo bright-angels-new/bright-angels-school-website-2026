@@ -367,8 +367,7 @@ if (admissionForm) {
 
             showStatus(
                 status,
-                result.message ||
-                    'Application submitted successfully.',
+                `Application submitted successfully. Your reference number is ${result.reference}. Keep it safe to check your application status.`,
                 'success'
             );
 
@@ -410,6 +409,7 @@ if (admissionStatusForm) {
 
             resultBox.innerHTML = `
                 <strong>Application found</strong><br>
+                Child: ${safeCell(result.child_name)}<br>
                 Reference: ${safeCell(result.reference_number)}<br>
                 Status: ${safeCell(result.status)}<br>
                 Class applied for: ${safeCell(result.class_applied)}<br>
