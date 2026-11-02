@@ -33,6 +33,14 @@ export async function onRequest({request,env}){
  if(!env.DB)return fail('Cloudflare D1 binding DB is missing.',500);
  try{
   for(const q of schema.split(';').map(x=>x.trim()).filter(Boolean))await env.DB.prepare(q).run();
+       for (const table of ['ba_admissions', 'students']) {
+    const columns = await env.DB.prepare(`PRAGMA table_info(${table})`).all();
+    if (!columns.results.some(column => column.name === 'study_mode')) {
+      await env.DB.prepare(
+        `ALTER TABLE ${table} ADD COLUMN study_mode TEXT NOT NULL DEFAULT ''`
+      ).run();
+    }
+       }
   const url=new URL(request.url),path=url.pathname.replace(/^\/api\/?/,'').replace(/\/$/,''),method=request.method;
   const m=path.match(/^([a-z-]+)\/(\d+)$/),resource=m?m[1]:path,id=m?Number(m[2]):0;
   if(path==='health'&&method==='GET')return json({ok:true});
