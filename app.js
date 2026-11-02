@@ -1753,30 +1753,31 @@ function getReportGroup(className) {
 
 function getReportGrade(className, percentage) {
     const group = getReportGroup(className);
+    const mark = Number(percentage);
 
     if (group === 'early') {
-        if (percentage >= 80) return 'E';
-        if (percentage >= 65) return 'VG';
-        if (percentage >= 50) return 'G';
-        if (percentage >= 35) return 'D';
+        if (mark >= 80) return 'E';
+        if (mark >= 65) return 'VG';
+        if (mark >= 50) return 'G';
+        if (mark >= 35) return 'D';
         return 'NI';
     }
 
     if (group === 'lower') {
-        if (percentage >= 80) return '4';
-        if (percentage >= 65) return '3';
-        if (percentage >= 40) return '2';
+        if (mark >= 80) return '4';
+        if (mark >= 65) return '3';
+        if (mark >= 40) return '2';
         return '1';
     }
 
-    if (percentage >= 85) return 'D1';
-    if (percentage >= 70) return 'D2';
-    if (percentage >= 60) return 'C3';
-    if (percentage >= 50) return 'C4';
-    if (percentage >= 45) return 'C5';
-    if (percentage >= 40) return 'C6';
-    if (percentage >= 35) return 'P7';
-    if (percentage >= 30) return 'P8';
+    if (mark >= 85) return 'D1';
+    if (mark >= 70) return 'D2';
+    if (mark >= 60) return 'C3';
+    if (mark >= 50) return 'C4';
+    if (mark >= 45) return 'C5';
+    if (mark >= 40) return 'C6';
+    if (mark >= 35) return 'P7';
+    if (mark >= 30) return 'P8';
     return 'F9';
 }           
 /* ---------------------------------------------------------
