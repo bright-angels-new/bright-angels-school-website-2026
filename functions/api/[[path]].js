@@ -164,7 +164,7 @@ async function initialiseDatabase(db) {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
 
-    CREATE TABLE IF NOT EXISTS students (
+    `CREATE TABLE IF NOT EXISTS students (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   admission_number TEXT NOT NULL DEFAULT '',
   full_name TEXT NOT NULL,
