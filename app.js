@@ -831,19 +831,23 @@ case 'gallery':
 
                             ${makeTable(
                                 [
-                                    'Admission No.',
-                                    'Student Name',
-                                    'Gender',
-                                    'Parent/Guardian',
-                                    'Phone',
-                                    'Actions'
-                                ],
+    'Admission No.',
+    'Student Name',
+    'Gender',
+    'Study Mode',
+    'Parent/Guardian',
+    'Phone',
+    'Actions'
+]
+                                    
+                                    ',
                                 pupils.map(student => [
                                     safeCell(student.admission_number),
                                     safeCell(student.full_name),
                                     safeCell(
                                         student.gender || 'Not recorded'
                                     ),
+                                   safeCell(student.study_mode || 'Not recorded'),
                                     safeCell(student.parent_name),
                                     safeCell(student.parent_phone),
                                     actionButton(
@@ -905,6 +909,13 @@ case 'gallery':
                 <label>Full name
                     <input name="full_name" required>
                 </label>
+                <label>Study Mode
+    <select name="study_mode" required>
+        <option value="">Select study mode</option>
+        <option value="Day">Day</option>
+        <option value="Boarding">Boarding</option>
+    </select>
+</label>
 
                 <label>Admission number
                     <input name="admission_number" required>
