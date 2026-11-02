@@ -906,7 +906,7 @@ if (path === "api/admissions-status" && method === "POST") {
 
   if (!application) {
   return fail(
-    "No application was found. Check your reference number and phone number.",
+    "No application was found. Check your reference number and the child's full name.",
     404
   );
 }
@@ -1816,7 +1816,7 @@ if (path === "api/gallery") {
           body.academic_year || body.academicYear || body.year, 20
         );
         const score = Number(body.score);
-        const remarks = cleanText(body.remarks, 500);
+        const remarks = cleanText(body.remarks || body.comment, 500);
 
         if (
           !Number.isInteger(studentId) || studentId < 1 ||
