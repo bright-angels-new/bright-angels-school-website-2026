@@ -567,6 +567,8 @@ if (logoutButton) {
 
         showAdmin(false);
 
+        // Clear any email/password values from the login screen.
+        loginForm?.reset();
         if (loginStatus) {
             showStatus(loginStatus, 'You have been logged out.');
         }
@@ -1881,6 +1883,21 @@ async function renderFees() {
     const fees = result.fees || [];
     const pupils = await studentSelect();
 
+    const feeClassOrder = [
+        'Baby Class', 'Middle Class', 'Top Class',
+        'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7'
+    ];
+    fees.sort((a, b) => {
+        const ai = feeClassOrder.indexOf(a.class_name);
+        const bi = feeClassOrder.indexOf(b.class_name);
+        return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi) ||
+            String(a.student_name || '').localeCompare(String(b.student_name || '')) ||
+            String(a.term || '').localeCompare(String(b.term || ''));
+    });
+
+    const clearedCount = fees.filter(fee => Number(fee.balance || 0) <= 0).length;
+    const outstandingCount = fees.length - clearedCount;
+
     adminContent.innerHTML = `
         <section class="admin-section">
             <h2>School Fees</h2>
@@ -1940,8 +1957,13 @@ async function renderFees() {
                 <p id="feesStatus" class="form-status"></p>
             </form>
 
-            <h3>Fees Records</h3>
+            <div class="fee-status-overview">
+                <div><span>Fee records</span><strong>${fees.length}</strong></div>
+                <div class="fee-cleared"><span>Fully cleared</span><strong>${clearedCount}</strong></div>
+                <div class="fee-outstanding"><span>Outstanding</span><strong>${outstandingCount}</strong></div>
+            </div>
 
+            <h3>Fees Records · Arranged by Class</h3>
             ${makeTable(
                 [
                     'Pupil',
@@ -1951,18 +1973,25 @@ async function renderFees() {
                     'Year',
                     'Amount Due',
                     'Amount Paid',
-                    'Balance'
+                    'Balance',
+                    'Payment Status'
                 ],
-                fees.map(fee => [
-                    safeCell(fee.student_name),
-                    safeCell(fee.admission_number),
-                    safeCell(fee.class_name),
-                    safeCell(fee.term),
-                    safeCell(fee.academic_year),
-                    safeCell(money(fee.amount_due)),
-                    safeCell(money(fee.amount_paid)),
-                    safeCell(money(fee.balance))
-                ])
+                fees.map(fee => {
+                    const cleared = Number(fee.balance || 0) <= 0;
+                    return [
+                        safeCell(fee.student_name),
+                        safeCell(fee.admission_number),
+                        safeCell(fee.class_name),
+                        safeCell(fee.term),
+                        safeCell(fee.academic_year),
+                        safeCell(money(fee.amount_due)),
+                        safeCell(money(fee.amount_paid)),
+                        safeCell(money(fee.balance)),
+                        cleared
+                            ? '<span class="fee-status-badge cleared">✓ Fees cleared</span>'
+                            : '<span class="fee-status-badge due">Balance due</span>'
+                    ];
+                })
             )}
         </section>
     `;
