@@ -224,6 +224,7 @@ async function initialiseDatabase(db) {
     await db.prepare(statement).run();
   }
   const admissionColumns = [
+    ["dob", "TEXT NOT NULL DEFAULT ''"],
     ["status", "TEXT NOT NULL DEFAULT 'Pending'"],
     ["reference", "TEXT NOT NULL DEFAULT ''"],
     ["confirmed_class", "TEXT NOT NULL DEFAULT ''"],
