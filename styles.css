@@ -549,3 +549,107 @@ body:has(#adminPanel) .admin-content .empty-state {
   body:has(#adminPanel) .admin-tabs { margin-inline: -2px; padding: 14px 0; }
   body:has(#adminPanel) .admin-content { padding-top: 18px; }
 }
+
+
+/* ADMIN FORMS: consistent field layout, grouping and spacing */
+body:has(#adminPanel) #adminContent form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+  align-items: start;
+  max-width: 100%;
+  margin: 18px 0 30px;
+  padding: clamp(18px,2.5vw,28px);
+  border: 1px solid #e2e9f1;
+  border-radius: 12px;
+  background: #fbfcfe;
+}
+body:has(#adminPanel) #adminContent form > label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  color: #344a64;
+  font-size: .82rem;
+  font-weight: 700;
+  gap: 5px;
+}
+body:has(#adminPanel) #adminContent form > label:has(textarea),
+body:has(#adminPanel) #adminContent form > label:has(input[type="file"]) {
+  grid-column: 1 / -1;
+}
+body:has(#adminPanel) #adminContent form > label input,
+body:has(#adminPanel) #adminContent form > label select,
+body:has(#adminPanel) #adminContent form > label textarea {
+  margin: 0;
+  min-height: 45px;
+}
+body:has(#adminPanel) #adminContent form > label textarea {
+  min-height: 110px;
+}
+body:has(#adminPanel) #adminContent form > button[type="submit"],
+body:has(#adminPanel) #adminContent form > .btn {
+  justify-self: start;
+  min-height: 44px;
+  padding: 11px 20px;
+  color: #fff;
+  background: #163b68;
+  border: 1px solid #163b68;
+  border-radius: 8px;
+  font-weight: 700;
+}
+body:has(#adminPanel) #adminContent form > button[type="submit"]:hover {
+  background: #214f83;
+}
+body:has(#adminPanel) #adminContent form > .form-status {
+  grid-column: 1 / -1;
+  margin: 0;
+  min-height: 1.2em;
+}
+body:has(#adminPanel) #adminContent form .inline-form {
+  grid-column: 1 / -1;
+}
+body:has(#adminPanel) #adminContent form:has(input[name="title"]) label:has(textarea),
+body:has(#adminPanel) #adminContent form:has(textarea[name="content"]) label:has(textarea) {
+  grid-column: 1 / -1;
+}
+body:has(#adminPanel) #adminContent h2 {
+  margin-bottom: 8px;
+  font-size: clamp(1.45rem,2.5vw,2rem);
+}
+body:has(#adminPanel) #adminContent > section > p {
+  margin-bottom: 18px;
+}
+body:has(#adminPanel) #adminContent h3 {
+  margin: 28px 0 14px;
+  font-size: 1.08rem;
+}
+body:has(#adminPanel) #adminContent .admin-box {
+  padding: clamp(16px,2vw,22px);
+  border: 1px solid #e2e9f1;
+  border-radius: 12px;
+  background: #fbfcfe;
+}
+body:has(#adminPanel) #adminContent .admin-box form {
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+@media(max-width:680px) {
+  body:has(#adminPanel) #adminContent form {
+    grid-template-columns: minmax(0,1fr);
+    gap: 13px;
+    padding: 16px;
+  }
+  body:has(#adminPanel) #adminContent form > label,
+  body:has(#adminPanel) #adminContent form > label:has(textarea),
+  body:has(#adminPanel) #adminContent form > label:has(input[type="file"]) {
+    grid-column: 1;
+  }
+  body:has(#adminPanel) #adminContent form > button[type="submit"] {
+    width: 100%;
+    justify-self: stretch;
+  }
+}
