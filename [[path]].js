@@ -494,16 +494,17 @@ if(resource==='marks'&&method==='DELETE'&&id){
     if (!existingStudent) {
         await env.DB.prepare(`
             INSERT INTO students
-            (admission_number, full_name, class_name,
-             parent_name, parent_phone, parent_email, status)
-            VALUES (?, ?, ?, ?, ?, ?, 'Active')
+(admission_number, full_name, class_name, study_mode,
+ parent_name, parent_phone, parent_email, status)
+VALUES (?, ?, ?, ?, ?, ?, ?, 'Active')
         `).bind(
             admissionNumber,
-            childName,
-            className,
-            parentName,
-            parentPhone,
-            str(application.email, 250) || null
+childName,
+className,
+str(application.study_mode, 20),
+parentName,
+parentPhone,
+str(application.email, 250) || null
         ).run();
     }
 
