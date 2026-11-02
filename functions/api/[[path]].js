@@ -994,42 +994,53 @@ if (admissionMatch && method === "PUT") {
     return fail("Admission number already exists. Please contact the administrator.", 409);
   }
 
-  await env.DB.batch([
-  env.DB.prepare(
-    `INSERT INTO students (
-      admission_number,
-      full_name,
-      class_name,
-      gender,
-      date_of_birth,
-      parent_name,
-      parent_phone,
-      study_mode
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    admissionNumber,
-    application.child_name,
-    confirmedClass,
-    application.gender,
-    application.date_of_birth,
-    application.parent_name,
-    application.parent_phone,
-    application.study_mode
-  ),
+  const approvalResults = await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO students (
+        admission_number, full_name, class_name, gender,
+        date_of_birth, parent_name, parent_phone, study_mode
+      )
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?
+      WHERE EXISTS (
+        SELECT 1 FROM applications
+        WHERE id = ? AND admission_number = ''
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM students WHERE admission_number = ?
+      )`
+    ).bind(
+      admissionNumber, application.child_name, confirmedClass,
+      application.gender, application.date_of_birth,
+      application.parent_name, application.parent_phone,
+      application.study_mode, id, admissionNumber
+    ),
+    env.DB.prepare(
+      `UPDATE applications SET
+        status = 'Approved',
+        confirmed_class = ?,
+        admission_number = ?,
+        approved_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND admission_number = ''`
+    ).bind(confirmedClass, admissionNumber, id)
+  ]);
 
-  env.DB.prepare(
-    `UPDATE applications SET
-      status = 'Approved',
-      confirmed_class = ?,
-      admission_number = ?,
-      approved_at = CURRENT_TIMESTAMP
-     WHERE id = ? AND admission_number = ''`
-  ).bind(
-    confirmedClass,
-    admissionNumber,
-    id
-  )
-]);
+  if (!approvalResults[0]?.meta?.changes) {
+    const latest = await env.DB.prepare(
+      "SELECT admission_number, confirmed_class FROM applications WHERE id = ?"
+    ).bind(id).first();
+
+    if (latest?.admission_number) {
+      return json({
+        ok: true,
+        status: "Approved",
+        admission_number: latest.admission_number,
+        confirmed_class: latest.confirmed_class,
+        message: "This application has already been approved."
+      });
+    }
+
+    return fail("The application could not be approved. No student record was created.", 409);
+  }
 
 return json({
   ok: true,
