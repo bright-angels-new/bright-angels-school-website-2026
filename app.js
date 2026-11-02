@@ -2264,8 +2264,8 @@ async function renderApplications() {
     ];
 
     applications.sort((a, b) => {
-        const ai = classOrder.indexOf(a.class_applied);
-        const bi = classOrder.indexOf(b.class_applied);
+        const ai = classOrder.indexOf(a.class_applying);
+        const bi = classOrder.indexOf(b.class_applying);
         return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
     });
 
@@ -2388,6 +2388,9 @@ async function renderApplications() {
 ${field('Study Mode', application.study_mode)}
 ${field('Date of Birth', application.date_of_birth)}
 ${field('Gender', application.gender)}
+                                    ${field('Previous School', application.previous_school)}
+                                    ${field('Confirmed Class', application.confirmed_class)}
+                                    ${field('Admission Number', application.admission_number)}
                                 </div>
 
                                 <div class="admission-info-card">
@@ -2395,6 +2398,9 @@ ${field('Gender', application.gender)}
                                     ${field('Full Name', application.parent_name)}
                                     ${field('Phone Number', application.parent_phone)}
                                     ${field('Email Address', application.parent_email)}
+                                    ${field('Emergency Contact', application.emergency_contact_name)}
+                                    ${field('Emergency Phone', application.emergency_contact_phone)}
+                                    ${field('Emergency Relationship', application.emergency_contact_relationship)}
                                 </div>
 
                                 <div class="admission-info-card">
@@ -2403,6 +2409,10 @@ ${field('Gender', application.gender)}
                                     ${field('Date Received', application.created_at)}
                                     ${field('Home Address', application.address)}
                                     ${field('Current Status', application.status || 'Pending')}
+                                    ${field('Approved On', application.approved_at)}
+                                    ${field('Medical Information', application.medical_information)}
+                                    ${field('Special Learning Needs', application.special_learning_needs)}
+                                    ${field('Application Notes', application.notes)}
                                 </div>
 
                             </div>
