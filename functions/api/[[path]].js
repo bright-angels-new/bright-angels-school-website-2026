@@ -1309,10 +1309,9 @@ if (path === "api/gallery") {
         }
 
         const result = await env.DB.prepare(
-  `INSERT INTO announcements (title, body, date)
-   VALUES (?, ?, ?)`
-)
-        bind(
+          `INSERT INTO announcements (title, content, date)
+           VALUES (?, ?, ?)`
+        ).bind(
           title,
           content,
           date || new Date().toISOString().slice(0, 10)
@@ -1350,7 +1349,7 @@ if (path === "api/gallery") {
 
         const result = await env.DB.prepare(
           `UPDATE announcements
- SET title = ?, body = ?, date = ?
+ SET title = ?, content = ?, date = ?
  WHERE id = ?`
         ).bind(
           title,
@@ -1860,24 +1859,18 @@ if (
 
 await env.DB.prepare(
   `INSERT INTO marks (
-    student_id, subject_id, term, academic_year,
-    assessment_type, marks_obtained, maximum_marks, remarks
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  ON CONFLICT(
-    student_id, subject_id, academic_year, term, assessment_type
-  )
+    student_id, subject_id, term, academic_year, score, remarks
+  ) VALUES (?, ?, ?, ?, ?, ?)
+  ON CONFLICT(student_id, subject_id, term, academic_year)
   DO UPDATE SET
-    marks_obtained = excluded.marks_obtained,
-    maximum_marks = excluded.maximum_marks,
+    score = excluded.score,
     remarks = excluded.remarks`
 ).bind(
   studentId,
   subjectId,
   term,
   academicYear,
-  assessmentType,
   score,
-  maximumMarks,
   remarks
 ).run();
 
@@ -2089,15 +2082,15 @@ return json({
       }
 
       const marksResult = await env.DB.prepare(
-        `SELECT subjects.name AS subject_name,
+        `SELECT ba_subjects.name AS subject_name,
                 marks.score,
                 marks.remarks
          FROM marks
-         INNER JOIN subjects ON subjects.id = marks.subject_id
+         INNER JOIN ba_subjects ON ba_subjects.id = marks.subject_id
          WHERE marks.student_id = ?
            AND marks.term = ?
            AND marks.academic_year = ?
-         ORDER BY subjects.name`
+         ORDER BY ba_subjects.name`
       ).bind(studentId, term, academicYear).all();
 
       const marks = marksResult.results || [];
