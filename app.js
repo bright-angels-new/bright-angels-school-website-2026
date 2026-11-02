@@ -2373,9 +2373,9 @@ async function renderApplications() {
 
                                 <div class="admission-info-card">
                                     <h4>Child Information</h4>
-                                    ${field('Full Name', application.child_name)}
                                     ${field('Class Applied', application.class_applying)}
-                                    ${field('Date of Birth', application.date_of_birth)}
+${field('Study Mode', application.study_mode)}
+${field('Date of Birth', application.date_of_birth)}
 ${field('Gender', application.gender)}
                                 </div>
 
