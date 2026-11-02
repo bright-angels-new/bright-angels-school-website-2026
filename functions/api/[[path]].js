@@ -266,6 +266,8 @@ async function initialiseDatabase(db) {
   const requiredFeePaymentColumns = [
     ["fee_id", "INTEGER NOT NULL DEFAULT 0"],
     ["student_id", "INTEGER NOT NULL DEFAULT 0"],
+    ["academic_year", "TEXT NOT NULL DEFAULT ''"],
+    ["term", "TEXT NOT NULL DEFAULT ''"],
     ["amount", "REAL NOT NULL DEFAULT 0"],
     ["payment_date", "TEXT NOT NULL DEFAULT ''"],
     ["payment_method", "TEXT NOT NULL DEFAULT ''"],
