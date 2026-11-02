@@ -367,3 +367,185 @@
         max-width: 100%;
     }
 }
+
+
+/* =========================================================
+   BRIGHT ANGELS ADMIN DASHBOARD - PROFESSIONAL WORKSPACE
+   Scoped to admin.html so the public website is unchanged.
+   ========================================================= */
+body:has(#adminPanel) {
+  background: #f3f6fb;
+  color: #18263b;
+}
+body:has(#adminPanel) .topbar {
+  height: 76px;
+  padding-inline: clamp(18px, 4vw, 58px);
+  background: #102b50;
+  border-bottom: 3px solid #d7ad54;
+  box-shadow: 0 5px 22px #102b501c;
+}
+body:has(#adminPanel) .brand,
+body:has(#adminPanel) .brand small { color: #fff; }
+body:has(#adminPanel) .brand img {
+  background: #fff;
+  padding: 3px;
+  border: 2px solid #d7ad54;
+}
+body:has(#adminPanel) .topbar .btn-gold {
+  background: #e4bd68;
+  color: #102b50;
+  border-radius: 7px;
+}
+body:has(#adminPanel) main.admin-section {
+  min-height: calc(100vh - 76px);
+  padding: clamp(28px, 4vw, 56px) clamp(14px, 4vw, 58px);
+  background: linear-gradient(180deg,#edf2f8 0%,#f7f9fc 260px);
+}
+body:has(#adminPanel) .admin-intro { margin-bottom: 26px; }
+body:has(#adminPanel) .admin-intro .eyebrow {
+  color: #b08435;
+  letter-spacing: .2em;
+}
+body:has(#adminPanel) .admin-intro h2 {
+  color: #102b50;
+  font-size: clamp(1.8rem,3vw,2.5rem);
+}
+body:has(#adminPanel) .admin-login-card {
+  border: 1px solid #e1e7f0;
+  border-radius: 14px;
+  box-shadow: 0 18px 55px #18345412;
+  padding: clamp(24px,4vw,38px);
+}
+body:has(#adminPanel) .admin-panel {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: clamp(18px,2.6vw,34px);
+  border: 1px solid #e0e7f0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 60px #16325212;
+}
+body:has(#adminPanel) .admin-top {
+  padding: 4px 2px 24px;
+  border-bottom: 1px solid #e9eef5;
+}
+body:has(#adminPanel) .admin-top .eyebrow {
+  margin-bottom: 7px;
+  color: #b08435;
+}
+body:has(#adminPanel) .admin-top h3 {
+  margin: 0;
+  color: #102b50;
+  font-size: clamp(1.35rem,2.5vw,1.9rem);
+}
+body:has(#adminPanel) .admin-top-actions .btn {
+  border-radius: 8px;
+  padding: 11px 16px;
+}
+body:has(#adminPanel) .admin-top-actions .btn-gold {
+  background: #e4bd68;
+  color: #102b50;
+}
+body:has(#adminPanel) .admin-top-actions .dark-outline {
+  border-color: #d5deea;
+  color: #31445e;
+  background: #fff;
+}
+body:has(#adminPanel) .admin-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin: 0;
+  padding: 18px 0;
+  border-bottom: 1px solid #e9eef5;
+  scrollbar-width: thin;
+}
+body:has(#adminPanel) .admin-tabs button {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f7f9fc;
+  color: #43546d;
+  font-size: .83rem;
+  transition: .18s ease;
+}
+body:has(#adminPanel) .admin-tabs button:hover {
+  border-color: #b9c9dc;
+  background: #eef3f9;
+}
+body:has(#adminPanel) .admin-tabs button.active {
+  color: #fff;
+  background: #163b68;
+  border-color: #163b68;
+  box-shadow: 0 4px 12px #163b6828;
+}
+body:has(#adminPanel) .admin-content {
+  padding: 26px 2px 4px;
+}
+body:has(#adminPanel) .admin-content > section,
+body:has(#adminPanel) .admin-content .admin-section {
+  border-radius: 12px;
+}
+body:has(#adminPanel) .admin-content h2,
+body:has(#adminPanel) .admin-content h3,
+body:has(#adminPanel) .admin-content h4 {
+  color: #16365d;
+}
+body:has(#adminPanel) .admin-content input,
+body:has(#adminPanel) .admin-content select,
+body:has(#adminPanel) .admin-content textarea {
+  border: 1px solid #d8e1ec;
+  border-radius: 8px;
+  background: #fff;
+  padding: 12px 13px;
+}
+body:has(#adminPanel) .admin-content input:focus,
+body:has(#adminPanel) .admin-content select:focus,
+body:has(#adminPanel) .admin-content textarea:focus,
+body:has(#adminPanel) .admin-login-card input:focus {
+  outline: 3px solid #dce8f6;
+  border-color: #4776a8;
+}
+body:has(#adminPanel) .admin-content button,
+body:has(#adminPanel) .admin-login-card button {
+  border-radius: 8px;
+}
+body:has(#adminPanel) .admin-content .table-wrap,
+body:has(#adminPanel) .admin-content .table-responsive {
+  border: 1px solid #e5ebf2;
+  border-radius: 10px;
+  overflow-x: auto;
+}
+body:has(#adminPanel) .admin-content table {
+  min-width: 620px;
+  font-size: .88rem;
+}
+body:has(#adminPanel) .admin-content th {
+  padding: 13px 14px;
+  color: #294766;
+  background: #f1f5fa;
+  font-size: .76rem;
+  text-transform: uppercase;
+  letter-spacing: .045em;
+  white-space: nowrap;
+}
+body:has(#adminPanel) .admin-content td {
+  padding: 13px 14px;
+  border-bottom: 1px solid #edf1f6;
+}
+body:has(#adminPanel) .admin-content tbody tr:hover {
+  background: #f8fafd;
+}
+body:has(#adminPanel) .admin-content .empty-state {
+  border: 1px dashed #ccd8e6;
+  border-radius: 10px;
+  background: #f7f9fc;
+}
+@media(max-width:680px) {
+  body:has(#adminPanel) main.admin-section { padding: 20px 10px; }
+  body:has(#adminPanel) .admin-panel { padding: 14px; border-radius: 12px; }
+  body:has(#adminPanel) .admin-top { gap: 14px; }
+  body:has(#adminPanel) .admin-tabs { margin-inline: -2px; padding: 14px 0; }
+  body:has(#adminPanel) .admin-content { padding-top: 18px; }
+}
