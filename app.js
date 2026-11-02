@@ -2437,11 +2437,14 @@ async function renderApplications() {
         return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
     });
 
+    const normalStatus = value => {
+        const status = String(value || 'Pending').trim().toLowerCase();
+        return status === 'denied' ? 'Rejected' :
+            status === 'under review' ? 'Under Review' :
+            status.charAt(0).toUpperCase() + status.slice(1);
+    };
     const count = status =>
-        applications.filter(a =>
-            String(a.status || 'Pending').toLowerCase() ===
-            status.toLowerCase()
-        ).length;
+        applications.filter(a => normalStatus(a.status) === status).length;
 
     const field = (label, value) => `
         <div class="admission-field">
@@ -2642,12 +2645,12 @@ ${field('Gender', application.gender)}
 
         document.querySelectorAll('.admission-card').forEach(card => {
             const text = card.innerText.toLowerCase();
-            const status = card.dataset.status;
+            const status = normalStatus(card.dataset.status);
             const className = card.dataset.class;
 
             const matchesSearch = text.includes(term);
             const matchesStatus =
-                selectedStatus === 'all' || status === selectedStatus;
+                selectedStatus === 'all' || status === normalStatus(selectedStatus);
             const matchesClass =
                 selectedClass === 'all' || className === selectedClass;
 
