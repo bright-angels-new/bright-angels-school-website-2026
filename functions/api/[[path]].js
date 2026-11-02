@@ -258,6 +258,28 @@ async function initialiseDatabase(db) {
     await db.prepare("ALTER TABLE marks ADD COLUMN score REAL NOT NULL DEFAULT 0").run();
   }
 
+  // Bring older fee payment tables up to the ledger schema without deleting data.
+  const feePaymentColumns = await db.prepare("PRAGMA table_info(fee_payments)").all();
+  const feePaymentColumnNames = new Set(
+    (feePaymentColumns.results || []).map(column => column.name)
+  );
+  const requiredFeePaymentColumns = [
+    ["fee_id", "INTEGER NOT NULL DEFAULT 0"],
+    ["student_id", "INTEGER NOT NULL DEFAULT 0"],
+    ["amount", "REAL NOT NULL DEFAULT 0"],
+    ["payment_date", "TEXT NOT NULL DEFAULT ''"],
+    ["payment_method", "TEXT NOT NULL DEFAULT ''"],
+    ["reference", "TEXT NOT NULL DEFAULT ''"],
+    ["notes", "TEXT NOT NULL DEFAULT ''"]
+  ];
+  for (const [column, definition] of requiredFeePaymentColumns) {
+    if (!feePaymentColumnNames.has(column)) {
+      await db.prepare(
+        `ALTER TABLE fee_payments ADD COLUMN ${column} ${definition}`
+      ).run();
+    }
+  }
+
   // Preserve legacy marks and fee balances while introducing separate assessment
   // records and a payment ledger. Legacy fee totals are not rewritten.
   await db.prepare(`INSERT OR IGNORE INTO assessment_marks
