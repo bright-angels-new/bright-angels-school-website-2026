@@ -320,10 +320,27 @@ const studentColumnNames = new Set(
   (studentColumns.results || []).map(column => column.name)
 );
 
-if (!studentColumnNames.has("study_mode")) {
-  await db.prepare(
-    "ALTER TABLE students ADD COLUMN study_mode TEXT NOT NULL DEFAULT ''"
-  ).run();
+const additionalStudentColumns = [
+  ["study_mode", "TEXT NOT NULL DEFAULT ''"],
+  ["parent_email", "TEXT NOT NULL DEFAULT ''"],
+  ["address", "TEXT NOT NULL DEFAULT ''"],
+  ["previous_school", "TEXT NOT NULL DEFAULT ''"],
+  ["emergency_contact_name", "TEXT NOT NULL DEFAULT ''"],
+  ["emergency_contact_phone", "TEXT NOT NULL DEFAULT ''"],
+  ["emergency_contact_relationship", "TEXT NOT NULL DEFAULT ''"],
+  ["medical_information", "TEXT NOT NULL DEFAULT ''"],
+  ["special_learning_needs", "TEXT NOT NULL DEFAULT ''"],
+  ["passport_key", "TEXT NOT NULL DEFAULT ''"],
+  ["application_reference", "TEXT NOT NULL DEFAULT ''"],
+  ["status", "TEXT NOT NULL DEFAULT 'Active'"]
+];
+
+for (const [column, definition] of additionalStudentColumns) {
+  if (!studentColumnNames.has(column)) {
+    await db.prepare(
+      `ALTER TABLE students ADD COLUMN ${column} ${definition}`
+    ).run();
+  }
 }
   await db.prepare(
     `INSERT OR IGNORE INTO settings (key, value)
@@ -1038,23 +1055,29 @@ if (admissionMatch && method === "PUT") {
 
   const approvalResults = await env.DB.batch([
     env.DB.prepare(
-      `INSERT INTO students (
-        admission_number, full_name, class_name, gender,
-        date_of_birth, parent_name, parent_phone, study_mode
+`INSERT INTO students (
+        admission_number, full_name, class_name, gender, date_of_birth,
+        parent_name, parent_phone, study_mode, parent_email, address,
+        previous_school, emergency_contact_name, emergency_contact_phone,
+        emergency_contact_relationship, medical_information,
+        special_learning_needs, passport_key, application_reference, status
       )
-      SELECT ?, ?, ?, ?, ?, ?, ?, ?
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active'
       WHERE EXISTS (
-        SELECT 1 FROM applications
-        WHERE id = ? AND admission_number = ''
+        SELECT 1 FROM applications WHERE id = ? AND admission_number = ''
       )
       AND NOT EXISTS (
         SELECT 1 FROM students WHERE admission_number = ?
       )`
     ).bind(
       admissionNumber, application.child_name, confirmedClass,
-      application.gender, application.date_of_birth,
-      application.parent_name, application.parent_phone,
-      application.study_mode, id, admissionNumber
+      application.gender, application.date_of_birth, application.parent_name,
+      application.parent_phone, application.study_mode, application.parent_email,
+      application.address, application.previous_school,
+      application.emergency_contact_name, application.emergency_contact_phone,
+      application.emergency_contact_relationship, application.medical_information,
+      application.special_learning_needs, application.passport_key,
+      application.reference, id, admissionNumber
     ),
     env.DB.prepare(
       `UPDATE applications SET
@@ -1591,56 +1614,46 @@ if (path === "api/gallery") {
       if (method === "POST") {
         const body = await readBody(request);
         if (!body) return fail("Please provide student details.");
-
-        const fullName = cleanText(
-          body.full_name || body.fullName || body.name, 150
-        );
-        const admissionNumber = cleanText(
-          body.admission_number || body.admissionNumber, 80
-        );
-        const className = cleanText(
-          body.class_name || body.className || body.class, 50
-        );
-        const gender = cleanText(body.gender, 30);
-        const dateOfBirth = cleanText(
-          body.date_of_birth || body.dateOfBirth, 30
-        );
-        const parentName = cleanText(
-          body.parent_name || body.parentName, 150
-        );
-        const parentPhone = cleanText(
-          body.parent_phone || body.parentPhone || body.phone, 50
-        );
-
-        if (!fullName) {
-          return fail("The student's full name is required.");
+        const value = (key, alias, max = 2000) =>
+          cleanText(body[key] || (alias ? body[alias] : ""), max);
+        const fullName = value("full_name", "fullName", 150);
+        const admissionNumber = value("admission_number", "admissionNumber", 80);
+        const className = value("class_name", "class", 50);
+        const gender = value("gender", null, 30);
+        const dateOfBirth = value("date_of_birth", "dateOfBirth", 30);
+        const parentName = value("parent_name", "parentName", 150);
+        const parentPhone = value("parent_phone", "parentPhone", 50);
+        const studyMode = value("study_mode", "studyMode", 20);
+        const parentEmail = normaliseEmail(value("parent_email", "parentEmail", 254));
+        if (!fullName || !admissionNumber || !className) {
+          return fail("Full name, admission number and class are required.");
         }
-
+        if (parentEmail && !isValidEmail(parentEmail)) return fail("Please enter a valid parent email.");
         if (admissionNumber) {
           const existing = await env.DB.prepare(
             "SELECT id FROM students WHERE admission_number = ?"
           ).bind(admissionNumber).first();
-
-          if (existing) {
-            return fail("That admission number is already in use.");
-          }
+          if (existing) return fail("That admission number is already in use.");
         }
-
+        const fields = [
+          "admission_number","full_name","class_name","gender","date_of_birth",
+          "parent_name","parent_phone","study_mode","parent_email","address",
+          "previous_school","emergency_contact_name","emergency_contact_phone",
+          "emergency_contact_relationship","medical_information",
+          "special_learning_needs","passport_key","application_reference","status"
+        ];
+        const values = [
+          admissionNumber,fullName,className,gender,dateOfBirth,parentName,parentPhone,
+          studyMode,parentEmail,value("address",null),value("previous_school",null,200),
+          value("emergency_contact_name",null,150),value("emergency_contact_phone",null,50),
+          value("emergency_contact_relationship",null,100),value("medical_information",null),
+          value("special_learning_needs",null),value("passport_key",null,500),
+          value("application_reference",null,100),"Active"
+        ];
         const result = await env.DB.prepare(
-          `INSERT INTO students (
-            admission_number, full_name, class_name, gender,
-            date_of_birth, parent_name, parent_phone
-          ) VALUES (?, ?, ?, ?, ?, ?, ?)`
-        ).bind(
-          admissionNumber, fullName, className, gender,
-          dateOfBirth, parentName, parentPhone
-        ).run();
-
-        return json({
-          ok: true,
-          id: result.meta.last_row_id,
-          message: "Student registered successfully."
-        }, 201);
+          `INSERT INTO students (${fields.join(", ")}) VALUES (${fields.map(() => "?").join(", ")})`
+        ).bind(...values).run();
+        return json({ok:true,id:result.meta.last_row_id,message:"Student registered successfully."},201);
       }
 
       if (method === "PUT") {
