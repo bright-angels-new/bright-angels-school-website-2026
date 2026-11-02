@@ -764,11 +764,12 @@ export async function onRequest({ request, env }) {
           return fail("Please select a valid class.");
         }
         
-        const applicationReference = `BA-${crypto.randomUUID()}`;
-const result = await env.DB.prepare(
+        
+        const result = await env.DB.prepare(
   `INSERT INTO applications (
     reference,
     child_name,
+    dob,
     date_of_birth,
     gender,
     class_applying,
@@ -778,12 +779,6 @@ const result = await env.DB.prepare(
     address,
     passport_key,
     status,
-    father_name,
-    father_phone,
-    father_email,
-    mother_name,
-    mother_phone,
-    mother_email,
     previous_school,
     emergency_contact_name,
     emergency_contact_phone,
@@ -791,11 +786,12 @@ const result = await env.DB.prepare(
     medical_information,
     special_learning_needs
   ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
   )`
 ).bind(
   applicationReference,
   childName,
+  dateOfBirth,
   dateOfBirth,
   gender,
   classApplying,
@@ -805,12 +801,6 @@ const result = await env.DB.prepare(
   address,
   "",
   "Pending",
-  fatherName,
-  fatherPhone,
-  fatherEmail,
-  motherName,
-  motherPhone,
-  motherEmail,
   previousSchool,
   emergencyContactName,
   emergencyContactPhone,
@@ -818,50 +808,42 @@ const result = await env.DB.prepare(
   medicalInformation,
   specialLearningNeeds
 ).run();
-        const applicationId = result.meta.last_row_id;
 
-                await sendSchoolEmail(
-          env,
-          "New Admission Application",
-          [
-            "A new admission application has been submitted.",
-            "",
-            `Application ID: ${applicationId}`,
-            `Child's name: ${childName}`,
-            `Date of birth: ${dateOfBirth}`,
-            `Gender: ${gender}`,
-            `Class applying for: ${classApplying}`,
-            "",
-            "PARENT/GUARDIAN DETAILS",
-            `Parent/guardian: ${parentName}`,
-            `Phone: ${parentPhone}`,
-            `Email: ${parentEmail}`,
-            `Address: ${address}`,
-            "",
-            "FATHER'S DETAILS",
-            `Name: ${fatherName}`,
-            `Phone: ${fatherPhone}`,
-            `Email: ${fatherEmail}`,
-            "",
-            "MOTHER'S DETAILS",
-            `Name: ${motherName}`,
-            `Phone: ${motherPhone}`,
-            `Email: ${motherEmail}`,
-            "",
-            "PREVIOUS SCHOOL",
-            `Previous school: ${previousSchool}`,
-            "",
-            "EMERGENCY CONTACT",
-            `Name: ${emergencyContactName}`,
-            `Phone: ${emergencyContactPhone}`,
-            `Relationship: ${emergencyContactRelationship}`,
-            "",
-            "MEDICAL AND LEARNING INFORMATION",
-            `Medical information: ${medicalInformation}`,
-            `Special learning needs: ${specialLearningNeeds}`
-          ].join("\n")
-        );
-        return json(
+const applicationId = result.meta.last_row_id;
+
+await sendSchoolEmail(
+  env,
+  "New Admission Application",
+  [
+    "A new admission application has been submitted.",
+    "",
+    `Application ID: ${applicationId}`,
+    `Reference: ${applicationReference}`,
+    `Child's name: ${childName}`,
+    `Date of birth: ${dateOfBirth}`,
+    `Gender: ${gender}`,
+    `Class applying for: ${classApplying}`,
+    "",
+    "PARENT / GUARDIAN DETAILS",
+    `Name: ${parentName}`,
+    `Phone: ${parentPhone}`,
+    `Email: ${parentEmail}`,
+    `Address: ${address}`,
+    "",
+    `Previous school: ${previousSchool}`,
+    "",
+    "EMERGENCY CONTACT",
+    `Name: ${emergencyContactName}`,
+    `Phone: ${emergencyContactPhone}`,
+    `Relationship: ${emergencyContactRelationship}`,
+    "",
+    "MEDICAL AND LEARNING INFORMATION",
+    `Medical information: ${medicalInformation}`,
+    `Special learning needs: ${specialLearningNeeds}`
+  ].join("\n")
+);
+
+return json(
   {
     ok: true,
     id: applicationId,
@@ -870,7 +852,6 @@ const result = await env.DB.prepare(
   },
   201
 );
-      }
 
       if (method === "GET") {
         const applications = await env.DB.prepare(
