@@ -1659,63 +1659,38 @@ if (path === "api/gallery") {
       if (method === "PUT") {
         const body = await readBody(request);
         if (!body) return fail("Please provide student details.");
-
         const id = Number(body.id);
-        const fullName = cleanText(
-          body.full_name || body.fullName || body.name, 150
-        );
-
+        const fullName = cleanText(body.full_name || body.fullName || body.name, 150);
         if (!Number.isInteger(id) || id < 1 || !fullName) {
           return fail("A valid student ID and full name are required.");
         }
-
-        const admissionNumber = cleanText(
-          body.admission_number || body.admissionNumber, 80
-        );
-        const className = cleanText(
-          body.class_name || body.className || body.class, 50
-        );
-        const gender = cleanText(body.gender, 30);
-        const dateOfBirth = cleanText(
-          body.date_of_birth || body.dateOfBirth, 30
-        );
-        const parentName = cleanText(
-          body.parent_name || body.parentName, 150
-        );
-        const parentPhone = cleanText(
-          body.parent_phone || body.parentPhone || body.phone, 50
-        );
-
-        if (admissionNumber) {
-          const existing = await env.DB.prepare(
-            `SELECT id FROM students
-             WHERE admission_number = ? AND id != ?`
-          ).bind(admissionNumber, id).first();
-
-          if (existing) {
-            return fail("That admission number is already in use.");
-          }
-        }
-
-        const result = await env.DB.prepare(
-          `UPDATE students SET
-            admission_number = ?, full_name = ?, class_name = ?,
-            gender = ?, date_of_birth = ?, parent_name = ?,
-            parent_phone = ?
-           WHERE id = ?`
+        const pick = (key, alias, max = 2000) => cleanText(body[key] || (alias ? body[alias] : ""), max);
+        const admissionNumber = pick("admission_number", "admissionNumber", 80);
+        const parentEmail = normaliseEmail(pick("parent_email", "parentEmail", 254));
+        if (parentEmail && !isValidEmail(parentEmail)) return fail("Please enter a valid parent email.");
+        const existing = await env.DB.prepare(
+          "SELECT id FROM students WHERE admission_number = ? AND id != ?"
+        ).bind(admissionNumber, id).first();
+        if (admissionNumber && existing) return fail("That admission number is already in use.");
+        const result = await env.DB.prepare(`
+          UPDATE students SET admission_number=?, full_name=?, class_name=?,
+          gender=?, date_of_birth=?, parent_name=?, parent_phone=?, study_mode=?,
+          parent_email=?, address=?, previous_school=?, emergency_contact_name=?,
+          emergency_contact_phone=?, emergency_contact_relationship=?,
+          medical_information=?, special_learning_needs=?, passport_key=?
+          WHERE id=?`
         ).bind(
-          admissionNumber, fullName, className, gender,
-          dateOfBirth, parentName, parentPhone, id
+          admissionNumber, fullName, pick("class_name", "class", 50),
+          pick("gender", null, 30), pick("date_of_birth", "dateOfBirth", 30),
+          pick("parent_name", "parentName", 150), pick("parent_phone", "parentPhone", 50),
+          pick("study_mode", "studyMode", 20), parentEmail, pick("address", null),
+          pick("previous_school", null, 200), pick("emergency_contact_name", null, 150),
+          pick("emergency_contact_phone", null, 50), pick("emergency_contact_relationship", null, 100),
+          pick("medical_information", null), pick("special_learning_needs", null),
+          pick("passport_key", null, 500), id
         ).run();
-
-        if (!result.meta.changes) {
-          return fail("Student not found or no changes were made.", 404);
-        }
-
-        return json({
-          ok: true,
-          message: "Student record updated successfully."
-        });
+        if (!result.meta.changes) return fail("Student not found or no changes were made.", 404);
+        return json({ok:true, message:"Student record updated successfully."});
       }
 
       if (method === "DELETE") {
