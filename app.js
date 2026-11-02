@@ -329,7 +329,7 @@ async function loadGallerySlideshow() {
         if (galleryPhotos.length > 1) {
             slideshowTimer = setInterval(() => {
                 showPhoto(currentPhotoIndex + 1);
-            }, 5000);
+            }, 20000);
         }
     } catch (error) {
         console.error('Gallery loading failed:', error);
