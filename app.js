@@ -638,33 +638,6 @@ async function getSchoolClasses() {
     return DEFAULT_CLASSES;
 }
 
-async function getSchoolClasses() {
-    try {
-        const result = await api('settings');
-
-        const classes = result.settings?.school_classes;
-
-        if (Array.isArray(classes) && classes.length > 0) {
-            return classes;
-        }
-    } catch (error) {
-        console.error('Could not load school classes:', error);
-    }
-
-    return [
-        'Baby Class',
-        'Middle Class',
-        'Top Class',
-        'P1',
-        'P2',
-        'P3',
-        'P4',
-        'P5',
-        'P6',
-        'P7'
-    ];
-}
-
 async function studentSelect(name = 'student_id') {
     const result = await api('students');
     const students = result.students || [];
@@ -851,9 +824,7 @@ case 'gallery':
     'Parent/Guardian',
     'Phone',
     'Actions'
-]
-                                    
-                                    ',
+],
                                 pupils.map(student => [
                                     safeCell(student.admission_number),
                                     safeCell(student.full_name),
