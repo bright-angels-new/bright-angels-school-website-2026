@@ -216,23 +216,39 @@ const adm=str(b.admission_number,80);
 if(!name||!cls||!adm)
   return fail('Full name, admission number and class are required.');
 
-const r=await env.DB.prepare(`
+const studyMode = str(b.study_mode, 20);
+
+if (!["Day", "Boarding"].includes(studyMode)) {
+  return fail("Please select Day or Boarding.");
+}
+
+const r = await env.DB.prepare(`
   INSERT INTO students
-  (admission_number,full_name,date_of_birth,gender,class_name,parent_name,parent_phone,enrollment_date,status)
-  VALUES(?,?,?,?,?,?,?,date('now'),'Active')
+  (
+    admission_number,
+    full_name,
+    date_of_birth,
+    gender,
+    class_name,
+    study_mode,
+    parent_name,
+    parent_phone,
+    enrollment_date,
+    status
+  )
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, date('now'), 'Active')
 `).bind(
   adm,
   name,
-  str(b.date_of_birth,20)||null,
-  str(b.gender,30),
+  str(b.date_of_birth, 20) || null,
+  str(b.gender, 30),
   cls,
-  str(b.parent_name,200),
-  str(b.parent_phone,80)
+  studyMode,
+  str(b.parent_name, 200),
+  str(b.parent_phone, 80)
 ).run();
 
-return json({ok:true,id:r.meta.last_row_id},201);
-
-}
+return json({ok: true, id: r.meta.last_row_id}, 201);
 
 if(resource==='students'&&method==='DELETE'&&id){
 const result=await env.DB.prepare(
