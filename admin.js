@@ -1,7 +1,7 @@
 const $ = s => document.querySelector(s);
 let currentPanel = "overviewPanel";
 let cachedApplications = [];
-let cachedSubjects = [];
+let cachedSubjects = [];\nlet cachedStudents = [];
 let selectedSubjectClass = "";
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#markForm")?.addEventListener("submit", saveMark);
   $("#feeForm")?.addEventListener("submit", saveFee);
   $("#paymentForm")?.addEventListener("submit", savePayment);
-  $("#printReportCard")?.addEventListener("click", printSelectedReport);
+  $("#printReportCard")?.addEventListener("click", printSelectedReport);\n  $("#printClassReports")?.addEventListener("click", printWholeClassReports);\n  $("#reportClass")?.addEventListener("change", renderReportStudentOptions);
   $("#contentForm")?.addEventListener("submit", saveContent);
   $("#galleryForm")?.addEventListener("submit", saveGallery);
   const menuToggle = $("#dashboardMenuToggle");
@@ -251,11 +251,11 @@ async function loadSchoolRecords(){
   try{
     const [students,subjects,marks,fees]=await Promise.all([api("admin/students"),api("admin/subjects"),api("admin/marks"),api("admin/fees")]);
     const fill=(selector,items,label)=>{const el=$(selector);if(!el)return;el.replaceChildren();items.forEach(x=>{const o=document.createElement("option");o.value=x.id;o.textContent=label(x);el.append(o);});if(!items.length){const o=document.createElement("option");o.value="";o.textContent="No records available";el.append(o);}};
-    fill("#markStudent",students.students||[],s=>s.admission_number+" · "+s.full_name+" ("+s.class_name+")");
+    cachedStudents=students.students||[];\n    fill("#markStudent",cachedStudents,s=>s.admission_number+" · "+s.full_name+" ("+s.class_name+")");\n    renderReportStudentOptions();
     fill("#feeStudent",students.students||[],s=>s.admission_number+" · "+s.full_name);
     fill("#markSubject",subjects.subjects||[],s=>s.class_name+" · "+s.name);
     cachedSubjects=subjects.subjects||[]; if(!selectedSubjectClass && cachedSubjects.length) selectedSubjectClass=cachedSubjects[0].class_name; renderClassSubjects();
-    const markBox=$("#marksList");if(markBox){markBox.replaceChildren();(marks.marks||[]).forEach(m=>{const p=document.createElement("p");p.textContent=m.full_name+" · "+m.subject_name+" · Term "+m.term+" · "+m.assessment_type+" · "+m.academic_year+": "+m.score+"/"+m.max_score;markBox.append(p);});if(!markBox.children.length)markBox.textContent="No marks recorded yet.";}
+    const markBox=$("#marksList");if(markBox){markBox.replaceChildren();const ordered=["Baby Class","Middle Class","Top Class","P1","P2","P3","P4","P5","P6","P7"];ordered.forEach(className=>{const group=(marks.marks||[]).filter(m=>m.class_name===className);if(!group.length)return;const section=document.createElement("section");section.className="announcement-item";const heading=document.createElement("h3");heading.textContent=className+" · "+group.length+" saved mark(s)";section.append(heading);const buckets=new Map();group.forEach(m=>{const key="Academic year "+m.academic_year+" · Term "+m.term+" · "+m.assessment_type;if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(m);});buckets.forEach((items,key)=>{const sub=document.createElement("h4");sub.textContent=key;section.append(sub);items.forEach(m=>{const p=document.createElement("p");p.textContent=m.full_name+" · "+m.subject_name+": "+m.score+"/"+m.max_score+(m.remarks?" · "+m.remarks:"");section.append(p);});});markBox.append(section);});if(!markBox.children.length)markBox.textContent="No marks recorded yet.";}
     const feeBox=$("#feesList"),feeSelect=$("#paymentFee");if(feeBox)feeBox.replaceChildren();if(feeSelect)feeSelect.replaceChildren();
     (fees.fees||[]).forEach(f=>{const p=document.createElement("p");p.textContent=f.full_name+" · "+f.description+" · UGX "+Number(f.amount).toLocaleString()+" · Paid "+Number(f.paid).toLocaleString()+" · Balance "+Number(f.balance).toLocaleString();feeBox?.append(p);if(feeSelect){const o=document.createElement("option");o.value=f.id;o.textContent=f.full_name+" · "+f.description+" · Balance UGX "+Number(f.balance).toLocaleString();feeSelect.append(o);}});
     if(feeBox&&!feeBox.children.length)feeBox.textContent="No fee records yet.";
@@ -306,58 +306,47 @@ async function saveContent(e){e.preventDefault();const form=e.currentTarget,stat
 async function loadAdminGallery(){const box=$("#adminGalleryList");try{const d=await api("admin/gallery");box.replaceChildren();(d.gallery||[]).forEach(item=>{const row=document.createElement("article");row.className="announcement-item";const title=document.createElement("h3");title.textContent=item.title;const img=document.createElement("img");img.src=item.image_url;img.alt=item.title;img.loading="lazy";img.style.maxWidth="180px";img.style.display="block";const del=document.createElement("button");del.textContent="Remove photo";del.addEventListener("click",async()=>{if(!confirm("Remove this gallery item?"))return;try{await api("admin/gallery/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:item.id})});loadAdminGallery();}catch(e){alert(e.message);}});row.append(title,img,del);box.append(row);});if(!box.children.length)box.textContent="No gallery photos yet.";}catch(e){box.textContent=e.message;}}
 async function saveGallery(e){e.preventDefault();const form=e.currentTarget,status=$("#galleryStatus"),button=form.querySelector("button"),photo=form.elements.photo?.files?.[0];if(!photo){status.textContent="Choose a photo from your phone first.";return;}button.disabled=true;status.textContent="Uploading photo…";try{const data=new FormData();data.append("title",form.elements.title.value.trim());data.append("photo",photo,photo.name);data.append("description",form.elements.description.value.trim());await api("admin/gallery",{method:"POST",body:data});form.reset();status.textContent="Photo uploaded successfully.";await loadAdminGallery();}catch(err){status.textContent=err.message;}finally{button.disabled=false;}}
 
+function renderReportStudentOptions(){
+  const klass=$("#reportClass")?.value,select=$("#reportStudent");if(!select)return;
+  select.replaceChildren();const students=cachedStudents.filter(s=>s.class_name===klass&&(!s.student_status||String(s.student_status).toLowerCase()==="active"));
+  const first=document.createElement("option");first.value="";first.textContent=students.length?"Choose learner":"No active learners in this class";select.append(first);
+  students.forEach(s=>{const o=document.createElement("option");o.value=s.id;o.textContent=s.admission_number+" · "+s.full_name;select.append(o);});
+}
+function reportGrade(pct,nursery,lower){
+  if(pct===null||pct===undefined)return "Not assessed";
+  if(nursery)return pct>=87.5?"EX":pct>=62.5?"ME":pct>=37.5?"DE":"BE";
+  if(lower)return pct>=80?"A":pct>=70?"B":pct>=60?"C":pct>=50?"D":"E";
+  return pct>=90?"D1":pct>=80?"D2":pct>=75?"C3":pct>=70?"C4":pct>=65?"C5":pct>=50?"C6":pct>=45?"P7":pct>=40?"P8":"F9";
+}
+function reportMarkup(report){
+  const esc=v=>String(v??"").replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+  const klass=report.student.class_name,nursery=["Baby Class","Middle Class","Top Class"].includes(klass),lower=["P1","P2","P3"].includes(klass);
+  const title=nursery?"EARLY YEARS DEVELOPMENT REPORT":lower?"LOWER PRIMARY REPORT CARD":"UPPER PRIMARY REPORT CARD";
+  const descriptions={EX:"Exceeding Expectations",ME:"Meeting Expectations",DE:"Developing",BE:"Beginning",A:"Exceptional",B:"Very Good",C:"Good",D:"Developing",E:"Needs Support",D1:"Outstanding",D2:"Excellent",C3:"Very Good",C4:"Very Good",C5:"Good",C6:"Pass Credit",P7:"Fair Pass",P8:"Weak Pass",F9:"Needs Intensive Remediation"};
+  const rows=(report.subjects||[]).map(x=>{const has=x.score!==null&&x.score!==undefined,pct=has&&Number(x.max_score)>0?Number(x.score)/Number(x.max_score)*100:null,g=reportGrade(pct,nursery,lower);return "<tr><td>"+esc(x.subject_name)+"</td><td>"+(has?esc(x.score)+" / "+esc(x.max_score):"—")+"</td><td><b>"+esc(g)+"</b><small>"+esc(descriptions[g]||"Not yet assessed")+"</small></td><td>"+esc(x.remarks||"")+"</td></tr>";}).join("");
+  const total=Number(report.total||0),maximum=Number(report.maximum||0),pct=maximum?total/maximum*100:0,g=reportGrade(pct,nursery,lower);
+  return '<article class="report-page '+(nursery?"nursery":lower?"lower":"upper")+'"><header><img src="/school-logo.jpg"><div><h1>BRIGHT ANGELS JUNIOR SCHOOL</h1><p>Lukwanga–Kataluko Sentema Road, Wakiso District</p><p>+256 755 660 550 · +256 525 136 626</p><b>If others can, we can</b></div></header><h2>'+title+'</h2><p class="assessment">'+esc(report.assessment_type)+' · TERM '+esc(report.term)+' · '+esc(report.academic_year)+'</p><section class="details"><p><b>Learner:</b> '+esc(report.student.full_name)+'</p><p><b>Admission No:</b> '+esc(report.student.admission_number)+'</p><p><b>Class:</b> '+esc(klass)+'</p></section><table><thead><tr><th>Subject / Learning Area</th><th>Score</th><th>Grade / Level</th><th>Teacher's Remarks</th></tr></thead><tbody>'+ (rows||'<tr><td colspan="4">No subjects registered for this class.</td></tr>')+'</tbody></table><section class="summary"><b>Marks recorded: '+esc(report.marked_subjects||0)+' / '+esc((report.subjects||[]).length)+'</b>'+(nursery?"":'<b>Total: '+total.toFixed(1)+' / '+maximum.toFixed(1)+'</b><b>Average: '+(maximum?pct.toFixed(1)+"%":"—")+'</b><b>Overall grade: '+(maximum?esc(g):"—")+'</b>')+'</section><section class="comment"><b>'+ (nursery?"Teacher's Development Comment":"Class Teacher's Comment")+'</b></section>'+(nursery?"":'<section class="comment"><b>Headteacher\'s Comment</b></section>')+'<footer>Class Teacher: ____________________ &nbsp;&nbsp; Headteacher: ____________________<p>“If others can, we can”</p></footer></article>';
+}
+function openReportsWindow(reports){
+  const w=window.open("","_blank","width=950,height=950");if(!w)throw new Error("Allow pop-ups to print report cards.");
+  const pages=reports.map(reportMarkup).join("");
+  w.document.write('<!doctype html><html><head><title>Bright Angels Report Cards</title><style>@page{size:A4;margin:12mm}*{box-sizing:border-box}body{font:12px Arial;color:#263b4b}.report-page{min-height:270mm;page-break-after:always;border-top:10px solid #d82d36;padding:12px 5px}.report-page:last-child{page-break-after:auto}.report-page header{display:flex;align-items:center;gap:18px;padding:14px;background:#edf6fc}.report-page header img{width:75px;height:75px;object-fit:contain}.report-page h1{font: bold 21px Georgia;margin:0;color:#31536b}.report-page header p{margin:4px 0}.report-page h2{text-align:center;margin:22px 0 8px}.assessment{text-align:center;font-weight:bold}.details{display:grid;grid-template-columns:1fr 1fr;border:1px solid #ccdce7;padding:10px}.details p{margin:5px}table{width:100%;border-collapse:collapse;margin-top:18px}td,th{border:1px solid #c5d4df;padding:8px;text-align:left}th{background:#eaf4fb}small{display:block;color:#687989}.summary{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#edf6fc;padding:12px;margin-top:14px}.comment{border:1px solid #ccdce7;min-height:65px;padding:10px;margin-top:18px}.report-page.nursery{border-color:#d77b43}.report-page.nursery header{background:#fff5eb}.report-page.lower{border-color:#69b5e5}.report-page.lower header{background:#eff8ff}.report-page.upper{border-color:#d82d36}.report-page.upper header{background:#edf6fc}footer{margin-top:42px}footer p{text-align:center;color:#b32630;font:italic 15px Georgia}@media print{.report-page{break-after:page}.report-page:last-child{break-after:auto}}</style></head><body>'+pages+'<script>window.onload=()=>window.print()<\/script></body></html>');
+  w.document.close();
+}
+async function getReport(studentId,year,term,assessment){
+  return api("admin/report-card?student_id="+encodeURIComponent(studentId)+"&academic_year="+encodeURIComponent(year)+"&term="+encodeURIComponent(term)+"&assessment_type="+encodeURIComponent(assessment));
+}
 async function printSelectedReport(){
-  const studentId=$("#markStudent")?.value,form=$("#markForm"),year=form?.elements.academic_year.value,term=form?.elements.term.value,assessment=form?.elements.assessment_type.value,status=$("#reportStatus");
-  if(!studentId||!year||!term){status.textContent="Select a student, academic year and term first.";return;}
-  status.textContent="Preparing the correct class report card…";
-  try{
-    const report=await api("admin/report-card?student_id="+encodeURIComponent(studentId)+"&academic_year="+encodeURIComponent(year)+"&term="+encodeURIComponent(term)+"&assessment_type="+encodeURIComponent(assessment));
-    const w=window.open("","_blank","width=900,height=950");if(!w)throw new Error("Allow pop-ups to print the report card.");
-    const esc=v=>String(v??"").replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
-    const klass=report.student.class_name||"";
-    const nursery=["Baby Class","Middle Class","Top Class"].includes(klass);
-    const lower=["P1","P2","P3"].includes(klass);
-    const title=nursery?"EARLY YEARS DEVELOPMENT REPORT":lower?"LOWER PRIMARY REPORT CARD":"UPPER PRIMARY REPORT CARD";
-    const grade=score=>{
-      if(score===null||score===undefined||score==="")return "Not assessed";
-      const pct=Number(score);
-      if(nursery){const level=Math.max(1,Math.min(4,Math.round(pct/25)));return ({4:"EX",3:"ME",2:"DE",1:"BE"})[level];}
-      if(lower)return pct>=80?"A":pct>=70?"B":pct>=60?"C":pct>=50?"D":"E";
-      return pct>=90?"D1":pct>=80?"D2":pct>=75?"C3":pct>=70?"C4":pct>=65?"C5":pct>=50?"C6":pct>=45?"P7":pct>=40?"P8":"F9";
-    };
-    const description=g=>{
-      if(nursery)return ({EX:"Exceeding Expectations",ME:"Meeting Expectations",DE:"Developing",BE:"Beginning"})[g]||"Not yet assessed";
-      if(lower)return ({A:"Exceptional",B:"Very Good",C:"Good",D:"Developing",E:"Needs Support"})[g]||"Not yet assessed";
-      return ({D1:"Outstanding",D2:"Excellent",C3:"Very Good",C4:"Very Good",C5:"Good",C6:"Pass Credit",P7:"Fair Pass",P8:"Weak Pass",F9:"Needs Intensive Remediation"})[g]||"Not yet assessed";
-    };
-    const rows=(report.subjects||[]).map(x=>{
-      const hasMark=x.score!==null&&x.score!==undefined;
-      const pct=hasMark&&Number(x.max_score)>0?Number(x.score)/Number(x.max_score)*100:null;
-      const g=grade(pct);
-      const scoreText=hasMark?Number(x.score).toLocaleString()+" / "+Number(x.max_score).toLocaleString():"—";
-      return "<tr><td>"+esc(x.subject_name)+"</td><td>"+scoreText+"</td><td><b>"+esc(g)+"</b><small>"+esc(description(g))+"</small></td><td>"+esc(x.remarks||"")+"</td></tr>";
-    }).join("");
-    const total=Number(report.total||0),maximum=Number(report.maximum||0),percentage=maximum?total/maximum*100:0;
-    const overallGrade=grade(percentage);
-    const style=nursery?
-      "body{border-top:12px solid #e5232b}.report-head{background:#fff8ef}.report-title{color:#b45c36}.badge{background:#fff0df;color:#a64e2e}.summary{background:#fff8ef}":
-      lower?
-      "body{border-top:12px solid #6bb8e8}.report-head{background:#eff8ff}.report-title{color:#28658d}.badge{background:#e3f3ff;color:#28658d}.summary{background:#eff8ff}":
-      "body{border-top:12px solid #e5232b}.report-head{background:#edf6fc}.report-title{color:#244e70}.badge{background:#ffe9ea;color:#a51f29}.summary{background:#edf6fc}";
-    const logo='<img src="/school-logo.jpg" alt="School badge" style="width:82px;height:82px;object-fit:contain">';
-    w.document.write(`<!doctype html><html><head><title>${esc(title)}</title><style>
-      @page{size:A4;margin:15mm}*{box-sizing:border-box}body{font:13px Arial,sans-serif;max-width:780px;margin:20px auto;color:#263b4b;padding:0 8px 25px;line-height:1.5}
-      .report-head{display:flex;align-items:center;gap:18px;padding:18px;border-radius:10px}.school-name{font: bold 23px Georgia,serif;margin:0;color:#31536b}.school-meta{margin:3px 0;font-size:11px;color:#526779}.report-title{text-align:center;font: bold 19px Georgia,serif;margin:22px 0 14px}.badge{display:inline-block;padding:6px 12px;border-radius:20px;font-weight:bold;font-size:11px}
-      .details{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;padding:14px;border:1px solid #dcecf7;border-radius:8px}.details p{margin:2px 0}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#eaf4fb;color:#31536b}td,th{padding:9px 8px;border:1px solid #cbd9e3;text-align:left}td small{display:block;color:#687989;font-size:10px}.summary{padding:13px;margin-top:16px;border-radius:8px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.comments{margin-top:22px;padding:12px;border:1px solid #dcecf7;border-radius:8px;min-height:70px}.signatures{display:flex;justify-content:space-between;gap:25px;margin-top:48px}.signatures div{width:45%;border-top:1px solid #526779;padding-top:7px}.motto{text-align:center;margin-top:30px;font:italic 15px Georgia,serif;color:#b32630}
-      ${style}@media print{body{margin:0}.no-print{display:none}}
-    </style></head><body><header class="report-head">${logo}<div><h1 class="school-name">BRIGHT ANGELS JUNIOR SCHOOL</h1><p class="school-meta">Lukwanga–Kataluko Sentema Road, Wakiso District</p><p class="school-meta">+256 755 660 550 · +256 525 136 626</p><p class="school-meta">If others can, we can</p></div></header>
-    <h2 class="report-title">${esc(title)}</h2><p style="text-align:center"><span class="badge">${esc(assessment)} · TERM ${esc(term)} · ${esc(year)}</span></p>
-    <section class="details"><p><b>Learner:</b> ${esc(report.student.full_name)}</p><p><b>Admission No:</b> ${esc(report.student.admission_number)}</p><p><b>Class:</b> ${esc(klass)}</p><p><b>Assessment:</b> ${esc(assessment)}</p></section>
-    <table><thead><tr><th>Subject / Learning Area</th><th>Score</th><th>Grade / Level</th><th>Teacher's Remarks</th></tr></thead><tbody>${rows||'<tr><td colspan="4">No subjects are registered for this class yet.</td></tr>'}</tbody></table>
-    <section class="summary"><b>Marks recorded: ${esc(report.marked_subjects||0)} / ${esc((report.subjects||[]).length)} subjects</b>${nursery?"":'<b>Total: '+esc(total.toFixed(1))+" / "+esc(maximum.toFixed(1))+'</b><b>Average: '+(maximum?percentage.toFixed(1)+"%":"—")+'</b><b>Overall grade: '+esc(maximum?overallGrade:"—")+'</b>'}</section>
-    <section class="comments"><b>${nursery?"Teacher's Development Comment":"Class Teacher's Comment"}:</b><br><br><br></section>
-    ${!nursery?'<section class="comments"><b>Headteacher\'s Comment:</b><br><br><br></section>':""}
-    <div class="signatures"><div>Class Teacher's Signature</div><div>Headteacher's Signature</div></div><p class="motto">“If others can, we can”</p><button class="no-print" onclick="window.print()">Print report card</button><script>window.onload=()=>window.print()<\/script></body></html>`);
-    w.document.close();status.textContent="Correct class report card opened for printing.";
-  }catch(e){status.textContent=e.message;}
+  const status=$("#reportStatus"),studentId=$("#reportStudent")?.value,klass=$("#reportClass")?.value,year=$("#reportYear")?.value,term=$("#reportTerm")?.value,assessment=$("#reportAssessment")?.value;
+  if(!klass||!studentId||!year||!term){status.textContent="Choose a class, learner, academic year and term in the Print Report Cards section.";return;}
+  status.textContent="Preparing individual report card…";
+  try{const report=await getReport(studentId,year,term,assessment);openReportsWindow([report]);status.textContent="Individual report card ready to print.";}catch(e){status.textContent=e.message;}
+}
+async function printWholeClassReports(){
+  const status=$("#reportStatus"),klass=$("#reportClass")?.value,year=$("#reportYear")?.value,term=$("#reportTerm")?.value,assessment=$("#reportAssessment")?.value;
+  if(!klass||!year||!term){status.textContent="Choose a class, academic year and term first.";return;}
+  const students=cachedStudents.filter(s=>s.class_name===klass&&(!s.student_status||String(s.student_status).toLowerCase()==="active"));
+  if(!students.length){status.textContent="There are no active learners in "+klass+".";return;}
+  status.textContent="Preparing "+students.length+" report cards for "+klass+"…";
+  try{const reports=[];for(const student of students){reports.push(await getReport(student.id,year,term,assessment));}openReportsWindow(reports);status.textContent=students.length+" report cards prepared for "+klass+".";}catch(e){status.textContent=e.message;}
 }
