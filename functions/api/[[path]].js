@@ -85,13 +85,13 @@ export async function onRequest({request,env}) {
     }
 
     if(request.method==="POST" && route==="admission-status") {
-      let data;try{data=await request.json();}catch{return json({error:"Enter your application reference and phone number."},400);}
+      let data;try{data=await request.json();}catch{return json({error:"Enter your application reference and the child’s full name."},400);}
       const ref=clean(data.application_number,30).toUpperCase(),childName=clean(data.child_name,120);
-      const match=ref.match(/^BA-APP-(\\d{4})-(\\d{5})$/);
+      const match=ref.match(/^BA-APP-(\d{4})-(\d{5})$/);
       if(!match||!childName)return json({error:"Enter a valid application reference number and the child’s full name."},400);
       const id=Number(match[2]);
       const application=await env.DB.prepare("SELECT a.child_name,a.class_applying,a.status,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id WHERE a.id=?").bind(id).first();
-      const normalizeName=value=>String(value||"").trim().replace(/\\s+/g," ").toLocaleLowerCase();
+      const normalizeName=value=>String(value||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
       if(!application||normalizeName(application.child_name)!==normalizeName(childName))return json({error:"No application matches those details. Check the reference number and child’s full name."},404);
       return json({ok:true,status:application.status,admission_number:application.admission_number||null});
     }
