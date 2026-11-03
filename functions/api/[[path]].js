@@ -894,23 +894,23 @@ if (path === "api/admissions-status" && method === "POST") {
     100
   );
 
-  const phone = cleanText(body.phone, 50);
+  const studentName = cleanText(body.child_name || body.student_name, 150);
 
-  if (!reference || !phone) {
-    return fail("Enter your application reference and phone number.");
+  if (!reference || !studentName) {
+    return fail("Enter your application reference and the student's full name.");
   }
 
   const application = await env.DB.prepare(
   `SELECT reference, status, class_applying,
           confirmed_class, admission_number
    FROM applications
-   WHERE reference = ? AND parent_phone = ?
+   WHERE reference = ? AND LOWER(TRIM(child_name)) = LOWER(TRIM(?))
    LIMIT 1`
-).bind(reference, phone).first();
+).bind(reference, studentName).first();
 
   if (!application) {
   return fail(
-    "No application was found. Check your reference number and phone number.",
+    "No application was found. Check the reference number and student's full name.",
     404
   );
 }
