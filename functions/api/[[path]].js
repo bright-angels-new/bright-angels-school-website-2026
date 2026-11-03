@@ -120,7 +120,7 @@ export async function onRequest({request,env}) {
     if(route.startsWith("admin/")) {
       if(!await isAdmin(request,env)) return json({error:"Your session has expired. Please sign in again."},401);
       if(request.method==="GET" && route==="admin/admissions") {
-        const result=await env.DB.prepare("SELECT a.id,a.child_name,a.class_applying,a.guardian_name,a.phone,a.email,a.previous_school,a.message,a.date_of_birth,a.gender,a.home_address,a.emergency_contact,a.medical_information,a.learning_needs,a.study_mode,a.status,a.created_at,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id ORDER BY a.created_at DESC LIMIT 500").all();
+        const result=await env.DB.prepare("SELECT a.id,a.child_name,a.class_applying,a.guardian_name,a.phone,a.email,a.previous_school,a.message,a.date_of_birth,a.age,a.gender,a.home_address,a.emergency_contact,a.medical_information,a.learning_needs,a.study_mode,a.status,a.created_at,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id ORDER BY a.created_at DESC LIMIT 500").all();
         return json({applications:result.results||[]});
       }
       if(request.method==="POST" && route==="admin/admissions/status") {
