@@ -23,7 +23,7 @@ async function ensureSchema(db) {
       admission_number TEXT NOT NULL UNIQUE, full_name TEXT NOT NULL, class_name TEXT NOT NULL,
       guardian_name TEXT NOT NULL, phone TEXT NOT NULL, email TEXT,
       admitted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )`)
+    )`),
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_subjects (id INTEGER PRIMARY KEY AUTOINCREMENT,class_name TEXT NOT NULL,name TEXT NOT NULL,is_active INTEGER NOT NULL DEFAULT 1,UNIQUE(class_name,name))"),
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_marks (id INTEGER PRIMARY KEY AUTOINCREMENT,student_id INTEGER NOT NULL,subject_id INTEGER NOT NULL,academic_year INTEGER NOT NULL,term INTEGER NOT NULL,score REAL NOT NULL,max_score REAL NOT NULL DEFAULT 100,remarks TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE(student_id,subject_id,academic_year,term))"),
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_fees (id INTEGER PRIMARY KEY AUTOINCREMENT,student_id INTEGER NOT NULL,description TEXT NOT NULL,amount REAL NOT NULL,due_date TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
