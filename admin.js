@@ -1,7 +1,8 @@
 const $ = s => document.querySelector(s);
 let currentPanel = "overviewPanel";
 let cachedApplications = [];
-let cachedSubjects = [];\nlet cachedStudents = [];
+let cachedSubjects = [];
+let cachedStudents = [];
 let selectedSubjectClass = "";
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -14,7 +15,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#markForm")?.addEventListener("submit", saveMark);
   $("#feeForm")?.addEventListener("submit", saveFee);
   $("#paymentForm")?.addEventListener("submit", savePayment);
-  $("#printReportCard")?.addEventListener("click", printSelectedReport);\n  $("#printClassReports")?.addEventListener("click", printWholeClassReports);\n  $("#reportClass")?.addEventListener("change", renderReportStudentOptions);
+  $("#printReportCard")?.addEventListener("click", printSelectedReport);
+  $("#printClassReports")?.addEventListener("click", printWholeClassReports);
+  $("#reportClass")?.addEventListener("change", renderReportStudentOptions);
   $("#contentForm")?.addEventListener("submit", saveContent);
   $("#galleryForm")?.addEventListener("submit", saveGallery);
   const menuToggle = $("#dashboardMenuToggle");
@@ -251,7 +254,9 @@ async function loadSchoolRecords(){
   try{
     const [students,subjects,marks,fees]=await Promise.all([api("admin/students"),api("admin/subjects"),api("admin/marks"),api("admin/fees")]);
     const fill=(selector,items,label)=>{const el=$(selector);if(!el)return;el.replaceChildren();items.forEach(x=>{const o=document.createElement("option");o.value=x.id;o.textContent=label(x);el.append(o);});if(!items.length){const o=document.createElement("option");o.value="";o.textContent="No records available";el.append(o);}};
-    cachedStudents=students.students||[];\n    fill("#markStudent",cachedStudents,s=>s.admission_number+" · "+s.full_name+" ("+s.class_name+")");\n    renderReportStudentOptions();
+    cachedStudents=students.students||[];
+    fill("#markStudent",cachedStudents,s=>s.admission_number+" · "+s.full_name+" ("+s.class_name+")");
+    renderReportStudentOptions();
     fill("#feeStudent",students.students||[],s=>s.admission_number+" · "+s.full_name);
     fill("#markSubject",subjects.subjects||[],s=>s.class_name+" · "+s.name);
     cachedSubjects=subjects.subjects||[]; if(!selectedSubjectClass && cachedSubjects.length) selectedSubjectClass=cachedSubjects[0].class_name; renderClassSubjects();
