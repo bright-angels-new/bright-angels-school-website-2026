@@ -11,11 +11,18 @@ A clean rebuild for Cloudflare Pages and Cloudflare D1.
 ## Current rebuild status
 - Responsive public homepage and school information sections
 - Admission enquiry form for Baby Class, Middle Class, Top Class and P1–P7
-- Public announcements feed
-- Administrator sign-in using environment secrets
-- Administrator dashboard for viewing enquiries and publishing announcements
-- Additive D1 tables use the ba2_ prefix to avoid changing legacy tables
+- Administrator sign-in and session-protected dashboard
+- Class-grouped admissions, search, review statuses and student registration with admission numbers
+- Printable admission confirmation letters
+- Public announcements and administrator publishing
+- Class subject register
+- Marks entry and term report-card data endpoint
+- Student fee records, payment entries and outstanding balance calculations
+- Parent message submission and administrator inbox
+- New additive D1 tables use the ba2_ prefix to avoid altering legacy tables
 
+The development branch has not yet been deployed to Cloudflare or tested against the live D1 database. These features are code-complete only to the extent described above; production readiness requires preview deployment and workflow testing.
+ 
 ## Hosting configuration
 Cloudflare Pages project: bright-angels-school-website-2026
 
