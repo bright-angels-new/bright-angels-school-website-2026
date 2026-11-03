@@ -69,7 +69,9 @@ async function submitAdmission(event) {
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || "We could not submit the enquiry. Please try again.");
     form.reset();
-    status.textContent = "Thank you. Your admission enquiry has been received.";
+    status.textContent = result.application_number
+      ? "Application received successfully. Your application reference number is " + result.application_number + ". Keep this number for follow-up. A permanent student admission number is issued only after approval."
+      : "Your application has been received. Please contact the school for your reference number.";
   } catch (error) {
     status.textContent = error.message || "Submission failed. Please contact the school by phone.";
   } finally {
