@@ -71,6 +71,7 @@ export async function onRequest({request,env}) {
       const result=await env.DB.prepare("INSERT INTO ba2_admissions (child_name,class_applying,guardian_name,phone,email,previous_school,message) VALUES (?,?,?,?,?,?,?)").bind(child,klass,guardian,phone,email,previous,message).run();
       return json({ok:true,application_id:result.meta?.last_row_id||null},201);
     }
+    if(request.method==="POST" && route==="parent-messages") { let d;try{d=await request.json();}catch{return json({error:"Please check your message."},400);} const p=clean(d.parent_name,120),phone=clean(d.phone,30),student=clean(d.student_name,120),subject=clean(d.subject,160),message=clean(d.message,2000);if(!p||!phone||!subject||!message)return json({error:"Complete your name, phone, subject and message."},400);await env.DB.prepare("INSERT INTO ba2_parent_messages (parent_name,phone,student_name,subject,message) VALUES (?,?,?,?,?)").bind(p,phone,student,subject,message).run();return json({ok:true},201); }
     if(request.method==="POST" && route==="login") {
       if(!env.ADMIN_EMAIL||!env.ADMIN_PASSWORD) return json({error:"Administrator login has not been configured in the hosting settings."},503);
       let data;try{data=await request.json();}catch{return json({error:"Enter your school email and password."},400);}
