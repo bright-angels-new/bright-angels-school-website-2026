@@ -396,3 +396,124 @@ h1,h2,h3,h4{font-family:"Manrope","DM Sans",sans-serif;letter-spacing:-.035em;li
 footer{padding:35px clamp(22px,7vw,104px);background:#0c213b;color:#dbe3eb}footer p,footer small{color:#aebdcb}.footer-brand{display:flex;gap:13px;align-items:center}.footer-brand img{width:46px;height:46px;object-fit:contain;background:#fff;border-radius:12px}.footer-brand div{display:grid}.footer-brand b{color:#fff}.footer-brand small{color:#e4c27e}
 @media(max-width:900px){.hero{grid-template-columns:1fr;padding-top:70px}.hero-visual{min-height:330px}.gallery-slideshow{height:320px}.quick-cards{margin-top:20px}.about-grid,.admission-section,.contact-section{grid-template-columns:1fr}.admission-section .admission-copy{position:static}.admission-tracker{grid-column:auto}.section-heading{align-items:start;flex-direction:column}.learning-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:640px){.topbar{padding:12px 18px}.brand img{width:44px;height:44px}.hero{min-height:auto;padding:58px 22px 42px}.hero h1{font-size:clamp(2.55rem,12vw,3.8rem)}.hero-visual{min-height:270px}.gallery-slideshow{height:270px;border-width:5px;border-radius:20px}.photo-caption{left:24px;bottom:24px}.quick-cards{grid-template-columns:1fr;margin:0 18px 20px}.section{padding:62px 20px}.learning-grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr;gap:0}.form-card{padding:21px}.about-grid{gap:28px}.section-art{min-height:260px}.actions .btn{width:100%;text-align:center}.motto{margin-top:20px}}
+
+
+/* Admission form passport-photo space and print layout */
+#admissionForm {
+  position: relative;
+}
+.application-form-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+  margin-bottom: 24px;
+}
+.application-form-header > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.application-form-header h3 {
+  margin-top: 0;
+}
+.passport-photo-placeholder {
+  width: 132px;
+  height: 158px;
+  flex: 0 0 132px;
+  border: 2px dashed #9a7b42;
+  background: #fffdf8;
+  color: #253858;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 9px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+.passport-photo-placeholder strong {
+  font-size: 13px;
+  letter-spacing: .08em;
+  line-height: 1.4;
+}
+.passport-photo-placeholder small {
+  font-size: 10px;
+  line-height: 1.35;
+}
+@media (max-width: 600px) {
+  .application-form-header {
+    gap: 12px;
+  }
+  .passport-photo-placeholder {
+    width: 104px;
+    height: 130px;
+    flex-basis: 104px;
+  }
+}
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  body * {
+    visibility: hidden !important;
+  }
+  #admissions,
+  #admissions #admissionForm,
+  #admissions #admissionForm * {
+    visibility: visible !important;
+  }
+  #admissions {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #fff !important;
+  }
+  #admissions .admission-copy,
+  #admissions .admission-tracker,
+  #admissionForm button,
+  #admissionForm .form-status {
+    display: none !important;
+  }
+  #admissionForm {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+    break-inside: auto;
+  }
+  #admissionForm h3 {
+    font-size: 18pt !important;
+  }
+  #admissionForm h4 {
+    break-after: avoid;
+    color: #000 !important;
+  }
+  #admissionForm label {
+    color: #000 !important;
+    break-inside: avoid;
+  }
+  #admissionForm input,
+  #admissionForm select,
+  #admissionForm textarea {
+    color: #000 !important;
+    background: #fff !important;
+    border: 1px solid #777 !important;
+    min-height: 26px;
+  }
+  .passport-photo-placeholder {
+    border: 2px dashed #555 !important;
+    background: #fff !important;
+    color: #000 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
