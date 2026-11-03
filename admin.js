@@ -1,12 +1,16 @@
 const $ = s => document.querySelector(s);
 let currentPanel = "overviewPanel";
 let cachedApplications = [];
+let cachedSubjects = [];
+let selectedSubjectClass = "";
 
 document.addEventListener("DOMContentLoaded", async () => {
   $("#loginForm").addEventListener("submit", login);
   $("#logoutButton").addEventListener("click", logout);
   $("#announcementForm").addEventListener("submit", saveAnnouncement);
   $("#subjectForm")?.addEventListener("submit", saveSubject);
+  $("#subjectClassTabs")?.addEventListener("click", event => { const button=event.target.closest("[data-subject-class]"); if(!button)return; selectedSubjectClass=button.dataset.subjectClass; const select=$("#subjectClassSelect"); if(select)select.value=selectedSubjectClass; renderClassSubjects(); });
+  $("#subjectClassSelect")?.addEventListener("change", event => { selectedSubjectClass=event.target.value; renderClassSubjects(); });
   $("#markForm")?.addEventListener("submit", saveMark);
   $("#feeForm")?.addEventListener("submit", saveFee);
   $("#paymentForm")?.addEventListener("submit", savePayment);
@@ -221,7 +225,7 @@ async function loadSchoolRecords(){
     fill("#markStudent",students.students||[],s=>s.admission_number+" · "+s.full_name+" ("+s.class_name+")");
     fill("#feeStudent",students.students||[],s=>s.admission_number+" · "+s.full_name);
     fill("#markSubject",subjects.subjects||[],s=>s.class_name+" · "+s.name);
-    const subjectBox=$("#subjectsList");if(subjectBox){subjectBox.replaceChildren();(subjects.subjects||[]).forEach(s=>{const p=document.createElement("p");p.textContent=s.class_name+" · "+s.name;subjectBox.append(p);});if(!subjectBox.children.length)subjectBox.textContent="No subjects added yet.";}
+    cachedSubjects=subjects.subjects||[]; if(!selectedSubjectClass && cachedSubjects.length) selectedSubjectClass=cachedSubjects[0].class_name; renderClassSubjects();
     const markBox=$("#marksList");if(markBox){markBox.replaceChildren();(marks.marks||[]).forEach(m=>{const p=document.createElement("p");p.textContent=m.full_name+" · "+m.subject_name+" · Term "+m.term+" "+m.academic_year+": "+m.score+"/"+m.max_score;markBox.append(p);});if(!markBox.children.length)markBox.textContent="No marks recorded yet.";}
     const feeBox=$("#feesList"),feeSelect=$("#paymentFee");if(feeBox)feeBox.replaceChildren();if(feeSelect)feeSelect.replaceChildren();
     (fees.fees||[]).forEach(f=>{const p=document.createElement("p");p.textContent=f.full_name+" · "+f.description+" · UGX "+Number(f.amount).toLocaleString()+" · Paid "+Number(f.paid).toLocaleString()+" · Balance "+Number(f.balance).toLocaleString();feeBox?.append(p);if(feeSelect){const o=document.createElement("option");o.value=f.id;o.textContent=f.full_name+" · "+f.description+" · Balance UGX "+Number(f.balance).toLocaleString();feeSelect.append(o);}});
@@ -233,7 +237,32 @@ async function submitAdminForm(formId,path,statusId){
   try{const data=Object.fromEntries(new FormData(form).entries());await api(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});form.reset();status.textContent="Saved successfully.";await loadSchoolRecords();}
   catch(e){status.textContent=e.message;}finally{button.disabled=false;}
 }
-function saveSubject(e){e.preventDefault();submitAdminForm("#subjectForm","admin/subjects","#subjectStatus");}
+function renderClassSubjects(){
+  const box=$("#subjectsList"),tabs=$("#subjectClassTabs");
+  if(!box||!tabs)return;
+  tabs.querySelectorAll("[data-subject-class]").forEach(button=>button.classList.toggle("active",button.dataset.subjectClass===selectedSubjectClass));
+  const select=$("#subjectClassSelect");if(select && selectedSubjectClass)select.value=selectedSubjectClass;
+  box.replaceChildren();
+  if(!selectedSubjectClass){box.textContent="Select a class above to see its subjects.";return;}
+  const heading=document.createElement("h3");heading.textContent=selectedSubjectClass+" Subjects";box.append(heading);
+  const items=cachedSubjects.filter(subject=>subject.class_name===selectedSubjectClass);
+  if(!items.length){const empty=document.createElement("p");empty.className="admin-note";empty.textContent="No subjects have been added to this class yet.";box.append(empty);return;}
+  items.forEach(subject=>{const chip=document.createElement("span");chip.className="subject-subject-chip";chip.textContent=subject.name;box.append(chip);});
+}
+async function saveSubject(e){
+  e.preventDefault();
+  const form=e.currentTarget,status=$("#subjectStatus"),button=form.querySelector('button[type="submit"]');
+  const data=Object.fromEntries(new FormData(form).entries());
+  if(!data.class_name){status.textContent="Choose the class first.";return;}
+  button.disabled=true;status.textContent="Saving subject…";
+  try{
+    await api("admin/subjects",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+    selectedSubjectClass=data.class_name;form.elements.class_name.value=selectedSubjectClass;form.elements.name.value="";
+    status.textContent="Subject added to "+selectedSubjectClass+".";
+    await loadSchoolRecords();
+  }catch(error){status.textContent=error.message;}
+  finally{button.disabled=false;}
+}
 function saveMark(e){e.preventDefault();submitAdminForm("#markForm","admin/marks","#markStatus");}
 function saveFee(e){e.preventDefault();submitAdminForm("#feeForm","admin/fees","#feeStatus");}
 function savePayment(e){e.preventDefault();submitAdminForm("#paymentForm","admin/fees/payment","#paymentStatus");}
