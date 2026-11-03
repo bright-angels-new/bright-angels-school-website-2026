@@ -83,6 +83,18 @@ export async function onRequest({request,env}) {
       const applicationNumber=applicationId ? `BA-APP-${applicationYear}-${String(applicationId).padStart(5,"0")}` : null;
       return json({ok:true,application_id:applicationId,application_number:applicationNumber},201);
     }
+
+    if(request.method==="POST" && route==="admission-status") {
+      let data;try{data=await request.json();}catch{return json({error:"Enter your application reference and phone number."},400);}
+      const ref=clean(data.application_number,30).toUpperCase(),phone=clean(data.phone,30);
+      const match=ref.match(/^BA-APP-(\\d{4})-(\\d{5})$/);
+      if(!match||!phone)return json({error:"Enter a valid application reference number and phone number."},400);
+      const id=Number(match[2]);
+      const application=await env.DB.prepare("SELECT a.child_name,a.class_applying,a.phone,a.status,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id WHERE a.id=?").bind(id).first();
+      const digits=value=>String(value||"").replace(/\\D/g,"");
+      if(!application||digits(application.phone)!==digits(phone))return json({error:"No application matches those details. Check your reference number and phone number."},404);
+      return json({ok:true,status:application.status,admission_number:application.admission_number||null});
+    }
     if(request.method==="POST" && route==="parent-messages") { let d;try{d=await request.json();}catch{return json({error:"Please check your message."},400);} const p=clean(d.parent_name,120),phone=clean(d.phone,30),student=clean(d.student_name,120),subject=clean(d.subject,160),message=clean(d.message,2000);if(!p||!phone||!subject||!message)return json({error:"Complete your name, phone, subject and message."},400);await env.DB.prepare("INSERT INTO ba2_parent_messages (parent_name,phone,student_name,subject,message) VALUES (?,?,?,?,?)").bind(p,phone,student,subject,message).run();return json({ok:true},201); }
     if(request.method==="POST" && route==="login") {
       if(!env.ADMIN_EMAIL||!env.ADMIN_PASSWORD) return json({error:"Administrator login has not been configured in the hosting settings."},503);
