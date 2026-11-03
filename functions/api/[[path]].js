@@ -1,4 +1,4 @@
-const headers = {"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store"};
+const headers = {"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store","X-Content-Type-Options":"nosniff","X-Frame-Options":"DENY","Referrer-Policy":"strict-origin-when-cross-origin"};
 const json = (data,status=200,extra={}) => new Response(JSON.stringify(data),{status,headers:{...headers,...extra}});
 const clean = (value,max=500) => String(value??"").trim().slice(0,max);
 const allowedClasses = ["Baby Class","Middle Class","Top Class","P1","P2","P3","P4","P5","P6","P7"];
@@ -89,6 +89,7 @@ export async function onRequest({request,env}) {
   try {
     await ensureSchema(env.DB);
     const url=new URL(request.url);
+    if(request.method==="POST") { const origin=request.headers.get("Origin"); if(origin && origin!==url.origin) return json({error:"This request was not accepted."},403); }
     const route=url.pathname.replace(/^\/api\/?/,"").replace(/\/$/,"");
     if(request.method==="POST" && route==="login" && !await rateLimit(env.DB,request,"login",8,900)) return json({error:"Too many sign-in attempts. Please wait 15 minutes before trying again."},429,{"Retry-After":"900"});
     if(request.method==="POST" && route==="admissions" && !await rateLimit(env.DB,request,"admissions",5,3600)) return json({error:"Too many admission enquiries from this connection. Please try again later or contact the school by phone."},429,{"Retry-After":"3600"});
