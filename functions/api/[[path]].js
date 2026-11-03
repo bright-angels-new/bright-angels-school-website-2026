@@ -1090,22 +1090,27 @@ return json({
 
         const messageId = result.meta.last_row_id;
 
-        await sendSchoolEmail(
-          env,
-          "New Website Contact Message",
-          [
-            "A new message was submitted through the school website.",
-            "",
-            `Message ID: ${messageId}`,
-            `Name: ${name}`,
-            `Email: ${email}`,
-            `Phone: ${phone}`,
-            `Subject: ${subject}`,
-            "",
-            "Message:",
-            message
-          ].join("\n")
-        );
+        try {
+          await sendSchoolEmail(
+            env,
+            "New Website Contact Message",
+            [
+              "A new message was submitted through the school website.",
+              "",
+              `Message ID: ${messageId}`,
+              `Name: ${name}`,
+              `Email: ${email}`,
+              `Phone: ${phone}`,
+              `Subject: ${subject}`,
+              "",
+              "Message:",
+              message
+            ].join("\n")
+          );
+        } catch (emailError) {
+          // Keep the parent's message saved even if email notification is unavailable.
+          console.error("Message saved, but school email notification failed:", emailError);
+        }
 
         return json(
           {
