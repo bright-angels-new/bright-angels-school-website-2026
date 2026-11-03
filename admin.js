@@ -309,13 +309,55 @@ async function saveGallery(e){e.preventDefault();const form=e.currentTarget,stat
 async function printSelectedReport(){
   const studentId=$("#markStudent")?.value,form=$("#markForm"),year=form?.elements.academic_year.value,term=form?.elements.term.value,assessment=form?.elements.assessment_type.value,status=$("#reportStatus");
   if(!studentId||!year||!term){status.textContent="Select a student, academic year and term first.";return;}
-  status.textContent="Preparing report card…";
+  status.textContent="Preparing the correct class report card…";
   try{
     const report=await api("admin/report-card?student_id="+encodeURIComponent(studentId)+"&academic_year="+encodeURIComponent(year)+"&term="+encodeURIComponent(term)+"&assessment_type="+encodeURIComponent(assessment));
-    const w=window.open("","_blank","width=850,height=900");if(!w)throw new Error("Allow pop-ups to print the report card.");
+    const w=window.open("","_blank","width=900,height=950");if(!w)throw new Error("Allow pop-ups to print the report card.");
     const esc=v=>String(v??"").replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
-    const rows=report.subjects.map(x=>"<tr><td>"+esc(x.subject_name)+"</td><td>"+esc(x.score)+" / "+esc(x.max_score)+"</td><td>"+esc(x.remarks||"")+"</td></tr>").join("");
-    w.document.write("<!doctype html><html><head><title>Bright Angels Report Card</title><style>body{font:15px Arial;max-width:760px;margin:35px auto;color:#20382f}h1,h2{text-align:center;color:#164638}table{width:100%;border-collapse:collapse;margin-top:25px}td,th{padding:10px;border:1px solid #aaa;text-align:left}.foot{margin-top:45px}</style></head><body><h1>BRIGHT ANGELS JUNIOR SCHOOL</h1><h2>LEARNER REPORT CARD</h2><p><b>Learner:</b> "+esc(report.student.full_name)+"<br><b>Admission No:</b> "+esc(report.student.admission_number)+"<br><b>Class:</b> "+esc(report.student.class_name)+"<br><b>Academic year:</b> "+esc(report.academic_year)+"<br><b>Term:</b> "+esc(report.term)+"<br><b>Assessment:</b> "+esc(report.assessment_type)+"</p><table><thead><tr><th>Subject</th><th>Score</th><th>Remarks</th></tr></thead><tbody>"+rows+"</tbody></table><h3>Total: "+esc(report.total)+" / "+esc(report.maximum)+" ("+esc(report.percentage)+"%)</h3><p class=foot>Class Teacher: ____________________ &nbsp; Headteacher: ____________________</p><p style=text-align:center>If others can, we can</p><script>window.onload=()=>window.print()<\/script></body></html>");
-    w.document.close();status.textContent="Report card opened for printing.";
+    const klass=report.student.class_name||"";
+    const nursery=["Baby Class","Middle Class","Top Class"].includes(klass);
+    const lower=["P1","P2","P3"].includes(klass);
+    const title=nursery?"EARLY YEARS DEVELOPMENT REPORT":lower?"LOWER PRIMARY REPORT CARD":"UPPER PRIMARY REPORT CARD";
+    const grade=score=>{
+      if(score===null||score===undefined||score==="")return "Not assessed";
+      const pct=Number(score);
+      if(nursery){const level=Math.max(1,Math.min(4,Math.round(pct/25)));return ({4:"EX",3:"ME",2:"DE",1:"BE"})[level];}
+      if(lower)return pct>=80?"A":pct>=70?"B":pct>=60?"C":pct>=50?"D":"E";
+      return pct>=90?"D1":pct>=80?"D2":pct>=75?"C3":pct>=70?"C4":pct>=65?"C5":pct>=50?"C6":pct>=45?"P7":pct>=40?"P8":"F9";
+    };
+    const description=g=>{
+      if(nursery)return ({EX:"Exceeding Expectations",ME:"Meeting Expectations",DE:"Developing",BE:"Beginning"})[g]||"Not yet assessed";
+      if(lower)return ({A:"Exceptional",B:"Very Good",C:"Good",D:"Developing",E:"Needs Support"})[g]||"Not yet assessed";
+      return ({D1:"Outstanding",D2:"Excellent",C3:"Very Good",C4:"Very Good",C5:"Good",C6:"Pass Credit",P7:"Fair Pass",P8:"Weak Pass",F9:"Needs Intensive Remediation"})[g]||"Not yet assessed";
+    };
+    const rows=(report.subjects||[]).map(x=>{
+      const hasMark=x.score!==null&&x.score!==undefined;
+      const pct=hasMark&&Number(x.max_score)>0?Number(x.score)/Number(x.max_score)*100:null;
+      const g=grade(pct);
+      const scoreText=hasMark?Number(x.score).toLocaleString()+" / "+Number(x.max_score).toLocaleString():"—";
+      return "<tr><td>"+esc(x.subject_name)+"</td><td>"+scoreText+"</td><td><b>"+esc(g)+"</b><small>"+esc(description(g))+"</small></td><td>"+esc(x.remarks||"")+"</td></tr>";
+    }).join("");
+    const total=Number(report.total||0),maximum=Number(report.maximum||0),percentage=maximum?total/maximum*100:0;
+    const overallGrade=grade(percentage);
+    const style=nursery?
+      "body{border-top:12px solid #e5232b}.report-head{background:#fff8ef}.report-title{color:#b45c36}.badge{background:#fff0df;color:#a64e2e}.summary{background:#fff8ef}":
+      lower?
+      "body{border-top:12px solid #6bb8e8}.report-head{background:#eff8ff}.report-title{color:#28658d}.badge{background:#e3f3ff;color:#28658d}.summary{background:#eff8ff}":
+      "body{border-top:12px solid #e5232b}.report-head{background:#edf6fc}.report-title{color:#244e70}.badge{background:#ffe9ea;color:#a51f29}.summary{background:#edf6fc}";
+    const logo='<img src="/school-logo.jpg" alt="School badge" style="width:82px;height:82px;object-fit:contain">';
+    w.document.write(`<!doctype html><html><head><title>${esc(title)}</title><style>
+      @page{size:A4;margin:15mm}*{box-sizing:border-box}body{font:13px Arial,sans-serif;max-width:780px;margin:20px auto;color:#263b4b;padding:0 8px 25px;line-height:1.5}
+      .report-head{display:flex;align-items:center;gap:18px;padding:18px;border-radius:10px}.school-name{font: bold 23px Georgia,serif;margin:0;color:#31536b}.school-meta{margin:3px 0;font-size:11px;color:#526779}.report-title{text-align:center;font: bold 19px Georgia,serif;margin:22px 0 14px}.badge{display:inline-block;padding:6px 12px;border-radius:20px;font-weight:bold;font-size:11px}
+      .details{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;padding:14px;border:1px solid #dcecf7;border-radius:8px}.details p{margin:2px 0}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#eaf4fb;color:#31536b}td,th{padding:9px 8px;border:1px solid #cbd9e3;text-align:left}td small{display:block;color:#687989;font-size:10px}.summary{padding:13px;margin-top:16px;border-radius:8px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.comments{margin-top:22px;padding:12px;border:1px solid #dcecf7;border-radius:8px;min-height:70px}.signatures{display:flex;justify-content:space-between;gap:25px;margin-top:48px}.signatures div{width:45%;border-top:1px solid #526779;padding-top:7px}.motto{text-align:center;margin-top:30px;font:italic 15px Georgia,serif;color:#b32630}
+      ${style}@media print{body{margin:0}.no-print{display:none}}
+    </style></head><body><header class="report-head">${logo}<div><h1 class="school-name">BRIGHT ANGELS JUNIOR SCHOOL</h1><p class="school-meta">Lukwanga–Kataluko Sentema Road, Wakiso District</p><p class="school-meta">+256 755 660 550 · +256 525 136 626</p><p class="school-meta">If others can, we can</p></div></header>
+    <h2 class="report-title">${esc(title)}</h2><p style="text-align:center"><span class="badge">${esc(assessment)} · TERM ${esc(term)} · ${esc(year)}</span></p>
+    <section class="details"><p><b>Learner:</b> ${esc(report.student.full_name)}</p><p><b>Admission No:</b> ${esc(report.student.admission_number)}</p><p><b>Class:</b> ${esc(klass)}</p><p><b>Assessment:</b> ${esc(assessment)}</p></section>
+    <table><thead><tr><th>Subject / Learning Area</th><th>Score</th><th>Grade / Level</th><th>Teacher's Remarks</th></tr></thead><tbody>${rows||'<tr><td colspan="4">No subjects are registered for this class yet.</td></tr>'}</tbody></table>
+    <section class="summary"><b>Marks recorded: ${esc(report.marked_subjects||0)} / ${esc((report.subjects||[]).length)} subjects</b>${nursery?"":'<b>Total: '+esc(total.toFixed(1))+" / "+esc(maximum.toFixed(1))+'</b><b>Average: '+(maximum?percentage.toFixed(1)+"%":"—")+'</b><b>Overall grade: '+esc(maximum?overallGrade:"—")+'</b>'}</section>
+    <section class="comments"><b>${nursery?"Teacher's Development Comment":"Class Teacher's Comment"}:</b><br><br><br></section>
+    ${!nursery?'<section class="comments"><b>Headteacher\'s Comment:</b><br><br><br></section>':""}
+    <div class="signatures"><div>Class Teacher's Signature</div><div>Headteacher's Signature</div></div><p class="motto">“If others can, we can”</p><button class="no-print" onclick="window.print()">Print report card</button><script>window.onload=()=>window.print()<\/script></body></html>`);
+    w.document.close();status.textContent="Correct class report card opened for printing.";
   }catch(e){status.textContent=e.message;}
 }
