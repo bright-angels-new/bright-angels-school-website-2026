@@ -118,7 +118,7 @@ export async function onRequest({request,env}) {
         return json({ok:true,status,admission_number:student?.admission_number||null});
       }
       if(request.method==="GET" && route==="admin/students") {
-        const result=await env.DB.prepare("SELECT admission_number,full_name,class_name,guardian_name,phone,email,admitted_at FROM ba2_students ORDER BY class_name,full_name").all();
+        const result=await env.DB.prepare("SELECT id,admission_number,full_name,class_name,guardian_name,phone,email,admitted_at FROM ba2_students ORDER BY class_name,full_name").all();
         return json({students:result.results||[]});
       }
       if(request.method==="GET" && route==="admin/subjects") { const r=await env.DB.prepare("SELECT id,class_name,name FROM ba2_subjects ORDER BY class_name,name").all(); return json({subjects:r.results||[]}); }
