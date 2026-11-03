@@ -23,8 +23,12 @@ async function ensureSchema(db) {
       id INTEGER PRIMARY KEY AUTOINCREMENT, application_id INTEGER NOT NULL UNIQUE,
       admission_number TEXT NOT NULL UNIQUE, full_name TEXT NOT NULL, class_name TEXT NOT NULL,
       guardian_name TEXT NOT NULL, phone TEXT NOT NULL, email TEXT,
+      date_of_birth TEXT, age INTEGER, gender TEXT, home_address TEXT, emergency_contact TEXT,
+      medical_information TEXT, learning_needs TEXT, previous_school TEXT,
+      student_status TEXT NOT NULL DEFAULT 'Active',
       admitted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`),
+    db.prepare("CREATE TABLE IF NOT EXISTS ba2_student_class_history (id INTEGER PRIMARY KEY AUTOINCREMENT,student_id INTEGER NOT NULL,from_class TEXT NOT NULL,to_class TEXT NOT NULL,action TEXT NOT NULL,academic_year INTEGER NOT NULL,remarks TEXT,changed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_subjects (id INTEGER PRIMARY KEY AUTOINCREMENT,class_name TEXT NOT NULL,name TEXT NOT NULL,is_active INTEGER NOT NULL DEFAULT 1,UNIQUE(class_name,name))"),
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_marks (id INTEGER PRIMARY KEY AUTOINCREMENT,student_id INTEGER NOT NULL,subject_id INTEGER NOT NULL,academic_year INTEGER NOT NULL,term INTEGER NOT NULL,score REAL NOT NULL,max_score REAL NOT NULL DEFAULT 100,remarks TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE(student_id,subject_id,academic_year,term))"),
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_fees (id INTEGER PRIMARY KEY AUTOINCREMENT,student_id INTEGER NOT NULL,description TEXT NOT NULL,amount REAL NOT NULL,due_date TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
@@ -33,6 +37,9 @@ async function ensureSchema(db) {
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_content (content_key TEXT PRIMARY KEY,content_value TEXT NOT NULL,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_gallery (id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,image_url TEXT NOT NULL,description TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
   ]);
+  const studentCols=await db.prepare("PRAGMA table_info(ba2_students)").all();
+  const studentExisting=new Set((studentCols.results||[]).map(x=>x.name));
+  for(const [name,type] of [["date_of_birth","TEXT"],["age","INTEGER"],["gender","TEXT"],["home_address","TEXT"],["emergency_contact","TEXT"],["medical_information","TEXT"],["learning_needs","TEXT"],["previous_school","TEXT"],["student_status","TEXT NOT NULL DEFAULT 'Active'"]]) if(!studentExisting.has(name)) await db.prepare("ALTER TABLE ba2_students ADD COLUMN "+name+" "+type).run();
   const cols=await db.prepare("PRAGMA table_info(ba2_admissions)").all();
   const existing=new Set((cols.results||[]).map(x=>x.name));
   for(const [name,type] of [["date_of_birth","TEXT"],["age","INTEGER"],["gender","TEXT"],["home_address","TEXT"],["emergency_contact","TEXT"],["medical_information","TEXT"],["learning_needs","TEXT"],["study_mode","TEXT"]]) if(!existing.has(name)) await db.prepare("ALTER TABLE ba2_admissions ADD COLUMN "+name+" "+type).run();
@@ -135,7 +142,7 @@ export async function onRequest({request,env}) {
             const year=new Date().getFullYear();
             const sequence=await env.DB.prepare("INSERT INTO ba2_admission_sequences (year,last_number) VALUES (?,1) ON CONFLICT(year) DO UPDATE SET last_number=last_number+1 RETURNING last_number").bind(year).first();
             const number="BA/"+year+"/"+String(sequence.last_number).padStart(3,"0");
-            await env.DB.prepare("INSERT OR IGNORE INTO ba2_students (application_id,admission_number,full_name,class_name,guardian_name,phone,email) VALUES (?,?,?,?,?,?,?)").bind(id,number,application.child_name,application.class_applying,application.guardian_name,application.phone,application.email||"").run();
+            await env.DB.prepare("INSERT OR IGNORE INTO ba2_students (application_id,admission_number,full_name,class_name,guardian_name,phone,email,date_of_birth,age,gender,home_address,emergency_contact,medical_information,learning_needs,previous_school) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(id,number,application.child_name,application.class_applying,application.guardian_name,application.phone,application.email||"",application.date_of_birth||null,application.age??null,application.gender||null,application.home_address||null,application.emergency_contact||null,application.medical_information||null,application.learning_needs||null,application.previous_school||null).run();
           }
         }
         await env.DB.prepare("UPDATE ba2_admissions SET status=? WHERE id=?").bind(status,id).run();
@@ -143,8 +150,32 @@ export async function onRequest({request,env}) {
         return json({ok:true,status,admission_number:student?.admission_number||null});
       }
       if(request.method==="GET" && route==="admin/students") {
-        const result=await env.DB.prepare("SELECT id,admission_number,full_name,class_name,guardian_name,phone,email,admitted_at FROM ba2_students ORDER BY class_name,full_name").all();
+        const result=await env.DB.prepare("SELECT id,admission_number,full_name,class_name,guardian_name,phone,email,date_of_birth,age,gender,home_address,emergency_contact,medical_information,learning_needs,previous_school,student_status,admitted_at FROM ba2_students ORDER BY class_name,full_name").all();
         return json({students:result.results||[]});
+      }
+      if(request.method==="POST" && route==="admin/students/class-change") {
+        let d;try{d=await request.json();}catch{return json({error:"Invalid class update."},400);}
+        const id=Number(d.student_id),year=Number(d.academic_year),action=clean(d.action,20),expected=clean(d.current_class,40),remarks=clean(d.remarks,300);
+        if(!Number.isInteger(id)||id<1||!Number.isInteger(year)||year<2020||year>2100||!["Promote","Repeat"].includes(action)||!allowedClasses.includes(expected)) return json({error:"Check the learner, academic year and class action."},400);
+        const student=await env.DB.prepare("SELECT id,full_name,class_name,student_status FROM ba2_students WHERE id=?").bind(id).first();
+        if(!student||student.student_status!=="Active")return json({error:"This learner is not an active student."},404);
+        if(student.class_name!==expected)return json({error:"The learner's class has changed. Refresh the student list and try again."},409);
+        const order=allowedClasses.indexOf(student.class_name);
+        if(action==="Promote"&&order===allowedClasses.length-1)return json({error:"P7 is the final class. This learner cannot be promoted to another class."},400);
+        const nextClass=action==="Promote"?allowedClasses[order+1]:student.class_name;
+        await env.DB.batch([
+          env.DB.prepare("UPDATE ba2_students SET class_name=? WHERE id=? AND class_name=? AND student_status='Active'").bind(nextClass,id,student.class_name),
+          env.DB.prepare("INSERT INTO ba2_student_class_history (student_id,from_class,to_class,action,academic_year,remarks) SELECT ?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM ba2_students WHERE id=? AND class_name=?)").bind(id,student.class_name,nextClass,action,year,remarks,id,nextClass)
+        ]);
+        const updated=await env.DB.prepare("SELECT class_name FROM ba2_students WHERE id=?").bind(id).first();
+        if(!updated||updated.class_name!==nextClass)return json({error:"The class update could not be completed. Refresh and try again."},409);
+        return json({ok:true,student_id:id,full_name:student.full_name,from_class:student.class_name,to_class:nextClass,action,academic_year:year});
+      }
+      if(request.method==="GET" && route==="admin/student-history") {
+        const id=Number(url.searchParams.get("student_id"));
+        if(!Number.isInteger(id)||id<1)return json({error:"Choose a valid learner."},400);
+        const result=await env.DB.prepare("SELECT from_class,to_class,action,academic_year,remarks,changed_at FROM ba2_student_class_history WHERE student_id=? ORDER BY changed_at DESC,id DESC").bind(id).all();
+        return json({history:result.results||[]});
       }
       if(request.method==="GET" && route==="admin/subjects") { const r=await env.DB.prepare("SELECT id,class_name,name FROM ba2_subjects ORDER BY class_name,name").all(); return json({subjects:r.results||[]}); }
       if(request.method==="POST" && route==="admin/subjects") { let d;try{d=await request.json();}catch{return json({error:"Enter class and subject."},400);} const k=clean(d.class_name,40),n=clean(d.name,100); if(!allowedClasses.includes(k)||!n)return json({error:"Choose a valid class and subject name."},400); try{await env.DB.prepare("INSERT INTO ba2_subjects (class_name,name) VALUES (?,?)").bind(k,n).run();}catch{return json({error:"That subject already exists for this class."},409);} return json({ok:true},201); }
