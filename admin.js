@@ -68,7 +68,7 @@ function renderAdmissions(){
     section.append(heading);
     group.forEach(a=>{
       const details=document.createElement("details");details.style.padding="12px 0";details.style.borderTop="1px solid #e7e8e1";
-      const summary=document.createElement("summary");summary.style.cursor="pointer";summary.style.fontWeight="700";summary.textContent=a.child_name+" · "+(a.status||"Pending")+(a.admission_number?" · "+a.admission_number:"");
+      const summary=document.createElement("summary");summary.style.cursor="pointer";summary.style.fontWeight="700";const createdYear=String(a.created_at||"").slice(0,4)||String(new Date().getFullYear());const applicationNumber="BA-APP-"+createdYear+"-"+String(a.id).padStart(5,"0");summary.textContent=a.child_name+" · Application "+applicationNumber+" · Review: "+(a.status||"Pending")+(a.admission_number?" · Admission No. "+a.admission_number:"");
       const body=document.createElement("div");body.style.padding="12px 0";
       const p=document.createElement("p");p.textContent="Parent/Guardian: "+a.guardian_name+" | Phone: "+a.phone+" | Email: "+(a.email||"Not provided");
       const extra=document.createElement("p");extra.textContent="Previous school: "+(a.previous_school||"Not provided")+" | Submitted: "+new Date(a.created_at+"Z").toLocaleString();
@@ -76,9 +76,10 @@ function renderAdmissions(){
       const detail=document.createElement("p");detail.textContent="Date of birth: "+(a.date_of_birth||"Not provided")+" | Gender: "+(a.gender||"Not provided")+" | Home: "+(a.home_address||"Not provided")+" | Emergency contact: "+(a.emergency_contact||"Not provided")+" | Study mode: "+(a.study_mode||"Not provided");
       const needs=document.createElement("p");needs.textContent="Medical information: "+(a.medical_information||"None")+" | Learning needs: "+(a.learning_needs||"None");
       const controls=document.createElement("div");controls.className="admin-row-actions";
+      const reviewLabel=document.createElement("label");reviewLabel.textContent="Review status: ";reviewLabel.style.fontWeight="700";
       const select=document.createElement("select");["Pending","Under Review","Approved","Rejected"].forEach(s=>{const o=document.createElement("option");o.value=s;o.textContent=s;o.selected=(a.status||"Pending")===s;select.append(o);});
       const save=document.createElement("button");save.textContent="Update status";save.addEventListener("click",()=>updateApplication(a.id,select.value,save));
-      controls.append(select,save);
+      reviewLabel.append(select);controls.append(reviewLabel,save);
       if(a.admission_number){const letter=document.createElement("button");letter.textContent="Print admission letter";letter.addEventListener("click",()=>printAdmissionLetter(a));controls.append(letter);}
       body.append(p,extra,detail,needs,message,controls);details.append(summary,body);section.append(details);
     });
