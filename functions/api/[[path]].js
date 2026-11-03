@@ -8,6 +8,7 @@ async function ensureSchema(db) {
     db.prepare(`CREATE TABLE IF NOT EXISTS ba2_admissions (
       id INTEGER PRIMARY KEY AUTOINCREMENT, child_name TEXT NOT NULL, class_applying TEXT NOT NULL,
       guardian_name TEXT NOT NULL, phone TEXT NOT NULL, email TEXT, previous_school TEXT, message TEXT,
+      date_of_birth TEXT, gender TEXT, home_address TEXT, emergency_contact TEXT, medical_information TEXT, learning_needs TEXT, study_mode TEXT,
       status TEXT NOT NULL DEFAULT 'Pending', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ba2_announcements (
@@ -28,8 +29,14 @@ async function ensureSchema(db) {
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_marks (id INTEGER PRIMARY KEY AUTOINCREMENT,student_id INTEGER NOT NULL,subject_id INTEGER NOT NULL,academic_year INTEGER NOT NULL,term INTEGER NOT NULL,score REAL NOT NULL,max_score REAL NOT NULL DEFAULT 100,remarks TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE(student_id,subject_id,academic_year,term))"),
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_fees (id INTEGER PRIMARY KEY AUTOINCREMENT,student_id INTEGER NOT NULL,description TEXT NOT NULL,amount REAL NOT NULL,due_date TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_fee_payments (id INTEGER PRIMARY KEY AUTOINCREMENT,fee_id INTEGER NOT NULL,amount REAL NOT NULL,reference TEXT,paid_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
-    db.prepare("CREATE TABLE IF NOT EXISTS ba2_parent_messages (id INTEGER PRIMARY KEY AUTOINCREMENT,parent_name TEXT NOT NULL,phone TEXT NOT NULL,student_name TEXT,subject TEXT NOT NULL,message TEXT NOT NULL,status TEXT NOT NULL DEFAULT 0,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
+    db.prepare("CREATE TABLE IF NOT EXISTS ba2_parent_messages (id INTEGER PRIMARY KEY AUTOINCREMENT,parent_name TEXT NOT NULL,phone TEXT NOT NULL,student_name TEXT,subject TEXT NOT NULL,message TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'New',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS ba2_content (content_key TEXT PRIMARY KEY,content_value TEXT NOT NULL,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS ba2_gallery (id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,image_url TEXT NOT NULL,description TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
   ]);
+  const cols=await db.prepare("PRAGMA table_info(ba2_admissions)").all();
+  const existing=new Set((cols.results||[]).map(x=>x.name));
+  for(const [name,type] of [["date_of_birth","TEXT"],["gender","TEXT"],["home_address","TEXT"],["emergency_contact","TEXT"],["medical_information","TEXT"],["learning_needs","TEXT"],["study_mode","TEXT"]]) if(!existing.has(name)) await db.prepare("ALTER TABLE ba2_admissions ADD COLUMN "+name+" "+type).run();
+  await db.prepare("UPDATE ba2_parent_messages SET status='New' WHERE status='0' OR status='0.0'").run();
 }
 async function sha256(value) {
   const bytes = new TextEncoder().encode(value);
@@ -65,10 +72,10 @@ export async function onRequest({request,env}) {
     if(request.method==="POST" && route==="admissions") {
       let data; try{data=await request.json();}catch{return json({error:"Please check the information and try again."},400);}
       const child=clean(data.child_name,120),klass=clean(data.class_applying,40),guardian=clean(data.guardian_name,120),phone=clean(data.phone,30);
-      const email=clean(data.email,160),previous=clean(data.previous_school,160),message=clean(data.message,1500);
+      const email=clean(data.email,160),previous=clean(data.previous_school,160),message=clean(data.message,1500),dob=clean(data.date_of_birth,20),gender=clean(data.gender,30),address=clean(data.home_address,300),emergency=clean(data.emergency_contact,120),medical=clean(data.medical_information,500),needs=clean(data.learning_needs,500),study=clean(data.study_mode,60);
       if(!child||!allowedClasses.includes(klass)||!guardian||!phone) return json({error:"Please complete the required fields and select a valid class."},400);
       if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({error:"Please enter a valid email address."},400);
-      const result=await env.DB.prepare("INSERT INTO ba2_admissions (child_name,class_applying,guardian_name,phone,email,previous_school,message) VALUES (?,?,?,?,?,?,?)").bind(child,klass,guardian,phone,email,previous,message).run();
+      const result=await env.DB.prepare("INSERT INTO ba2_admissions (child_name,class_applying,guardian_name,phone,email,previous_school,message,date_of_birth,gender,home_address,emergency_contact,medical_information,learning_needs,study_mode) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(child,klass,guardian,phone,email,previous,message,dob,gender,address,emergency,medical,needs,study).run();
       return json({ok:true,application_id:result.meta?.last_row_id||null},201);
     }
     if(request.method==="POST" && route==="parent-messages") { let d;try{d=await request.json();}catch{return json({error:"Please check your message."},400);} const p=clean(d.parent_name,120),phone=clean(d.phone,30),student=clean(d.student_name,120),subject=clean(d.subject,160),message=clean(d.message,2000);if(!p||!phone||!subject||!message)return json({error:"Complete your name, phone, subject and message."},400);await env.DB.prepare("INSERT INTO ba2_parent_messages (parent_name,phone,student_name,subject,message) VALUES (?,?,?,?,?)").bind(p,phone,student,subject,message).run();return json({ok:true},201); }
@@ -95,7 +102,7 @@ export async function onRequest({request,env}) {
     if(route.startsWith("admin/")) {
       if(!await isAdmin(request,env)) return json({error:"Your session has expired. Please sign in again."},401);
       if(request.method==="GET" && route==="admin/admissions") {
-        const result=await env.DB.prepare("SELECT a.id,a.child_name,a.class_applying,a.guardian_name,a.phone,a.email,a.previous_school,a.message,a.status,a.created_at,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id ORDER BY a.created_at DESC LIMIT 500").all();
+        const result=await env.DB.prepare("SELECT a.id,a.child_name,a.class_applying,a.guardian_name,a.phone,a.email,a.previous_school,a.message,a.date_of_birth,a.gender,a.home_address,a.emergency_contact,a.medical_information,a.learning_needs,a.study_mode,a.status,a.created_at,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id ORDER BY a.created_at DESC LIMIT 500").all();
         return json({applications:result.results||[]});
       }
       if(request.method==="POST" && route==="admin/admissions/status") {
