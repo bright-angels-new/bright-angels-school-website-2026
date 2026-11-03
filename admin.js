@@ -73,7 +73,7 @@ function renderAdmissions(){
       const p=document.createElement("p");p.textContent="Parent/Guardian: "+a.guardian_name+" | Phone: "+a.phone+" | Email: "+(a.email||"Not provided");
       const extra=document.createElement("p");extra.textContent="Previous school: "+(a.previous_school||"Not provided")+" | Submitted: "+new Date(a.created_at+"Z").toLocaleString();
       const message=document.createElement("p");message.textContent="Additional information: "+(a.message||"None");
-      const detail=document.createElement("p");detail.textContent="Date of birth: "+(a.date_of_birth||"Not provided")+" | Gender: "+(a.gender||"Not provided")+" | Home: "+(a.home_address||"Not provided")+" | Emergency contact: "+(a.emergency_contact||"Not provided")+" | Study mode: "+(a.study_mode||"Not provided");
+      const detail=document.createElement("p");detail.textContent="Date of birth: "+(a.date_of_birth||"Not provided")+" | Age: "+(a.age??"Not provided")+" | Gender: "+(a.gender||"Not provided")+" | Home: "+(a.home_address||"Not provided")+" | Emergency contact: "+(a.emergency_contact||"Not provided")+" | Study mode: "+(a.study_mode||"Not provided");
       const needs=document.createElement("p");needs.textContent="Medical information: "+(a.medical_information||"None")+" | Learning needs: "+(a.learning_needs||"None");
       const controls=document.createElement("div");controls.className="admin-row-actions";
       const reviewLabel=document.createElement("label");reviewLabel.textContent="Review status: ";reviewLabel.style.fontWeight="700";
