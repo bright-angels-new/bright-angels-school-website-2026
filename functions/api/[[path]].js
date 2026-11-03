@@ -35,7 +35,7 @@ async function ensureSchema(db) {
   ]);
   const cols=await db.prepare("PRAGMA table_info(ba2_admissions)").all();
   const existing=new Set((cols.results||[]).map(x=>x.name));
-  for(const [name,type] of [["date_of_birth","TEXT"],["gender","TEXT"],["home_address","TEXT"],["emergency_contact","TEXT"],["medical_information","TEXT"],["learning_needs","TEXT"],["study_mode","TEXT"]]) if(!existing.has(name)) await db.prepare("ALTER TABLE ba2_admissions ADD COLUMN "+name+" "+type).run();
+  for(const [name,type] of [["date_of_birth","TEXT"],["age","INTEGER"],["gender","TEXT"],["home_address","TEXT"],["emergency_contact","TEXT"],["medical_information","TEXT"],["learning_needs","TEXT"],["study_mode","TEXT"]]) if(!existing.has(name)) await db.prepare("ALTER TABLE ba2_admissions ADD COLUMN "+name+" "+type).run();
   await db.prepare("UPDATE ba2_parent_messages SET status='New' WHERE status='0' OR status='0.0'").run();
 }
 async function sha256(value) {
@@ -75,9 +75,10 @@ export async function onRequest({request,env}) {
       let data; try{data=await request.json();}catch{return json({error:"Please check the information and try again."},400);}
       const child=clean(data.child_name,120),klass=clean(data.class_applying,40),guardian=clean(data.guardian_name,120),phone=clean(data.phone,30);
       const email=clean(data.email,160),previous=clean(data.previous_school,160),message=clean(data.message,1500),dob=clean(data.date_of_birth,20),gender=clean(data.gender,30),address=clean(data.home_address,300),emergency=clean(data.emergency_contact,120),medical=clean(data.medical_information,500),needs=clean(data.learning_needs,500),study=clean(data.study_mode,60);
-      if(!child||!allowedClasses.includes(klass)||!guardian||!phone||!dob||!["Female","Male"].includes(gender)||!address||!emergency) return json({error:"Please complete all required fields: child name, class, guardian name, phone, date of birth, gender, home address and emergency contact."},400);
+      const birthDate=new Date(dob+"T00:00:00"),today=new Date();let age=today.getFullYear()-birthDate.getFullYear();if(today.getMonth()<birthDate.getMonth()||(today.getMonth()===birthDate.getMonth()&&today.getDate()<birthDate.getDate()))age--;
+      if(!child||!allowedClasses.includes(klass)||!guardian||!phone||!dob||Number.isNaN(birthDate.getTime())||birthDate>today||age<0||age>100||!["Female","Male"].includes(gender)||!address||!emergency) return json({error:"Please complete all required fields and enter a valid date of birth."},400);
       if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({error:"Please enter a valid email address."},400);
-      const result=await env.DB.prepare("INSERT INTO ba2_admissions (child_name,class_applying,guardian_name,phone,email,previous_school,message,date_of_birth,gender,home_address,emergency_contact,medical_information,learning_needs,study_mode) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(child,klass,guardian,phone,email,previous,message,dob,gender,address,emergency,medical,needs,study).run();
+      const result=await env.DB.prepare("INSERT INTO ba2_admissions (child_name,class_applying,guardian_name,phone,email,previous_school,message,date_of_birth,age,gender,home_address,emergency_contact,medical_information,learning_needs,study_mode) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(child,klass,guardian,phone,email,previous,message,dob,age,gender,address,emergency,medical,needs,study).run();
       const applicationId=Number(result.meta?.last_row_id||0);
       const applicationYear=new Date().getFullYear();
       const applicationNumber=applicationId ? `BA-APP-${applicationYear}-${String(applicationId).padStart(5,"0")}` : null;
