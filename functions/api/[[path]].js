@@ -1,6 +1,7 @@
 const headers = {"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store","X-Content-Type-Options":"nosniff","X-Frame-Options":"DENY","Referrer-Policy":"strict-origin-when-cross-origin"};
 const json = (data,status=200,extra={}) => new Response(JSON.stringify(data),{status,headers:{...headers,...extra}});
 const clean = (value,max=500) => String(value??"").trim().slice(0,max);
+const safeGalleryUrl = value => { try { const u=new URL(String(value||"")); return u.protocol==="https:" && u.hostname==="ik.imagekit.io" && !u.username && !u.password && !u.port ? u.href : null; } catch { return null; } };
 const allowedClasses = ["Baby Class","Middle Class","Top Class","P1","P2","P3","P4","P5","P6","P7"];
 
 async function ensureSchema(db) {
@@ -97,7 +98,7 @@ export async function onRequest({request,env}) {
     if(request.method==="POST" && route==="admission-status" && !await rateLimit(env.DB,request,"admission-status",10,900)) return json({error:"Too many status checks. Please wait 15 minutes and try again."},429,{"Retry-After":"900"});
     if(request.method==="GET" && route==="health") return json({ok:true,service:"Bright Angels School API"});
     if(request.method==="GET" && route==="content") { const r=await env.DB.prepare("SELECT content_key,content_value FROM ba2_content").all();return json({content:Object.fromEntries((r.results||[]).map(x=>[x.content_key,x.content_value]))}); }
-    if(request.method==="GET" && route==="gallery") { const r=await env.DB.prepare("SELECT id,title,image_url,description FROM ba2_gallery ORDER BY created_at DESC LIMIT 60").all();return json({gallery:r.results||[]}); }
+    if(request.method==="GET" && route==="gallery") { const r=await env.DB.prepare("SELECT id,title,image_url,description FROM ba2_gallery ORDER BY created_at DESC LIMIT 60").all();const gallery=(r.results||[]).flatMap(item=>{const image_url=safeGalleryUrl(item.image_url);if(!image_url){console.warn("Skipped gallery item with an unapproved image URL. Item ID:",item.id);return [];}return [{...item,image_url}];});return json({gallery}); }
     if(request.method==="GET" && route==="announcements") {
       const result=await env.DB.prepare("SELECT id,title,body,created_at FROM ba2_announcements WHERE is_published=1 ORDER BY created_at DESC LIMIT 20").all();
       return json({announcements:result.results||[]});
@@ -235,7 +236,7 @@ export async function onRequest({request,env}) {
       if(request.method==="GET" && route==="admin/messages") { const r=await env.DB.prepare("SELECT * FROM ba2_parent_messages ORDER BY created_at DESC").all();return json({messages:r.results||[]}); }
       if(request.method==="GET" && route==="admin/content") { const r=await env.DB.prepare("SELECT content_key,content_value FROM ba2_content").all();return json({content:Object.fromEntries((r.results||[]).map(x=>[x.content_key,x.content_value]))}); }
       if(request.method==="POST" && route==="admin/content") { let d;try{d=await request.json();}catch{return json({error:"Invalid content."},400);} const allowed=["hero_title","hero_text","about_text","learning_text"];for(const k of allowed)if(typeof d[k]==="string")await env.DB.prepare("INSERT INTO ba2_content (content_key,content_value) VALUES (?,?) ON CONFLICT(content_key) DO UPDATE SET content_value=excluded.content_value,updated_at=CURRENT_TIMESTAMP").bind(k,clean(d[k],1200)).run();return json({ok:true}); }
-      if(request.method==="GET" && route==="admin/gallery") { const r=await env.DB.prepare("SELECT id,title,image_url,description FROM ba2_gallery ORDER BY created_at DESC").all();return json({gallery:r.results||[]}); }
+      if(request.method==="GET" && route==="admin/gallery") { const r=await env.DB.prepare("SELECT id,title,image_url,description FROM ba2_gallery ORDER BY created_at DESC").all();const gallery=(r.results||[]).flatMap(item=>{const image_url=safeGalleryUrl(item.image_url);if(!image_url){console.warn("Skipped gallery item with an unapproved image URL. Item ID:",item.id);return [];}return [{...item,image_url}];});return json({gallery}); }
       if(request.method==="POST" && route==="admin/gallery") {
         if(!env.IMAGEKIT_PRIVATE_KEY) return json({error:"Photo storage is not configured. Please contact the website administrator."},503);
         let form;
@@ -263,7 +264,7 @@ export async function onRequest({request,env}) {
           });
           uploaded=await uploadResponse.json();
         } catch { return json({error:"The photo upload service could not be reached. Please try again."},502); }
-        if(!uploadResponse.ok||!uploaded?.url) {
+        if(!uploadResponse.ok||!uploaded?.url||!safeGalleryUrl(uploaded.url)) {
           console.error("ImageKit upload failed:",uploaded);
           return json({error:"The photo could not be uploaded. Please check the image and try again."},502);
         }
