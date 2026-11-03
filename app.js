@@ -25,17 +25,28 @@ const menuToggle = $('#menuToggle');
 const mainNav = $('#mainNav');
 
 if (menuToggle && mainNav) {
-    menuToggle.addEventListener('click', () => {
-        mainNav.classList.toggle('open');
+    menuToggle.setAttribute('type', 'button');
+    menuToggle.setAttribute('aria-expanded', 'false');
+
+    menuToggle.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        const isOpen = mainNav.classList.toggle('open');
+        menuToggle.setAttribute('aria-expanded', String(isOpen));
+        menuToggle.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+        menuToggle.textContent = isOpen ? '✕' : '☰';
+    });
+
+    // Close the menu after a navigation choice.
+    $('#mainNav a').forEach(link => {
+        link.addEventListener('click', () => {
+            mainNav.classList.remove('open');
+            menuToggle.setAttribute('aria-expanded', 'false');
+            menuToggle.setAttribute('aria-label', 'Open navigation');
+            menuToggle.textContent = '☰';
+        });
     });
 }
-
-// Close the mobile navigation after a link is selected.
-$$('#mainNav a').forEach(link => {
-    link.addEventListener('click', () => {
-        mainNav?.classList.remove('open');
-    });
-});
 
 // Explicitly navigate to the administrator login section.
 const adminLoginLink = $('.nav-admin');
@@ -293,17 +304,28 @@ async function loadGallerySlideshow() {
 
         if (!galleryPhotos.length) return;
 
-        function showPhoto(index) {
+        function showPhoto(index, animate = true) {
             currentPhotoIndex =
                 (index + galleryPhotos.length) % galleryPhotos.length;
 
             const photo = galleryPhotos[currentPhotoIndex];
 
+            if (animate) {
+                image.classList.remove('slide-reveal');
+                caption.classList.remove('caption-reveal');
+                void image.offsetWidth;
+            }
+
             image.src = photo.image_url;
             caption.textContent = photo.caption || 'Bright Angels Junior School';
+
+            if (animate) {
+                image.classList.add('slide-reveal');
+                caption.classList.add('caption-reveal');
+            }
         }
 
-        showPhoto(0);
+        showPhoto(0, false);
 
         $('#previousPhoto')?.addEventListener('click', () => {
             showPhoto(currentPhotoIndex - 1);
@@ -318,7 +340,7 @@ async function loadGallerySlideshow() {
         if (galleryPhotos.length > 1) {
             slideshowTimer = setInterval(() => {
                 showPhoto(currentPhotoIndex + 1);
-            }, 5000);
+            }, 20000);
         }
     } catch (error) {
         console.error('Gallery loading failed:', error);
@@ -365,14 +387,16 @@ if (admissionForm) {
                 body: values
             });
 
+            // Clear the fields first, then display a persistent confirmation.
+            admissionForm.reset();
+
             showStatus(
                 status,
-                result.message ||
-                    'Application submitted successfully.',
+                `✓ APPLICATION SUBMITTED SUCCESSFULLY! Your application reference number is: ${result.reference}. Please write it down and keep it safe. You will need it together with your child's full name to check the application status.`,
                 'success'
             );
-
-            admissionForm.reset();
+            status.setAttribute('role', 'alert');
+            status.setAttribute('aria-live', 'assertive');
         } catch (error) {
             showStatus(
                 status,
@@ -410,6 +434,7 @@ if (admissionStatusForm) {
 
             resultBox.innerHTML = `
                 <strong>Application found</strong><br>
+                Child: ${safeCell(result.child_name)}<br>
                 Reference: ${safeCell(result.reference_number)}<br>
                 Status: ${safeCell(result.status)}<br>
                 Class applied for: ${safeCell(result.class_applied)}<br>
@@ -454,14 +479,16 @@ if (contactForm) {
                 body: formValues(contactForm)
             });
 
+            // Reset the fields before showing the confirmation so it remains visible.
+            contactForm.reset();
+
             showStatus(
                 status,
-                result.message ||
-                    'Your message has been received.',
+                `✓ MESSAGE SENT SUCCESSFULLY! ${result.message || 'Your message has been received. Thank you for contacting Bright Angels Junior School.'}`,
                 'success'
             );
-
-            contactForm.reset();
+            status.setAttribute('role', 'alert');
+            status.setAttribute('aria-live', 'assertive');
         } catch (error) {
             showStatus(
                 status,
@@ -567,6 +594,8 @@ if (logoutButton) {
 
         showAdmin(false);
 
+        // Clear any email/password values from the login screen.
+        loginForm?.reset();
         if (loginStatus) {
             showStatus(loginStatus, 'You have been logged out.');
         }
@@ -623,33 +652,6 @@ async function getSchoolClasses() {
     }
 
     return DEFAULT_CLASSES;
-}
-
-async function getSchoolClasses() {
-    try {
-        const result = await api('settings');
-
-        const classes = result.settings?.school_classes;
-
-        if (Array.isArray(classes) && classes.length > 0) {
-            return classes;
-        }
-    } catch (error) {
-        console.error('Could not load school classes:', error);
-    }
-
-    return [
-        'Baby Class',
-        'Middle Class',
-        'Top Class',
-        'P1',
-        'P2',
-        'P3',
-        'P4',
-        'P5',
-        'P6',
-        'P7'
-    ];
 }
 
 async function studentSelect(name = 'student_id') {
@@ -838,9 +840,7 @@ case 'gallery':
     'Parent/Guardian',
     'Phone',
     'Actions'
-]
-                                    
-                                    ',
+],
                                 pupils.map(student => [
                                     safeCell(student.admission_number),
                                     safeCell(student.full_name),
@@ -858,6 +858,32 @@ case 'gallery':
                                     )
                                 ])
                             )}
+                            <div class="student-detail-list">
+                                ${pupils.map(student => `
+                                    <details class="student-detail-card">
+                                        <summary>Full record: ${safeCell(student.full_name)}</summary>
+                                        <div class="admission-grid">
+                                            ${[
+                                                ['Admission Number',student.admission_number],
+                                                ['Date of Birth',student.date_of_birth],
+                                                ['Parent/Guardian',student.parent_name],
+                                                ['Parent Phone',student.parent_phone],
+                                                ['Parent Email',student.parent_email],
+                                                ['Study Mode',student.study_mode],
+                                                ['Address',student.address],
+                                                ['Previous School',student.previous_school],
+                                                ['Emergency Contact',student.emergency_contact_name],
+                                                ['Emergency Phone',student.emergency_contact_phone],
+                                                ['Emergency Relationship',student.emergency_contact_relationship],
+                                                ['Medical Information',student.medical_information],
+                                                ['Special Learning Needs',student.special_learning_needs]
+                                            ].map(([label,value]) => `
+                                                <div class="admission-field"><strong>${label}</strong><span>${safeCell(value || 'Not provided')}</span></div>
+                                            `).join('')}
+                                        </div>
+                                    </details>
+                                `).join('')}
+                            </div>
                         `
                         : '<p class="empty-class">No pupils registered in this class yet.</p>'
                 }
@@ -943,6 +969,30 @@ case 'gallery':
 
                 <label>Parent/Guardian phone
                     <input name="parent_phone" type="tel">
+                </label>
+                <label>Parent/Guardian email
+                    <input name="parent_email" type="email">
+                </label>
+                <label>Home address
+                    <textarea name="address"></textarea>
+                </label>
+                <label>Previous school
+                    <input name="previous_school">
+                </label>
+                <label>Emergency contact name
+                    <input name="emergency_contact_name">
+                </label>
+                <label>Emergency contact phone
+                    <input name="emergency_contact_phone" type="tel">
+                </label>
+                <label>Emergency contact relationship
+                    <input name="emergency_contact_relationship">
+                </label>
+                <label>Medical information
+                    <textarea name="medical_information"></textarea>
+                </label>
+                <label>Special learning needs
+                    <textarea name="special_learning_needs"></textarea>
                 </label>
 
                 <button type="submit">Save Student</button>
@@ -1583,7 +1633,8 @@ async function renderReportCards() {
                         : '';
 
                 return `
-                    <article class="report-page">
+                    <article class="report-page ${group === 'early' ? 'early-years-report' : 'formal-report'}">
+                        ${group === 'early' ? '<div class="early-banner">★ MY LITTLE LEARNER ★</div>' : ''}
                         <header>
     <img
         src="${window.location.origin}/school-logo.jpg"
@@ -1593,6 +1644,7 @@ async function renderReportCards() {
     <h1>BRIGHT ANGELS JUNIOR SCHOOL</h1>
     <p>If others can, we can</p>
     <h2>${escapeHTML(assessment)} REPORT CARD</h2>
+    ${group === 'early' ? '<p class="early-subtitle">A special record of my learning and growing!</p><div class="star-row">★　✿　★　✿　★</div>' : ''}
 </header>
 
                         <div class="pupil-details">
@@ -1624,6 +1676,7 @@ async function renderReportCards() {
                         </div>
 
                         <footer>
+                            ${group === 'early' ? '<div class="little-star">✿ Keep learning, keep smiling! ✿</div>' : ''}
                             <p>Class Teacher's Comment: __________________________</p>
                             <p>Head Teacher's Comment: __________________________</p>
                             <p>Class Teacher's Signature: ________________________</p>
@@ -1708,10 +1761,99 @@ async function renderReportCards() {
                             line-height: 2;
                         }
 
+                        .early-years-report {
+                            background: #fffdf5;
+                            border: 5px solid #f2c94c;
+                            border-radius: 22px;
+                            margin: 8mm;
+                            padding: 20px;
+                            color: #253858;
+                            background-image: radial-gradient(circle at 8% 8%, #fff0b8 0 5px, transparent 6px), radial-gradient(circle at 92% 14%, #dff4ff 0 6px, transparent 7px);
+                        }
+                        .early-years-report header {
+                            border: 0;
+                            border-bottom: 4px dotted #72b7d2;
+                            border-radius: 16px;
+                            background: #eef9ff;
+                            padding: 14px 10px;
+                        }
+                        .early-years-report header h1 {
+                            color: #24527a;
+                            font-size: 23px;
+                            letter-spacing: 1px;
+                        }
+                        .early-years-report header h2 {
+                            display: inline-block;
+                            background: #ffe39a;
+                            color: #754d00;
+                            border-radius: 18px;
+                            padding: 8px 22px;
+                            margin: 10px 0 4px;
+                        }
+                        .early-banner {
+                            text-align: center;
+                            color: #8a5a00;
+                            font-weight: bold;
+                            letter-spacing: 2px;
+                            padding: 8px;
+                            background: #fff0bf;
+                            border-radius: 14px;
+                            margin-bottom: 12px;
+                        }
+                        .early-subtitle {
+                            color: #397b91;
+                            font-weight: bold;
+                            margin: 5px 0;
+                        }
+                        .star-row, .little-star {
+                            color: #d69b20;
+                            text-align: center;
+                            font-size: 19px;
+                            letter-spacing: 3px;
+                            margin: 8px 0;
+                        }
+                        .early-years-report .pupil-details {
+                            background: #f1f8e8;
+                            border: 2px solid #b7d99a;
+                            border-radius: 14px;
+                            padding: 8px 16px;
+                        }
+                        .early-years-report table {
+                            border-collapse: separate;
+                            border-spacing: 0;
+                            overflow: hidden;
+                            border: 2px solid #82b9c9;
+                            border-radius: 13px;
+                        }
+                        .early-years-report th {
+                            background: #6baec2;
+                            color: #fff;
+                            text-align: center;
+                        }
+                        .early-years-report td {
+                            border-color: #c9e1e5;
+                            background: #fff;
+                            padding: 11px;
+                        }
+                        .early-years-report tbody tr:nth-child(even) td {
+                            background: #f0f8ff;
+                        }
+                        .early-years-report .totals {
+                            background: #fff0bf;
+                            border: 2px dashed #d8aa42;
+                            border-radius: 14px;
+                            padding: 8px 16px;
+                        }
+                        .early-years-report footer {
+                            background: #f4f0ff;
+                            border-radius: 14px;
+                            padding: 10px 16px;
+                            margin-top: 24px;
+                        }
+                        .formal-report .report-school-logo { width: 95px; height: 95px; }
                         @media print {
-                            .report-page {
-                                page-break-after: always;
-                            }
+                            .report-page { page-break-after: always; }
+                            .early-years-report { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
                         }
                     </style>
                 </head>
@@ -1753,30 +1895,31 @@ function getReportGroup(className) {
 
 function getReportGrade(className, percentage) {
     const group = getReportGroup(className);
+    const mark = Number(percentage);
 
     if (group === 'early') {
-        if (percentage >= 80) return 'E';
-        if (percentage >= 65) return 'VG';
-        if (percentage >= 50) return 'G';
-        if (percentage >= 35) return 'D';
+        if (mark >= 80) return 'E';
+        if (mark >= 65) return 'VG';
+        if (mark >= 50) return 'G';
+        if (mark >= 35) return 'D';
         return 'NI';
     }
 
     if (group === 'lower') {
-        if (percentage >= 80) return '4';
-        if (percentage >= 65) return '3';
-        if (percentage >= 40) return '2';
+        if (mark >= 80) return '4';
+        if (mark >= 65) return '3';
+        if (mark >= 40) return '2';
         return '1';
     }
 
-    if (percentage >= 85) return 'D1';
-    if (percentage >= 70) return 'D2';
-    if (percentage >= 60) return 'C3';
-    if (percentage >= 50) return 'C4';
-    if (percentage >= 45) return 'C5';
-    if (percentage >= 40) return 'C6';
-    if (percentage >= 35) return 'P7';
-    if (percentage >= 30) return 'P8';
+    if (mark >= 85) return 'D1';
+    if (mark >= 70) return 'D2';
+    if (mark >= 60) return 'C3';
+    if (mark >= 50) return 'C4';
+    if (mark >= 45) return 'C5';
+    if (mark >= 40) return 'C6';
+    if (mark >= 35) return 'P7';
+    if (mark >= 30) return 'P8';
     return 'F9';
 }           
 /* ---------------------------------------------------------
@@ -1787,6 +1930,21 @@ async function renderFees() {
     const result = await api('fees');
     const fees = result.fees || [];
     const pupils = await studentSelect();
+
+    const feeClassOrder = [
+        'Baby Class', 'Middle Class', 'Top Class',
+        'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7'
+    ];
+    fees.sort((a, b) => {
+        const ai = feeClassOrder.indexOf(a.class_name);
+        const bi = feeClassOrder.indexOf(b.class_name);
+        return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi) ||
+            String(a.student_name || '').localeCompare(String(b.student_name || '')) ||
+            String(a.term || '').localeCompare(String(b.term || ''));
+    });
+
+    const clearedCount = fees.filter(fee => Number(fee.balance || 0) <= 0).length;
+    const outstandingCount = fees.length - clearedCount;
 
     adminContent.innerHTML = `
         <section class="admin-section">
@@ -1847,8 +2005,13 @@ async function renderFees() {
                 <p id="feesStatus" class="form-status"></p>
             </form>
 
-            <h3>Fees Records</h3>
+            <div class="fee-status-overview">
+                <div><span>Fee records</span><strong>${fees.length}</strong></div>
+                <div class="fee-cleared"><span>Fully cleared</span><strong>${clearedCount}</strong></div>
+                <div class="fee-outstanding"><span>Outstanding</span><strong>${outstandingCount}</strong></div>
+            </div>
 
+            <h3>Fees Records · Arranged by Class</h3>
             ${makeTable(
                 [
                     'Pupil',
@@ -1858,18 +2021,25 @@ async function renderFees() {
                     'Year',
                     'Amount Due',
                     'Amount Paid',
-                    'Balance'
+                    'Balance',
+                    'Payment Status'
                 ],
-                fees.map(fee => [
-                    safeCell(fee.student_name),
-                    safeCell(fee.admission_number),
-                    safeCell(fee.class_name),
-                    safeCell(fee.term),
-                    safeCell(fee.academic_year),
-                    safeCell(money(fee.amount_due)),
-                    safeCell(money(fee.amount_paid)),
-                    safeCell(money(fee.balance))
-                ])
+                fees.map(fee => {
+                    const cleared = Number(fee.balance || 0) <= 0;
+                    return [
+                        safeCell(fee.student_name),
+                        safeCell(fee.admission_number),
+                        safeCell(fee.class_name),
+                        safeCell(fee.term),
+                        safeCell(fee.academic_year),
+                        safeCell(money(fee.amount_due)),
+                        safeCell(money(fee.amount_paid)),
+                        safeCell(money(fee.balance)),
+                        cleared
+                            ? '<span class="fee-status-badge cleared">✓ Fees cleared</span>'
+                            : '<span class="fee-status-badge due">Balance due</span>'
+                    ];
+                })
             )}
         </section>
     `;
@@ -1976,16 +2146,27 @@ const announcements = Array.isArray(result.announcements)
                     ),
                     safeCell(item.title),
                     safeCell(item.content),
-                    actionButton(
-                        'Delete',
-                        'delete-announcement',
-                        item.id,
-                        true
-                    )
+                    `<button type="button" class="secondary-button" data-action="edit-announcement" data-id="${escapeHTML(item.id)}">Edit</button>
+                    <button type="button" class="danger-button" data-action="delete-announcement" data-id="${escapeHTML(item.id)}">Delete</button>`
                 ])
             )}
         </section>
     `;
+
+    adminContent.querySelectorAll('[data-action="edit-announcement"]').forEach(button => {
+        button.addEventListener('click', () => {
+            const item = announcements.find(row => String(row.id) === button.dataset.id);
+            if (!item) return;
+            const form = $('#announcementForm');
+            form.elements.title.value = item.title || '';
+            form.elements.content.value = item.content || '';
+            form.elements.date.value = item.date || '';
+            form.dataset.editId = item.id;
+            const submit = form.querySelector('[type="submit"]');
+            submit.textContent = 'Save Changes';
+            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
 
     $('#announcementForm')?.addEventListener(
         'submit',
@@ -2007,14 +2188,17 @@ const announcements = Array.isArray(result.announcements)
 
             console.log('Announcement data:', values);
 
+            const editingId = form.dataset.editId;
             const result = await api('announcements', {
-                method: 'POST',
-                body: values
+                method: editingId ? 'PUT' : 'POST',
+                body: editingId ? { ...values, id: Number(editingId) } : values
             });
 
             console.log('Announcement save result:', result);
 
             form.reset();
+            delete form.dataset.editId;
+            form.querySelector('[type="submit"]').textContent = 'Publish Announcement';
 
             await loadAnnouncements();
             await renderAdminAnnouncements();
@@ -2264,16 +2448,19 @@ async function renderApplications() {
     ];
 
     applications.sort((a, b) => {
-        const ai = classOrder.indexOf(a.class_applied);
-        const bi = classOrder.indexOf(b.class_applied);
+        const ai = classOrder.indexOf(a.class_applying);
+        const bi = classOrder.indexOf(b.class_applying);
         return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
     });
 
+    const normalStatus = value => {
+        const status = String(value || 'Pending').trim().toLowerCase();
+        return status === 'denied' ? 'Rejected' :
+            status === 'under review' ? 'Under Review' :
+            status.charAt(0).toUpperCase() + status.slice(1);
+    };
     const count = status =>
-        applications.filter(a =>
-            String(a.status || 'Pending').toLowerCase() ===
-            status.toLowerCase()
-        ).length;
+        applications.filter(a => normalStatus(a.status) === status).length;
 
     const field = (label, value) => `
         <div class="admission-field">
@@ -2286,6 +2473,13 @@ async function renderApplications() {
         String(status || 'Pending')
             .toLowerCase()
             .replace(/[^a-z]/g, '-');
+
+    const applicationGroups = classOrder.map(className => ({
+        className,
+        items: applications.filter(a => a.class_applying === className)
+    })).filter(group => group.items.length);
+    const unlistedApplications = applications.filter(a => !classOrder.includes(a.class_applying));
+    if (unlistedApplications.length) applicationGroups.push({className:'Other / Unassigned',items:unlistedApplications});
 
     adminContent.innerHTML = `
         <section class="admin-section mobile-admissions">
@@ -2354,7 +2548,11 @@ async function renderApplications() {
 
             <div class="admission-list">
 
-                ${applications.length ? applications.map(application => `
+                ${applications.length ? applicationGroups.map(group => `
+                    <section class="admission-class-group" data-admission-group="${escapeHTML(group.className)}">
+                        <h3>${escapeHTML(group.className)} <span>(${group.items.length})</span></h3>
+                        <div class="admission-class-items">
+                        ${group.items.map(application => `
                     <details class="admission-card"
                         data-status="${escapeHTML(application.status || 'Pending')}"
                         data-class="${escapeHTML(application.class_applying || '')}">
@@ -2388,6 +2586,9 @@ async function renderApplications() {
 ${field('Study Mode', application.study_mode)}
 ${field('Date of Birth', application.date_of_birth)}
 ${field('Gender', application.gender)}
+                                    ${field('Previous School', application.previous_school)}
+                                    ${field('Confirmed Class', application.confirmed_class)}
+                                    ${field('Admission Number', application.admission_number)}
                                 </div>
 
                                 <div class="admission-info-card">
@@ -2395,6 +2596,9 @@ ${field('Gender', application.gender)}
                                     ${field('Full Name', application.parent_name)}
                                     ${field('Phone Number', application.parent_phone)}
                                     ${field('Email Address', application.parent_email)}
+                                    ${field('Emergency Contact', application.emergency_contact_name)}
+                                    ${field('Emergency Phone', application.emergency_contact_phone)}
+                                    ${field('Emergency Relationship', application.emergency_contact_relationship)}
                                 </div>
 
                                 <div class="admission-info-card">
@@ -2403,6 +2607,10 @@ ${field('Gender', application.gender)}
                                     ${field('Date Received', application.created_at)}
                                     ${field('Home Address', application.address)}
                                     ${field('Current Status', application.status || 'Pending')}
+                                    ${field('Approved On', application.approved_at)}
+                                    ${field('Medical Information', application.medical_information)}
+                                    ${field('Special Learning Needs', application.special_learning_needs)}
+                                    ${field('Application Notes', application.notes)}
                                 </div>
 
                             </div>
@@ -2442,6 +2650,9 @@ ${field('Gender', application.gender)}
 
                         </div>
                     </details>
+                `).join('')}
+                        </div>
+                    </section>
                 `).join('') : `
                     <div class="admission-empty">
                         <h3>No Applications Yet</h3>
@@ -2464,17 +2675,21 @@ ${field('Gender', application.gender)}
 
         document.querySelectorAll('.admission-card').forEach(card => {
             const text = card.innerText.toLowerCase();
-            const status = card.dataset.status;
+            const status = normalStatus(card.dataset.status);
             const className = card.dataset.class;
 
             const matchesSearch = text.includes(term);
             const matchesStatus =
-                selectedStatus === 'all' || status === selectedStatus;
+                selectedStatus === 'all' || status === normalStatus(selectedStatus);
             const matchesClass =
                 selectedClass === 'all' || className === selectedClass;
 
             card.style.display =
                 matchesSearch && matchesStatus && matchesClass ? '' : 'none';
+        });
+        document.querySelectorAll('.admission-class-group').forEach(group => {
+            group.hidden = ![...group.querySelectorAll('.admission-card')]
+                .some(card => card.style.display !== 'none');
         });
     }
 
