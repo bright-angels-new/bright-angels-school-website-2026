@@ -24,6 +24,7 @@ async function ensureSchema(db) {
       guardian_name TEXT NOT NULL, phone TEXT NOT NULL, email TEXT,
       admitted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`)
+    db.prepare("CREATE TABLE IF NOT EXISTS ba2_subjects (id INTEGER PRIMARY KEY AUTOINCREMENT,class_name TEXT NOT NULL,name TEXT NOT NULL,is_active INTEGER NOT NULL DEFAULT 1,UNIQUE(class_name,name))"),
   ]);
 }
 async function sha256(value) {
