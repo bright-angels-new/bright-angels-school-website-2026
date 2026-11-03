@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (menuToggle?.querySelector("span")) menuToggle.querySelector("span").textContent = "Open dashboard sections";
   }));
   $("#admissionSearch")?.addEventListener("input", renderAdmissions);
+  $("#directStudentForm")?.addEventListener("submit", saveDirectStudent);
   $("#studentSearch")?.addEventListener("input", loadStudents);
   $("#studentClassFilter")?.addEventListener("change", loadStudents);
   $("#classFilter")?.addEventListener("change", renderAdmissions);
@@ -155,6 +156,18 @@ function renderStudentSummary(allStudents){
   tbody.append(totalRow);table.append(tbody);wrap.append(table);
   const note=document.createElement("p");note.className="admin-note";note.textContent="Counts include active students. Learners with a blank or unrecognised gender are included in the total and listed under “Gender not recorded”.";
   box.append(cards,heading,wrap,note);
+}
+async function saveDirectStudent(event){
+  event.preventDefault();
+  const form=event.currentTarget,status=$("#directStudentStatus"),button=form.querySelector('button[type="submit"]');
+  const data=Object.fromEntries(new FormData(form).entries());
+  button.disabled=true;status.textContent="Registering student…";
+  try{
+    const result=await api("admin/students",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+    form.reset();status.textContent="Student registered successfully. Admission number: "+result.admission_number;
+    await loadStudents();
+  }catch(error){status.textContent=error.message;}
+  finally{button.disabled=false;}
 }
 async function loadStudents(){
   const tbody=$("#studentsRows");if(!tbody)return;
