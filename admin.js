@@ -15,6 +15,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#galleryForm")?.addEventListener("submit", saveGallery);
   document.querySelectorAll("[data-panel]").forEach(button => button.addEventListener("click", () => showPanel(button.dataset.panel)));
   $("#admissionSearch")?.addEventListener("input", renderAdmissions);
+  $("#studentSearch")?.addEventListener("input", loadStudents);
+  $("#studentClassFilter")?.addEventListener("change", loadStudents);
   $("#classFilter")?.addEventListener("change", renderAdmissions);
   await checkSession();
 });
@@ -100,8 +102,54 @@ function printAdmissionLetter(a){
 }
 async function loadStudents(){
   const tbody=$("#studentsRows");if(!tbody)return;
-  try{const data=await api("admin/students");tbody.replaceChildren();(data.students||[]).forEach(s=>{const tr=document.createElement("tr");[s.admission_number,s.full_name,s.class_name,s.guardian_name,s.phone].forEach(v=>{const td=document.createElement("td");td.textContent=v||"";tr.append(td);});tbody.append(tr);});if(!tbody.children.length)tbody.innerHTML='<tr><td colspan="5">No registered students yet.</td></tr>';}
-  catch(error){tbody.innerHTML='<tr><td colspan="5"></td></tr>';tbody.querySelector("td").textContent=error.message;}
+  try{
+    const data=await api("admin/students"),term=($("#studentSearch")?.value||"").trim().toLowerCase(),klass=$("#studentClassFilter")?.value||"";
+    const students=(data.students||[]).filter(s=>(!klass||s.class_name===klass)&&[s.admission_number,s.full_name,s.class_name,s.guardian_name,s.phone].some(v=>String(v||"").toLowerCase().includes(term)));
+    tbody.replaceChildren();
+    students.forEach(s=>{
+      const tr=document.createElement("tr");
+      [s.admission_number,s.full_name,s.class_name,s.guardian_name,s.phone].forEach(v=>{const td=document.createElement("td");td.textContent=v||"";tr.append(td);});
+      const actions=document.createElement("td"),profile=document.createElement("button");profile.type="button";profile.textContent="View profile";profile.addEventListener("click",()=>showStudentProfile(s));
+      const promote=document.createElement("button");promote.type="button";promote.textContent="Promote";promote.disabled=s.class_name==="P7"||s.student_status!=="Active";promote.addEventListener("click",()=>changeStudentClass(s,"Promote",promote));
+      const repeat=document.createElement("button");repeat.type="button";repeat.textContent="Repeat class";repeat.disabled=s.student_status!=="Active";repeat.addEventListener("click",()=>changeStudentClass(s,"Repeat",repeat));
+      actions.className="admin-row-actions";actions.append(profile,promote,repeat);tr.append(actions);tbody.append(tr);
+    });
+    if(!tbody.children.length)tbody.innerHTML='<tr><td colspan="6">No registered students match this search.</td></tr>';
+    const count=$("#studentCount");if(count)count.textContent=students.length+" learner(s) shown";
+  }catch(error){tbody.innerHTML='<tr><td colspan="6"></td></tr>';tbody.querySelector("td").textContent=error.message;}
+}
+function showStudentProfile(s){
+  const box=$("#studentProfile");if(!box)return;
+  box.replaceChildren();box.classList.remove("admin-hidden");
+  const title=document.createElement("h3");title.textContent=s.full_name+" · "+s.admission_number;
+  const lines=[
+    "Current class: "+s.class_name,"Status: "+(s.student_status||"Active"),"Date of birth: "+(s.date_of_birth||"Not recorded")+" · Age at admission: "+(s.age??"Not recorded"),
+    "Gender: "+(s.gender||"Not recorded"),"Parent/Guardian: "+s.guardian_name+" · Phone: "+s.phone,"Email: "+(s.email||"Not provided"),
+    "Home address: "+(s.home_address||"Not recorded"),"Emergency contact: "+(s.emergency_contact||"Not recorded"),
+    "Previous school: "+(s.previous_school||"Not recorded"),"Medical information: "+(s.medical_information||"None recorded"),
+    "Learning needs: "+(s.learning_needs||"None recorded"),"Admitted: "+(s.admitted_at||"")
+  ];
+  box.append(title);lines.forEach(value=>{const p=document.createElement("p");p.textContent=value;box.append(p);});
+  const historyTitle=document.createElement("h4");historyTitle.textContent="Class history";box.append(historyTitle);
+  api("admin/student-history?student_id="+encodeURIComponent(s.id)).then(data=>{
+    if(!(data.history||[]).length){const p=document.createElement("p");p.textContent="No class changes recorded yet.";box.append(p);return;}
+    data.history.forEach(item=>{const p=document.createElement("p");p.textContent=item.action+" · "+item.from_class+" → "+item.to_class+" · Academic year "+item.academic_year+(item.remarks?" · "+item.remarks:"");box.append(p);});
+  }).catch(e=>{const p=document.createElement("p");p.textContent=e.message;box.append(p);});
+}
+async function changeStudentClass(student,action,button){
+  const classes=["Baby Class","Middle Class","Top Class","P1","P2","P3","P4","P5","P6","P7"];
+  const nextClass=action==="Promote"?classes[classes.indexOf(student.class_name)+1]:student.class_name;
+  const year=Number($("#studentAcademicYear")?.value||new Date().getFullYear());
+  const message=action==="Promote"?"Promote "+student.full_name+" from "+student.class_name+" to "+nextClass+"?":"Keep "+student.full_name+" in "+student.class_name+" for another year?";
+  if(!confirm(message+" This will be saved in the learner's class history."))return;
+  button.disabled=true;
+  try{
+    const result=await api("admin/students/class-change",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({student_id:student.id,current_class:student.class_name,action,academic_year:year})});
+    alert(result.full_name+" has been "+(action==="Promote"?"promoted to "+result.to_class:"recorded as repeating "+result.to_class)+".");
+    await loadStudents();
+    const profile=$("#studentProfile");if(profile&&!profile.classList.contains("admin-hidden"))showStudentProfile({...student,class_name:result.to_class});
+    await loadSchoolRecords();
+  }catch(error){alert(error.message);}finally{button.disabled=false;}
 }
 async function loadAnnouncements(){
   const box=$("#adminAnnouncements");
