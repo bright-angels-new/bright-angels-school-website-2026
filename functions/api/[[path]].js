@@ -150,6 +150,22 @@ export async function onRequest({request,env}) {
         const student=await env.DB.prepare("SELECT admission_number FROM ba2_students WHERE application_id=?").bind(id).first();
         return json({ok:true,status,admission_number:student?.admission_number||null});
       }
+      if(request.method==="POST" && route==="admin/students") {
+        let d;try{d=await request.json();}catch{return json({error:"Enter the student details."},400);}
+        const full=clean(d.full_name,160),klass=clean(d.class_name,40),guardian=clean(d.guardian_name,160),phone=clean(d.phone,40);
+        const dob=clean(d.date_of_birth,10),gender=clean(d.gender,20),email=clean(d.email,160),address=clean(d.home_address,300),emergency=clean(d.emergency_contact,100),previous=clean(d.previous_school,160),medical=clean(d.medical_information,1000),needs=clean(d.learning_needs,1000);
+        if(!full||!allowedClasses.includes(klass)||!guardian||!phone)return json({error:"Student name, class, parent/guardian and phone are required."},400);
+        if(dob && !/^\\d{4}-\\d{2}-\\d{2}$/.test(dob))return json({error:"Enter a valid date of birth."},400);
+        const age=dob?Math.max(0,Math.floor((Date.now()-new Date(dob+"T00:00:00Z").getTime())/31557600000)):null;
+        const year=new Date().getFullYear();
+        const sequence=await env.DB.prepare("INSERT INTO ba2_admission_sequences (year,last_number) VALUES (?,1) ON CONFLICT(year) DO UPDATE SET last_number=last_number+1 RETURNING last_number").bind(year).first();
+        const number="BA/"+year+"/"+String(sequence.last_number).padStart(3,"0");
+        const app=await env.DB.prepare("INSERT INTO ba2_admissions (child_name,class_applying,guardian_name,phone,email,previous_school,date_of_birth,gender,home_address,emergency_contact,medical_information,learning_needs,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(full,klass,guardian,phone,email||null,previous||null,dob||null,gender||null,address||null,emergency||null,medical||null,needs||null,"Approved").run();
+        const applicationId=Number(app.meta?.last_row_id);
+        if(!applicationId)return json({error:"Could not create the student record. Please try again."},500);
+        await env.DB.prepare("INSERT INTO ba2_students (application_id,admission_number,full_name,class_name,guardian_name,phone,email,date_of_birth,age,gender,home_address,emergency_contact,medical_information,learning_needs,previous_school) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(applicationId,number,full,klass,guardian,phone,email||"",dob||null,age,gender||null,address||null,emergency||null,medical||null,needs||null,previous||null).run();
+        return json({ok:true,admission_number:number,student_id:Number((await env.DB.prepare("SELECT id FROM ba2_students WHERE admission_number=?").bind(number).first())?.id)},201);
+      }
       if(request.method==="GET" && route==="admin/students") {
         const result=await env.DB.prepare("SELECT id,admission_number,full_name,class_name,guardian_name,phone,email,date_of_birth,age,gender,home_address,emergency_contact,medical_information,learning_needs,previous_school,student_status,admitted_at FROM ba2_students ORDER BY class_name,full_name").all();
         return json({students:result.results||[]});
