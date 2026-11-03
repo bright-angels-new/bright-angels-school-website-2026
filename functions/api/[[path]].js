@@ -153,10 +153,16 @@ export async function onRequest({request,env}) {
       if(request.method==="POST" && route==="admin/students") {
         let d;try{d=await request.json();}catch{return json({error:"Enter the student details."},400);}
         const full=clean(d.full_name,160),klass=clean(d.class_name,40),guardian=clean(d.guardian_name,160),phone=clean(d.phone,40);
-        const dob=clean(d.date_of_birth,10),gender=clean(d.gender,20),email=clean(d.email,160),address=clean(d.home_address,300),emergency=clean(d.emergency_contact,100),previous=clean(d.previous_school,160),medical=clean(d.medical_information,1000),needs=clean(d.learning_needs,1000);
+        const dob=clean(d.date_of_birth,10),enteredAge=clean(d.age,3),gender=clean(d.gender,20),email=clean(d.email,160),address=clean(d.home_address,300),emergency=clean(d.emergency_contact,100),previous=clean(d.previous_school,160),medical=clean(d.medical_information,1000),needs=clean(d.learning_needs,1000);
         if(!full||!allowedClasses.includes(klass)||!guardian||!phone)return json({error:"Student name, class, parent/guardian and phone are required."},400);
-        if(dob && !/^\\d{4}-\\d{2}-\\d{2}$/.test(dob))return json({error:"Enter a valid date of birth."},400);
-        const age=dob?Math.max(0,Math.floor((Date.now()-new Date(dob+"T00:00:00Z").getTime())/31557600000)):null;
+        if(dob){
+          if(!/^\d{4}-\d{2}-\d{2}$/.test(dob))return json({error:"Enter a valid date of birth."},400);
+          const birth=new Date(dob+"T00:00:00.000Z");
+          if(Number.isNaN(birth.getTime())||birth.toISOString().slice(0,10)!==dob||birth>new Date())return json({error:"Enter a real date of birth that is not in the future."},400);
+        }
+        if(enteredAge!==""&&(!/^\d{1,3}$/.test(enteredAge)||Number(enteredAge)>100))return json({error:"Enter a valid age between 0 and 100."},400);
+        let age=enteredAge===""?null:Number(enteredAge);
+        if(dob){const birth=new Date(dob+"T00:00:00Z"),today=new Date();age=today.getUTCFullYear()-birth.getUTCFullYear();if(today.getUTCMonth()<birth.getUTCMonth()||(today.getUTCMonth()===birth.getUTCMonth()&&today.getUTCDate()<birth.getUTCDate()))age--;if(age<0||age>100)return json({error:"Enter a valid date of birth."},400);}
         const year=new Date().getFullYear();
         const sequence=await env.DB.prepare("INSERT INTO ba2_admission_sequences (year,last_number) VALUES (?,1) ON CONFLICT(year) DO UPDATE SET last_number=last_number+1 RETURNING last_number").bind(year).first();
         const number="BA/"+year+"/"+String(sequence.last_number).padStart(3,"0");
