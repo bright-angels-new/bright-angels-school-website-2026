@@ -365,14 +365,21 @@ if (admissionForm) {
                 body: values
             });
 
+            admissionForm.reset();
+
             showStatus(
                 status,
                 result.message ||
-                    'Application submitted successfully.',
+                    `APPLICATION SUBMITTED SUCCESSFULLY! Your reference number is: ${result.reference || result.reference_number || 'Please contact the school'}.`,
                 'success'
             );
 
-            admissionForm.reset();
+            status?.setAttribute('role', 'alert');
+            status?.setAttribute('aria-live', 'assertive');
+            status?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
         } catch (error) {
             showStatus(
                 status,
