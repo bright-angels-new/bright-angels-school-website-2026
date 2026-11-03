@@ -25,7 +25,22 @@ document.addEventListener("DOMContentLoaded", () => {
   if(parentForm) parentForm.addEventListener("submit", async event=>{event.preventDefault();const status=$("#parentMessageStatus"),button=parentForm.querySelector('button[type="submit"]');button.disabled=true;status.textContent="Sending…";try{const payload=Object.fromEntries(new FormData(parentForm).entries());const response=await fetch("/api/parent-messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const result=await response.json().catch(()=>({}));if(!response.ok)throw new Error(result.error||"Message could not be sent.");parentForm.reset();status.textContent="Your message has been sent to the school.";}catch(error){status.textContent=error.message;}finally{button.disabled=false;}});
 
   const form = $("#admissionForm");
-  if (form) form.addEventListener("submit", submitAdmission);
+  if (form) {
+    const dobInput = form.querySelector('[name="date_of_birth"]');
+    const ageInput = form.querySelector('[name="age_display"]');
+    const updateAge = () => {
+      if (!dobInput || !ageInput || !dobInput.value) { if (ageInput) ageInput.value = ""; return; }
+      const dob = new Date(dobInput.value + "T00:00:00");
+      const today = new Date();
+      let age = today.getFullYear() - dob.getFullYear();
+      const beforeBirthday = today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate());
+      if (beforeBirthday) age--;
+      ageInput.value = age >= 0 ? String(age) : "";
+    };
+    if (dobInput) dobInput.addEventListener("change", updateAge);
+    if (dobInput) dobInput.addEventListener("input", updateAge);
+    form.addEventListener("submit", submitAdmission);
+  }
   const statusForm = $("#applicationStatusForm");
   if (statusForm) statusForm.addEventListener("submit", checkApplicationStatus);
 });
