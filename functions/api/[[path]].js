@@ -78,7 +78,10 @@ export async function onRequest({request,env}) {
       if(!child||!allowedClasses.includes(klass)||!guardian||!phone) return json({error:"Please complete the required fields and select a valid class."},400);
       if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({error:"Please enter a valid email address."},400);
       const result=await env.DB.prepare("INSERT INTO ba2_admissions (child_name,class_applying,guardian_name,phone,email,previous_school,message,date_of_birth,gender,home_address,emergency_contact,medical_information,learning_needs,study_mode) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(child,klass,guardian,phone,email,previous,message,dob,gender,address,emergency,medical,needs,study).run();
-      return json({ok:true,application_id:result.meta?.last_row_id||null},201);
+      const applicationId=Number(result.meta?.last_row_id||0);
+      const applicationYear=new Date().getFullYear();
+      const applicationNumber=applicationId ? `BA-APP-${applicationYear}-${String(applicationId).padStart(5,"0")}` : null;
+      return json({ok:true,application_id:applicationId,application_number:applicationNumber},201);
     }
     if(request.method==="POST" && route==="parent-messages") { let d;try{d=await request.json();}catch{return json({error:"Please check your message."},400);} const p=clean(d.parent_name,120),phone=clean(d.phone,30),student=clean(d.student_name,120),subject=clean(d.subject,160),message=clean(d.message,2000);if(!p||!phone||!subject||!message)return json({error:"Complete your name, phone, subject and message."},400);await env.DB.prepare("INSERT INTO ba2_parent_messages (parent_name,phone,student_name,subject,message) VALUES (?,?,?,?,?)").bind(p,phone,student,subject,message).run();return json({ok:true},201); }
     if(request.method==="POST" && route==="login") {
