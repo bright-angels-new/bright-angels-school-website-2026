@@ -13,7 +13,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#printReportCard")?.addEventListener("click", printSelectedReport);
   $("#contentForm")?.addEventListener("submit", saveContent);
   $("#galleryForm")?.addEventListener("submit", saveGallery);
-  document.querySelectorAll("[data-panel]").forEach(button => button.addEventListener("click", () => showPanel(button.dataset.panel)));
+  const menuToggle = $("#dashboardMenuToggle");
+  const dashboardMenu = $("#dashboardMenu");
+  menuToggle?.addEventListener("click", () => {
+    const isOpen = !dashboardMenu.classList.contains("admin-hidden");
+    dashboardMenu.classList.toggle("admin-hidden", isOpen);
+    menuToggle.setAttribute("aria-expanded", String(!isOpen));
+    menuToggle.querySelector("span").textContent = isOpen ? "Open dashboard sections" : "Choose a section";
+  });
+  document.querySelectorAll("[data-panel]").forEach(button => button.addEventListener("click", () => {
+    showPanel(button.dataset.panel);
+    dashboardMenu?.classList.add("admin-hidden");
+    menuToggle?.setAttribute("aria-expanded", "false");
+    if (menuToggle?.querySelector("span")) menuToggle.querySelector("span").textContent = "Open dashboard sections";
+  }));
   $("#admissionSearch")?.addEventListener("input", renderAdmissions);
   $("#studentSearch")?.addEventListener("input", loadStudents);
   $("#studentClassFilter")?.addEventListener("change", loadStudents);
