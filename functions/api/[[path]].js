@@ -35,7 +35,8 @@ async function ensureSchema(db) {
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_fee_payments (id INTEGER PRIMARY KEY AUTOINCREMENT,fee_id INTEGER NOT NULL,amount REAL NOT NULL,reference TEXT,paid_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_parent_messages (id INTEGER PRIMARY KEY AUTOINCREMENT,parent_name TEXT NOT NULL,phone TEXT NOT NULL,student_name TEXT,subject TEXT NOT NULL,message TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'New',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_content (content_key TEXT PRIMARY KEY,content_value TEXT NOT NULL,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
-    db.prepare("CREATE TABLE IF NOT EXISTS ba2_gallery (id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,image_url TEXT NOT NULL,description TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
+    db.prepare("CREATE TABLE IF NOT EXISTS ba2_gallery (id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,image_url TEXT NOT NULL,description TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS ba2_rate_limits (key_hash TEXT PRIMARY KEY, window_started TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0)")
   ]);
   const markCols=await db.prepare("PRAGMA table_info(ba2_marks)").all();
   const markExisting=new Set((markCols.results||[]).map(x=>x.name));
@@ -73,6 +74,13 @@ async function isAdmin(request,env) {
   const row=await env.DB.prepare("SELECT token_hash FROM ba2_admin_sessions WHERE token_hash=? AND expires_at > datetime('now')").bind(hash).first();
   return !!row;
 }
+async function rateLimit(db,request,key,limit,windowSeconds) {
+  const ip=request.headers.get("CF-Connecting-IP")||"unknown";
+  const keyHash=await sha256(ip+"|"+key);
+  const windowModifier="-"+windowSeconds+" seconds";
+  const row=await db.prepare("INSERT INTO ba2_rate_limits (key_hash,window_started,attempts) VALUES (?,CURRENT_TIMESTAMP,1) ON CONFLICT(key_hash) DO UPDATE SET attempts=CASE WHEN window_started<=datetime('now',?) THEN 1 ELSE attempts+1 END,window_started=CASE WHEN window_started<=datetime('now',?) THEN CURRENT_TIMESTAMP ELSE window_started END RETURNING attempts").bind(keyHash,windowModifier,windowModifier).first();
+  return Number(row?.attempts||0)<=limit;
+}
 function sessionCookie(token,maxAge) {
   return `ba2_session=${encodeURIComponent(token)}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${maxAge}`;
 }
@@ -82,6 +90,10 @@ export async function onRequest({request,env}) {
     await ensureSchema(env.DB);
     const url=new URL(request.url);
     const route=url.pathname.replace(/^\/api\/?/,"").replace(/\/$/,"");
+    if(request.method==="POST" && route==="login" && !await rateLimit(env.DB,request,"login",8,900)) return json({error:"Too many sign-in attempts. Please wait 15 minutes before trying again."},429,{"Retry-After":"900"});
+    if(request.method==="POST" && route==="admissions" && !await rateLimit(env.DB,request,"admissions",5,3600)) return json({error:"Too many admission enquiries from this connection. Please try again later or contact the school by phone."},429,{"Retry-After":"3600"});
+    if(request.method==="POST" && route==="parent-messages" && !await rateLimit(env.DB,request,"parent-messages",5,3600)) return json({error:"Too many messages from this connection. Please try again later or contact the school by phone."},429,{"Retry-After":"3600"});
+    if(request.method==="POST" && route==="admission-status" && !await rateLimit(env.DB,request,"admission-status",10,900)) return json({error:"Too many status checks. Please wait 15 minutes and try again."},429,{"Retry-After":"900"});
     if(request.method==="GET" && route==="health") return json({ok:true,service:"Bright Angels School API"});
     if(request.method==="GET" && route==="content") { const r=await env.DB.prepare("SELECT content_key,content_value FROM ba2_content").all();return json({content:Object.fromEntries((r.results||[]).map(x=>[x.content_key,x.content_value]))}); }
     if(request.method==="GET" && route==="gallery") { const r=await env.DB.prepare("SELECT id,title,image_url,description FROM ba2_gallery ORDER BY created_at DESC LIMIT 60").all();return json({gallery:r.results||[]}); }
@@ -229,8 +241,14 @@ export async function onRequest({request,env}) {
         try { form=await request.formData(); } catch { return json({error:"Choose a photo and try again."},400); }
         const title=clean(form.get("title"),120),description=clean(form.get("description"),500),photo=form.get("photo");
         if(!title||!photo||typeof photo.arrayBuffer!=="function") return json({error:"Enter a photo title and choose an image from your phone."},400);
-        if(!String(photo.type||"").toLowerCase().startsWith("image/")) return json({error:"Please choose an image file."},400);
+        if(!["image/jpeg","image/png","image/webp","image/gif"].includes(String(photo.type||"").toLowerCase())) return json({error:"Please choose a JPEG, PNG, WEBP or GIF image."},400);
         if(photo.size<1||photo.size>10*1024*1024) return json({error:"The photo must be 10 MB or smaller."},400);
+        const imageBytes=new Uint8Array(await photo.slice(0,12).arrayBuffer());
+        const isJpeg=imageBytes[0]===0xff&&imageBytes[1]===0xd8&&imageBytes[2]===0xff;
+        const isPng=imageBytes.length>=8&&imageBytes[0]===0x89&&imageBytes[1]===0x50&&imageBytes[2]===0x4e&&imageBytes[3]===0x47&&imageBytes[4]===0x0d&&imageBytes[5]===0x0a&&imageBytes[6]===0x1a&&imageBytes[7]===0x0a;
+        const isGif=imageBytes[0]===0x47&&imageBytes[1]===0x49&&imageBytes[2]===0x46&&imageBytes[3]===0x38;
+        const isWebp=imageBytes.length>=12&&String.fromCharCode(...imageBytes.slice(0,4))==="RIFF"&&String.fromCharCode(...imageBytes.slice(8,12))==="WEBP";
+        if(!isJpeg&&!isPng&&!isGif&&!isWebp) return json({error:"The selected file does not appear to be a supported image."},400);
         const uploadForm=new FormData();
         uploadForm.append("file",photo,photo.name||"school-gallery-photo");
         uploadForm.append("fileName",(photo.name||"bright-angels-photo").replace(/[^a-zA-Z0-9._-]/g,"_"));
