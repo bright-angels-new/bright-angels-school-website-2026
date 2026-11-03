@@ -68,7 +68,7 @@ export async function onRequest({request,env}) {
       const hash=await sha256(token);
       const expires=new Date(Date.now()+8*60*60*1000).toISOString();
       await env.DB.prepare("INSERT INTO ba2_admin_sessions (token_hash,expires_at) VALUES (?,?)").bind(hash,expires).run();
-      return json({ok:true},{status:200,headers:{"Set-Cookie":sessionCookie(token,8*60*60)}});
+      return json({ok:true},200,{"Set-Cookie":sessionCookie(token,8*60*60)});
     }
     if(request.method==="GET" && route==="session") {
       if(!await isAdmin(request,env)) return json({error:"Please sign in."},401);
@@ -77,7 +77,7 @@ export async function onRequest({request,env}) {
     if(request.method==="POST" && route==="logout") {
       const token=cookieToken(request);
       if(token) await env.DB.prepare("DELETE FROM ba2_admin_sessions WHERE token_hash=?").bind(await sha256(token)).run();
-      return json({ok:true},{status:200,headers:{"Set-Cookie":sessionCookie("",0)}});
+      return json({ok:true},200,{"Set-Cookie":sessionCookie("",0)});
     }
     if(route.startsWith("admin/")) {
       if(!await isAdmin(request,env)) return json({error:"Your session has expired. Please sign in again."},401);
