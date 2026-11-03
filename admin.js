@@ -10,6 +10,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#markForm")?.addEventListener("submit", saveMark);
   $("#feeForm")?.addEventListener("submit", saveFee);
   $("#paymentForm")?.addEventListener("submit", savePayment);
+  $("#contentForm")?.addEventListener("submit", saveContent);
+  $("#galleryForm")?.addEventListener("submit", saveGallery);
   document.querySelectorAll("[data-panel]").forEach(button => button.addEventListener("click", () => showPanel(button.dataset.panel)));
   $("#admissionSearch")?.addEventListener("input", renderAdmissions);
   $("#classFilter")?.addEventListener("change", renderAdmissions);
@@ -24,11 +26,13 @@ async function api(path, options={}) {
 }
 function showPanel(id) {
   currentPanel=id;
-  ["overviewPanel","admissionsPanel","studentsPanel","announcementsPanel","subjectsPanel","marksPanel","feesPanel","messagesPanel"].forEach(panel=>$("#"+panel)?.classList.toggle("admin-hidden",panel!==id));
+  ["overviewPanel","admissionsPanel","studentsPanel","announcementsPanel","subjectsPanel","marksPanel","feesPanel","messagesPanel","contentPanel","galleryPanel"].forEach(panel=>$("#"+panel)?.classList.toggle("admin-hidden",panel!==id));
   document.querySelectorAll("[data-panel]").forEach(button=>button.classList.toggle("active",button.dataset.panel===id));
   if(id==="studentsPanel") loadStudents();
   if(["subjectsPanel","marksPanel","feesPanel"].includes(id)) loadSchoolRecords();
   if(id==="messagesPanel") loadParentMessages();
+  if(id==="contentPanel") loadContent();
+  if(id==="galleryPanel") loadAdminGallery();
 }
 async function login(event) {
   event.preventDefault(); const status=$("#loginStatus"),button=event.currentTarget.querySelector("button");
@@ -134,3 +138,8 @@ async function loadParentMessages(){
   try{const d=await api("admin/messages");box.replaceChildren();(d.messages||[]).forEach(m=>{const article=document.createElement("article");article.className="announcement-item";const h=document.createElement("h3");h.textContent=m.subject+" · "+m.parent_name;const p=document.createElement("p");p.textContent="Phone: "+m.phone+" · Learner: "+(m.student_name||"Not specified");const body=document.createElement("p");body.textContent=m.message;article.append(h,p,body);box.append(article);});if(!box.children.length)box.textContent="No parent messages yet.";}
   catch(e){box.textContent=e.message;}
 }
+
+async function loadContent(){try{const d=await api("admin/content");const f=$("#contentForm");for(const [k,v] of Object.entries(d.content||{}))if(f.elements[k])f.elements[k].value=v;}catch(e){$("#contentStatus").textContent=e.message;}}
+async function saveContent(e){e.preventDefault();const form=e.currentTarget,status=$("#contentStatus"),button=form.querySelector("button");button.disabled=true;status.textContent="Saving…";try{const data=Object.fromEntries(new FormData(form).entries());await api("admin/content",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});status.textContent="Website text saved."; }catch(err){status.textContent=err.message;}finally{button.disabled=false;}}
+async function loadAdminGallery(){const box=$("#adminGalleryList");try{const d=await api("admin/gallery");box.replaceChildren();(d.gallery||[]).forEach(item=>{const row=document.createElement("article");row.className="announcement-item";const title=document.createElement("h3");title.textContent=item.title;const img=document.createElement("img");img.src=item.image_url;img.alt=item.title;img.loading="lazy";img.style.maxWidth="180px";img.style.display="block";const del=document.createElement("button");del.textContent="Remove photo";del.addEventListener("click",async()=>{if(!confirm("Remove this gallery item?"))return;try{await api("admin/gallery/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:item.id})});loadAdminGallery();}catch(e){alert(e.message);}});row.append(title,img,del);box.append(row);});if(!box.children.length)box.textContent="No gallery photos yet.";}catch(e){box.textContent=e.message;}}
+async function saveGallery(e){e.preventDefault();const form=e.currentTarget,status=$("#galleryStatus"),button=form.querySelector("button");button.disabled=true;status.textContent="Saving…";try{await api("admin/gallery",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(new FormData(form).entries()))});form.reset();status.textContent="Gallery photo added.";await loadAdminGallery();}catch(err){status.textContent=err.message;}finally{button.disabled=false;}}
