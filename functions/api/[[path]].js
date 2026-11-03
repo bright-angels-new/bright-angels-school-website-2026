@@ -25,6 +25,10 @@ async function ensureSchema(db) {
       admitted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`)
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_subjects (id INTEGER PRIMARY KEY AUTOINCREMENT,class_name TEXT NOT NULL,name TEXT NOT NULL,is_active INTEGER NOT NULL DEFAULT 1,UNIQUE(class_name,name))"),
+    db.prepare("CREATE TABLE IF NOT EXISTS ba2_marks (id INTEGER PRIMARY KEY AUTOINCREMENT,student_id INTEGER NOT NULL,subject_id INTEGER NOT NULL,academic_year INTEGER NOT NULL,term INTEGER NOT NULL,score REAL NOT NULL,max_score REAL NOT NULL DEFAULT 100,remarks TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE(student_id,subject_id,academic_year,term))"),
+    db.prepare("CREATE TABLE IF NOT EXISTS ba2_fees (id INTEGER PRIMARY KEY AUTOINCREMENT,student_id INTEGER NOT NULL,description TEXT NOT NULL,amount REAL NOT NULL,due_date TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS ba2_fee_payments (id INTEGER PRIMARY KEY AUTOINCREMENT,fee_id INTEGER NOT NULL,amount REAL NOT NULL,reference TEXT,paid_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS ba2_parent_messages (id INTEGER PRIMARY KEY AUTOINCREMENT,parent_name TEXT NOT NULL,phone TEXT NOT NULL,student_name TEXT,subject TEXT NOT NULL,message TEXT NOT NULL,status TEXT NOT NULL DEFAULT 0,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
   ]);
 }
 async function sha256(value) {
