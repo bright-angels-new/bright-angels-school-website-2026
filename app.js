@@ -19,6 +19,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (year) year.textContent = new Date().getFullYear();
 
   loadAnnouncements();
+  const parentForm=$("#parentMessageForm");
+  if(parentForm) parentForm.addEventListener("submit", async event=>{event.preventDefault();const status=$("#parentMessageStatus"),button=parentForm.querySelector('button[type="submit"]');button.disabled=true;status.textContent="Sending…";try{const payload=Object.fromEntries(new FormData(parentForm).entries());const response=await fetch("/api/parent-messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const result=await response.json().catch(()=>({}));if(!response.ok)throw new Error(result.error||"Message could not be sent.");parentForm.reset();status.textContent="Your message has been sent to the school.";}catch(error){status.textContent=error.message;}finally{button.disabled=false;}});
 
   const form = $("#admissionForm");
   if (form) form.addEventListener("submit", submitAdmission);
