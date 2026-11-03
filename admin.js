@@ -6,6 +6,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#loginForm").addEventListener("submit", login);
   $("#logoutButton").addEventListener("click", logout);
   $("#announcementForm").addEventListener("submit", saveAnnouncement);
+  $("#subjectForm")?.addEventListener("submit", saveSubject);
+  $("#markForm")?.addEventListener("submit", saveMark);
+  $("#feeForm")?.addEventListener("submit", saveFee);
+  $("#paymentForm")?.addEventListener("submit", savePayment);
   document.querySelectorAll("[data-panel]").forEach(button => button.addEventListener("click", () => showPanel(button.dataset.panel)));
   $("#admissionSearch")?.addEventListener("input", renderAdmissions);
   $("#classFilter")?.addEventListener("change", renderAdmissions);
@@ -20,9 +24,11 @@ async function api(path, options={}) {
 }
 function showPanel(id) {
   currentPanel=id;
-  ["overviewPanel","admissionsPanel","studentsPanel","announcementsPanel"].forEach(panel=>$("#"+panel)?.classList.toggle("admin-hidden",panel!==id));
+  ["overviewPanel","admissionsPanel","studentsPanel","announcementsPanel","subjectsPanel","marksPanel","feesPanel","messagesPanel"].forEach(panel=>$("#"+panel)?.classList.toggle("admin-hidden",panel!==id));
   document.querySelectorAll("[data-panel]").forEach(button=>button.classList.toggle("active",button.dataset.panel===id));
   if(id==="studentsPanel") loadStudents();
+  if(["subjectsPanel","marksPanel","feesPanel"].includes(id)) loadSchoolRecords();
+  if(id==="messagesPanel") loadParentMessages();
 }
 async function login(event) {
   event.preventDefault(); const status=$("#loginStatus"),button=event.currentTarget.querySelector("button");
@@ -98,4 +104,33 @@ async function saveAnnouncement(event){
   event.preventDefault();const status=$("#announcementStatus"),button=event.currentTarget.querySelector("button");button.disabled=true;status.textContent="Saving…";
   try{const form=event.currentTarget,data=Object.fromEntries(new FormData(form).entries());data.is_published=form.elements.is_published.checked;await api("admin/announcements",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});form.reset();form.elements.is_published.checked=true;status.textContent="Announcement saved.";await loadAnnouncements();}
   catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+}
+
+async function loadSchoolRecords(){
+  try{
+    const [students,subjects,marks,fees]=await Promise.all([api("admin/students"),api("admin/subjects"),api("admin/marks"),api("admin/fees")]);
+    const fill=(selector,items,label)=>{const el=$(selector);if(!el)return;el.replaceChildren();items.forEach(x=>{const o=document.createElement("option");o.value=x.id;o.textContent=label(x);el.append(o);});if(!items.length){const o=document.createElement("option");o.value="";o.textContent="No records available";el.append(o);}};
+    fill("#markStudent",students.students||[],s=>s.admission_number+" · "+s.full_name+" ("+s.class_name+")");
+    fill("#feeStudent",students.students||[],s=>s.admission_number+" · "+s.full_name);
+    fill("#markSubject",subjects.subjects||[],s=>s.class_name+" · "+s.name);
+    const subjectBox=$("#subjectsList");if(subjectBox){subjectBox.replaceChildren();(subjects.subjects||[]).forEach(s=>{const p=document.createElement("p");p.textContent=s.class_name+" · "+s.name;subjectBox.append(p);});if(!subjectBox.children.length)subjectBox.textContent="No subjects added yet.";}
+    const markBox=$("#marksList");if(markBox){markBox.replaceChildren();(marks.marks||[]).forEach(m=>{const p=document.createElement("p");p.textContent=m.full_name+" · "+m.subject_name+" · Term "+m.term+" "+m.academic_year+": "+m.score+"/"+m.max_score;markBox.append(p);});if(!markBox.children.length)markBox.textContent="No marks recorded yet.";}
+    const feeBox=$("#feesList"),feeSelect=$("#paymentFee");if(feeBox)feeBox.replaceChildren();if(feeSelect)feeSelect.replaceChildren();
+    (fees.fees||[]).forEach(f=>{const p=document.createElement("p");p.textContent=f.full_name+" · "+f.description+" · UGX "+Number(f.amount).toLocaleString()+" · Paid "+Number(f.paid).toLocaleString()+" · Balance "+Number(f.balance).toLocaleString();feeBox?.append(p);if(feeSelect){const o=document.createElement("option");o.value=f.id;o.textContent=f.full_name+" · "+f.description+" · Balance UGX "+Number(f.balance).toLocaleString();feeSelect.append(o);}});
+    if(feeBox&&!feeBox.children.length)feeBox.textContent="No fee records yet.";
+  }catch(e){alert(e.message);}
+}
+async function submitAdminForm(formId,path,statusId){
+  const form=$(formId),status=$(statusId),button=form.querySelector("button[type=submit]");button.disabled=true;status.textContent="Saving…";
+  try{const data=Object.fromEntries(new FormData(form).entries());await api(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});form.reset();status.textContent="Saved successfully.";await loadSchoolRecords();}
+  catch(e){status.textContent=e.message;}finally{button.disabled=false;}
+}
+function saveSubject(e){e.preventDefault();submitAdminForm("#subjectForm","admin/subjects","#subjectStatus");}
+function saveMark(e){e.preventDefault();submitAdminForm("#markForm","admin/marks","#markStatus");}
+function saveFee(e){e.preventDefault();submitAdminForm("#feeForm","admin/fees","#feeStatus");}
+function savePayment(e){e.preventDefault();submitAdminForm("#paymentForm","admin/fees/payment","#paymentStatus");}
+async function loadParentMessages(){
+  const box=$("#messagesList");if(!box)return;
+  try{const d=await api("admin/messages");box.replaceChildren();(d.messages||[]).forEach(m=>{const article=document.createElement("article");article.className="announcement-item";const h=document.createElement("h3");h.textContent=m.subject+" · "+m.parent_name;const p=document.createElement("p");p.textContent="Phone: "+m.phone+" · Learner: "+(m.student_name||"Not specified");const body=document.createElement("p");body.textContent=m.message;article.append(h,p,body);box.append(article);});if(!box.children.length)box.textContent="No parent messages yet.";}
+  catch(e){box.textContent=e.message;}
 }
