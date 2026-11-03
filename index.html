@@ -81,10 +81,10 @@
 
 
     <section class="section" id="application-status">
-      <div class="section-heading"><p class="eyebrow">ADMISSION UPDATE</p><h2>Check your <span>application status.</span></h2><p>Enter the application reference number sent after submission and the parent/guardian phone number used on the application.</p></div>
+      <div class="section-heading"><p class="eyebrow">ADMISSION UPDATE</p><h2>Check your <span>application status.</span></h2><p>Enter the application reference number sent after submission and the child’s full name exactly as entered on the application.</p></div>
       <form id="applicationStatusForm" class="form-card">
         <label>Application reference number<input name="application_number" required placeholder="BA-APP-2026-00001" maxlength="30"></label>
-        <label>Parent/guardian phone number<input name="phone" type="tel" required maxlength="30"></label>
+        <label>Child’s full name<input name="child_name" required maxlength="120" autocomplete="name"></label>
         <button class="button button-green" type="submit">Check Application Status</button>
         <p id="applicationStatusResult" class="form-status" role="status" aria-live="polite"></p>
       </form>
