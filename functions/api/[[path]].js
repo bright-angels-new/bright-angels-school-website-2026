@@ -102,8 +102,7 @@ export async function onRequest({request,env}) {
           const existing=await env.DB.prepare("SELECT admission_number FROM ba2_students WHERE application_id=?").bind(id).first();
           if(!existing) {
             const year=new Date().getFullYear();
-            await env.DB.prepare("INSERT INTO ba2_admission_sequences (year,last_number) VALUES (?,1) ON CONFLICT(year) DO UPDATE SET last_number=last_number+1").bind(year).run();
-            const sequence=await env.DB.prepare("SELECT last_number FROM ba2_admission_sequences WHERE year=?").bind(year).first();
+            const sequence=await env.DB.prepare("INSERT INTO ba2_admission_sequences (year,last_number) VALUES (?,1) ON CONFLICT(year) DO UPDATE SET last_number=last_number+1 RETURNING last_number").bind(year).first();
             const number="BA/"+year+"/"+String(sequence.last_number).padStart(3,"0");
             await env.DB.prepare("INSERT OR IGNORE INTO ba2_students (application_id,admission_number,full_name,class_name,guardian_name,phone,email) VALUES (?,?,?,?,?,?,?)").bind(id,number,application.child_name,application.class_applying,application.guardian_name,application.phone,application.email||"").run();
           }
