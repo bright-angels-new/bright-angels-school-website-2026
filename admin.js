@@ -33,6 +33,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }));
   $("#admissionSearch")?.addEventListener("input", renderAdmissions);
   $("#directStudentForm")?.addEventListener("submit", saveDirectStudent);
+  $("#directStudentForm [name=\"date_of_birth\"]")?.addEventListener("change", updateDirectStudentAge);
   $("#studentSearch")?.addEventListener("input", loadStudents);
   $("#studentClassFilter")?.addEventListener("change", loadStudents);
   $("#classFilter")?.addEventListener("change", renderAdmissions);
@@ -157,6 +158,21 @@ function renderStudentSummary(allStudents){
   const note=document.createElement("p");note.className="admin-note";note.textContent="Counts include active students. Learners with a blank or unrecognised gender are included in the total and listed under “Gender not recorded”.";
   box.append(cards,heading,wrap,note);
 }
+function updateDirectStudentAge(){
+  const form=$("#directStudentForm");
+  const dob=form?.elements.namedItem("date_of_birth")?.value;
+  const ageInput=form?.elements.namedItem("age");
+  if(!ageInput)return;
+  ageInput.value="";
+  if(!dob)return;
+  const birth=new Date(dob+"T00:00:00");
+  if(Number.isNaN(birth.getTime()))return;
+  const today=new Date();
+  let age=today.getFullYear()-birth.getFullYear();
+  if(today.getMonth()<birth.getMonth()||(today.getMonth()===birth.getMonth()&&today.getDate()<birth.getDate()))age--;
+  if(age>=0&&age<=100)ageInput.value=String(age);
+}
+
 async function saveDirectStudent(event){
   event.preventDefault();
   const form=event.currentTarget,status=$("#directStudentStatus"),button=form.querySelector('button[type="submit"]');
