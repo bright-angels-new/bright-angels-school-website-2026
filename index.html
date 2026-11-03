@@ -65,10 +65,10 @@
           <label>Phone number<input name="phone" required type="tel" maxlength="30"></label>
           <label>Email address<input name="email" type="email" maxlength="160"></label>
           <label>Previous school (if any)<input name="previous_school" maxlength="160"></label>
-          <label>Date of birth<input name="date_of_birth" type="date"></label>
-          <label>Gender<select name="gender"><option value="">Select (optional)</option><option>Female</option><option>Male</option></select></label>
-          <label>Home address / village<input name="home_address" maxlength="300"></label>
-          <label>Emergency contact<input name="emergency_contact" maxlength="120" placeholder="Name and phone"></label>
+          <label>Date of birth<input name="date_of_birth" type="date" required></label>
+          <label>Gender<select name="gender" required><option value="">Select gender</option><option>Female</option><option>Male</option></select></label>
+          <label>Home address / village<input name="home_address" required maxlength="300"></label>
+          <label>Emergency contact<input name="emergency_contact" required maxlength="120" placeholder="Name and phone"></label>
           <label>Study mode<select name="study_mode"><option value="">Select (optional)</option><option>Day</option><option>Boarding</option></select></label>
         </div>
         <label class="full-field">Medical information (optional)<textarea name="medical_information" rows="2" maxlength="500"></textarea></label>
