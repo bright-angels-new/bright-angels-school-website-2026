@@ -40,14 +40,7 @@
         <button id="nextPhoto" class="slide-control" type="button">❯</button>
     </div>
 
-    <div class="floating-note">
-        <span>★</span>
-        <div>
-            <b>Every child matters</b>
-            <small>Learn • Grow • Shine</small>
-        </div>
     </div>
- </div>
 </section>
 <section class="quick-cards" aria-label="School highlights">
  <article><span class="card-icon">✦</span><h3>Quality Learning</h3><p>Building strong foundations through engaging, supportive teaching.</p></article>
@@ -89,7 +82,7 @@
 
   <div class="form-row">
     <label>Date of birth *
-      <input type="date" name="date_of_birth" required>
+      <input type="date" name="date_of_birth" id="admissionDob" required><small class="field-hint">Age: <strong id="admissionAge">Will be calculated from date of birth</strong></small>
     </label>
 
     <label>Gender *
@@ -146,13 +139,13 @@
     </label>
   </div>
 
-  <h4>5. PREVIOUS SCHOOL</h4>
+  <h4>3. PREVIOUS SCHOOL</h4>
 
   <label>Name of previous school
     <input name="previous_school" maxlength="200" placeholder="Enter previous school or leave blank">
   </label>
 
-  <h4>6. EMERGENCY CONTACT</h4>
+  <h4>4. EMERGENCY CONTACT</h4>
 
   <label>Emergency contact person's name
     <input name="emergency_contact_name" maxlength="150">
@@ -168,13 +161,13 @@
     </label>
   </div>
 
-  <h4>7. MEDICAL INFORMATION</h4>
+  <h4>5. MEDICAL INFORMATION</h4>
 
   <label>Medical conditions or allergies
     <textarea name="medical_information" rows="3" maxlength="2000" placeholder="Provide any important medical information"></textarea>
   </label>
 
-  <h4>8. SPECIAL LEARNING NEEDS</h4>
+  <h4>6. SPECIAL LEARNING NEEDS</h4>
 
   <label>Does the child have any special learning needs?
     <textarea name="special_learning_needs" rows="3" maxlength="2000" placeholder="Provide relevant information, if any"></textarea>
@@ -216,12 +209,12 @@
 
 </section>
 <section id="contact" class="section contact-section">
- <div><p class="eyebrow">CONTACT OUR SCHOOL</p><h2>Let's talk about your child's future.</h2><p>Reach out for admissions, school information or general enquiries.</p>
+ <div><p class="eyebrow">CONTACT OUR SCHOOL</p><h2>Let's talk about your child's future.</h2><p>Parents and guardians can send questions, suggestions, compliments or concerns privately to the school.</p>
   <div class="contact-detail"><span>⌖</span><div><b>Visit us</b><p>Wakiso District, Lukwanga–Kataluko Sentema Road, Uganda</p></div></div>
   <div class="contact-detail"><span>✉</span><div><b>Email</b><p><a href="mailto:brightangels26@gmail.com">brightangels26@gmail.com</a></p></div></div>
   <div class="contact-detail"><span>☎</span><div><b>Call / WhatsApp</b><p><a href="tel:+256755660550">+256 755 660 550</a> · <a href="tel:+256525136626">+256 525 136 626</a></p></div></div>
  </div>
- <form id="contactForm" class="form-card contact-form"><h3>Send us a message</h3><label>Your name<input name="name" required maxlength="200"></label><div class="form-row"><label>Email<input name="email" type="email" maxlength="250"></label><label>Phone<input name="phone" type="tel" maxlength="80"></label></div><label>Message<textarea name="message" required rows="4" maxlength="4000"></textarea></label><button class="btn btn-navy" type="submit">Send message →</button><p class="form-status" id="contactStatus" role="status"></p></form>
+ <form id="contactForm" class="form-card contact-form"><h3>Parents’ Messages & Feedback</h3><p class="form-intro">Your message is sent privately to the school administration.</p><label>Your name<input name="name" required maxlength="200"></label><div class="form-row"><label>Email<input name="email" type="email" maxlength="250"></label><label>Phone<input name="phone" type="tel" maxlength="80"></label></div><label>Message<textarea name="message" required rows="4" maxlength="4000"></textarea></label><button class="btn btn-navy" type="submit">Send message →</button><p class="form-status" id="contactStatus" role="status"></p></form>
 </section>
 </main>
 <footer><div class="footer-brand"><img src="/school-logo.jpg" alt=""><div><b>Bright Angels Junior School</b><small>“If others can, we can.”</small></div></div><p>Wakiso District, Lukwanga–Kataluko Sentema Road</p><small>© <span id="year"></span> Bright Angels Junior School. All rights reserved.</small></footer>
