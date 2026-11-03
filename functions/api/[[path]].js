@@ -191,7 +191,34 @@ export async function onRequest({request,env}) {
       if(request.method==="GET" && route==="admin/content") { const r=await env.DB.prepare("SELECT content_key,content_value FROM ba2_content").all();return json({content:Object.fromEntries((r.results||[]).map(x=>[x.content_key,x.content_value]))}); }
       if(request.method==="POST" && route==="admin/content") { let d;try{d=await request.json();}catch{return json({error:"Invalid content."},400);} const allowed=["hero_title","hero_text","about_text","learning_text"];for(const k of allowed)if(typeof d[k]==="string")await env.DB.prepare("INSERT INTO ba2_content (content_key,content_value) VALUES (?,?) ON CONFLICT(content_key) DO UPDATE SET content_value=excluded.content_value,updated_at=CURRENT_TIMESTAMP").bind(k,clean(d[k],1200)).run();return json({ok:true}); }
       if(request.method==="GET" && route==="admin/gallery") { const r=await env.DB.prepare("SELECT id,title,image_url,description FROM ba2_gallery ORDER BY created_at DESC").all();return json({gallery:r.results||[]}); }
-      if(request.method==="POST" && route==="admin/gallery") { let d;try{d=await request.json();}catch{return json({error:"Invalid gallery item."},400);} const title=clean(d.title,120),imageUrl=clean(d.image_url,500),description=clean(d.description,500);if(!title||!imageUrl.startsWith("https://"))return json({error:"Enter a title and secure image URL."},400);await env.DB.prepare("INSERT INTO ba2_gallery (title,image_url,description) VALUES (?,?,?)").bind(title,imageUrl,description).run();return json({ok:true},201); }
+      if(request.method==="POST" && route==="admin/gallery") {
+        if(!env.IMAGEKIT_PRIVATE_KEY) return json({error:"Photo storage is not configured. Please contact the website administrator."},503);
+        let form;
+        try { form=await request.formData(); } catch { return json({error:"Choose a photo and try again."},400); }
+        const title=clean(form.get("title"),120),description=clean(form.get("description"),500),photo=form.get("photo");
+        if(!title||!photo||typeof photo.arrayBuffer!=="function") return json({error:"Enter a photo title and choose an image from your phone."},400);
+        if(!String(photo.type||"").toLowerCase().startsWith("image/")) return json({error:"Please choose an image file."},400);
+        if(photo.size<1||photo.size>10*1024*1024) return json({error:"The photo must be 10 MB or smaller."},400);
+        const uploadForm=new FormData();
+        uploadForm.append("file",photo,photo.name||"school-gallery-photo");
+        uploadForm.append("fileName",(photo.name||"bright-angels-photo").replace(/[^a-zA-Z0-9._-]/g,"_"));
+        uploadForm.append("useUniqueFileName","true");
+        let uploadResponse,uploaded;
+        try {
+          uploadResponse=await fetch("https://upload.imagekit.io/api/v1/files/upload",{
+            method:"POST",
+            headers:{Authorization:"Basic "+btoa(String(env.IMAGEKIT_PRIVATE_KEY)+":")},
+            body:uploadForm
+          });
+          uploaded=await uploadResponse.json();
+        } catch { return json({error:"The photo upload service could not be reached. Please try again."},502); }
+        if(!uploadResponse.ok||!uploaded?.url) {
+          console.error("ImageKit upload failed:",uploaded);
+          return json({error:"The photo could not be uploaded. Please check the image and try again."},502);
+        }
+        await env.DB.prepare("INSERT INTO ba2_gallery (title,image_url,description) VALUES (?,?,?)").bind(title,uploaded.url,description).run();
+        return json({ok:true,image_url:uploaded.url},201);
+      }
       if(request.method==="POST" && route==="admin/gallery/delete") { let d;try{d=await request.json();}catch{return json({error:"Invalid gallery item."},400);}const id=Number(d.id);if(!Number.isInteger(id)||id<1)return json({error:"Choose a valid image."},400);await env.DB.prepare("DELETE FROM ba2_gallery WHERE id=?").bind(id).run();return json({ok:true}); }
       if(request.method==="GET" && route==="admin/announcements") {
         const result=await env.DB.prepare("SELECT id,title,body,is_published,created_at FROM ba2_announcements ORDER BY created_at DESC LIMIT 100").all();
