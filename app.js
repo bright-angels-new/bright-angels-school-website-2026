@@ -334,6 +334,34 @@ loadWebsiteBackground();
 
 const admissionForm = $('#admissionForm');
 
+const admissionDob = $('#admissionDob');
+const admissionAge = $('#admissionAge');
+
+function updateAdmissionAge() {
+    if (!admissionDob || !admissionAge || !admissionDob.value) {
+        if (admissionAge) admissionAge.textContent = 'Will be calculated from date of birth';
+        return;
+    }
+
+    const birthDate = new Date(admissionDob.value + 'T00:00:00');
+    const today = new Date();
+    if (Number.isNaN(birthDate.getTime()) || birthDate > today) {
+        admissionAge.textContent = 'Enter a valid date of birth';
+        return;
+    }
+
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const birthdayPending =
+        today.getMonth() < birthDate.getMonth() ||
+        (today.getMonth() === birthDate.getMonth() && today.getDate() < birthDate.getDate());
+    if (birthdayPending) age--;
+
+    admissionAge.textContent = age + (age === 1 ? ' year' : ' years');
+}
+
+admissionDob?.addEventListener('change', updateAdmissionAge);
+
+
 if (admissionForm) {
     admissionForm.addEventListener('submit', async event => {
         event.preventDefault();
