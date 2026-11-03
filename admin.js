@@ -113,10 +113,49 @@ function printAdmissionLetter(a){
   w.document.write(`<!doctype html><html><head><title>Admission Letter</title><style>body{font:16px Arial;max-width:720px;margin:50px auto;line-height:1.7;color:#24352e}h1{text-align:center;color:#164638}h2{text-align:center}hr{border:1px solid #d5b36d}.sign{margin-top:70px}</style></head><body><h1>BRIGHT ANGELS JUNIOR SCHOOL</h1><h2>ADMISSION LETTER</h2><hr><p>Date: ${new Date().toLocaleDateString()}</p><p>Dear ${esc(a.guardian_name)},</p><p>We are pleased to confirm the admission of <strong>${esc(a.child_name)}</strong> to <strong>${esc(a.class_applying)}</strong>.</p><p>Admission Number: <strong>${esc(a.admission_number)}</strong></p><p>Please contact the school for reporting arrangements and any further requirements.</p><p>Thank you for choosing Bright Angels Junior School.</p><p class="sign">Headteacher<br>Bright Angels Junior School</p><hr><p style="text-align:center">“If others can, we can”<br>Lukwanga–Kataluko Sentema Road, Wakiso District<br>+256 755 660 550 · +256 525 136 626</p><script>window.onload=()=>window.print()<\/script></body></html>`);
   w.document.close();
 }
+function renderStudentSummary(allStudents){
+  const box=$("#studentSummary");if(!box)return;
+  const classOrder=["Baby Class","Middle Class","Top Class","P1","P2","P3","P4","P5","P6","P7"];
+  const active=(allStudents||[]).filter(s=>!s.student_status||String(s.student_status).toLowerCase()==="active");
+  const stats=()=>({boys:0,girls:0,unrecorded:0,total:0});
+  const overall=stats(),byClass=new Map(classOrder.map(name=>[name,stats()]));
+  active.forEach(student=>{
+    const row=byClass.get(student.class_name);
+    const gender=String(student.gender||"").trim().toLowerCase();
+    const target=gender==="male"?"boys":gender==="female"?"girls":"unrecorded";
+    overall[target]++;overall.total++;
+    if(row){row[target]++;row.total++;}
+  });
+  box.replaceChildren();
+  const cards=document.createElement("div");cards.className="student-total-cards";
+  [["Total students",overall.total],["Boys",overall.boys],["Girls",overall.girls],["Gender not recorded",overall.unrecorded]].forEach(([label,value])=>{
+    const card=document.createElement("div");card.className="student-stat";
+    const name=document.createElement("span");name.textContent=label;
+    const number=document.createElement("strong");number.textContent=Number(value).toLocaleString();
+    card.append(name,number);cards.append(card);
+  });
+  const heading=document.createElement("h3");heading.textContent="Student numbers by class";
+  const wrap=document.createElement("div");wrap.className="summary-table-wrap";
+  const table=document.createElement("table");table.className="student-class-summary";
+  const thead=document.createElement("thead"),headRow=document.createElement("tr");
+  ["Class","Boys","Girls","Gender not recorded","Total"].forEach(label=>{const th=document.createElement("th");th.textContent=label;headRow.append(th);});
+  thead.append(headRow);table.append(thead);
+  const tbody=document.createElement("tbody");
+  classOrder.forEach(name=>{
+    const row=byClass.get(name),tr=document.createElement("tr");
+    [name,row.boys,row.girls,row.unrecorded,row.total].forEach(value=>{const td=document.createElement("td");td.textContent=typeof value==="number"?value.toLocaleString():value;tr.append(td);});
+    tbody.append(tr);
+  });
+  const totalRow=document.createElement("tr");totalRow.style.fontWeight="800";
+  ["SCHOOL TOTAL",overall.boys,overall.girls,overall.unrecorded,overall.total].forEach(value=>{const td=document.createElement("td");td.textContent=typeof value==="number"?value.toLocaleString():value;totalRow.append(td);});
+  tbody.append(totalRow);table.append(tbody);wrap.append(table);
+  const note=document.createElement("p");note.className="admin-note";note.textContent="Counts include active students. Learners with a blank or unrecognised gender are included in the total and listed under “Gender not recorded”.";
+  box.append(cards,heading,wrap,note);
+}
 async function loadStudents(){
   const tbody=$("#studentsRows");if(!tbody)return;
   try{
-    const data=await api("admin/students"),term=($("#studentSearch")?.value||"").trim().toLowerCase(),klass=$("#studentClassFilter")?.value||"";
+    const data=await api("admin/students");renderStudentSummary(data.students||[]);const term=($("#studentSearch")?.value||"").trim().toLowerCase(),klass=$("#studentClassFilter")?.value||"";
     const students=(data.students||[]).filter(s=>(!klass||s.class_name===klass)&&[s.admission_number,s.full_name,s.class_name,s.guardian_name,s.phone].some(v=>String(v||"").toLowerCase().includes(term)));
     tbody.replaceChildren();
     students.forEach(s=>{
