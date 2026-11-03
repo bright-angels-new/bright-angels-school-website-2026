@@ -86,13 +86,13 @@ export async function onRequest({request,env}) {
 
     if(request.method==="POST" && route==="admission-status") {
       let data;try{data=await request.json();}catch{return json({error:"Enter your application reference and phone number."},400);}
-      const ref=clean(data.application_number,30).toUpperCase(),phone=clean(data.phone,30);
+      const ref=clean(data.application_number,30).toUpperCase(),childName=clean(data.child_name,120);
       const match=ref.match(/^BA-APP-(\\d{4})-(\\d{5})$/);
-      if(!match||!phone)return json({error:"Enter a valid application reference number and phone number."},400);
+      if(!match||!childName)return json({error:"Enter a valid application reference number and the child’s full name."},400);
       const id=Number(match[2]);
-      const application=await env.DB.prepare("SELECT a.child_name,a.class_applying,a.phone,a.status,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id WHERE a.id=?").bind(id).first();
-      const digits=value=>String(value||"").replace(/\\D/g,"");
-      if(!application||digits(application.phone)!==digits(phone))return json({error:"No application matches those details. Check your reference number and phone number."},404);
+      const application=await env.DB.prepare("SELECT a.child_name,a.class_applying,a.status,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id WHERE a.id=?").bind(id).first();
+      const normalizeName=value=>String(value||"").trim().replace(/\\s+/g," ").toLocaleLowerCase();
+      if(!application||normalizeName(application.child_name)!==normalizeName(childName))return json({error:"No application matches those details. Check the reference number and child’s full name."},404);
       return json({ok:true,status:application.status,admission_number:application.admission_number||null});
     }
     if(request.method==="POST" && route==="parent-messages") { let d;try{d=await request.json();}catch{return json({error:"Please check your message."},400);} const p=clean(d.parent_name,120),phone=clean(d.phone,30),student=clean(d.student_name,120),subject=clean(d.subject,160),message=clean(d.message,2000);if(!p||!phone||!subject||!message)return json({error:"Complete your name, phone, subject and message."},400);await env.DB.prepare("INSERT INTO ba2_parent_messages (parent_name,phone,student_name,subject,message) VALUES (?,?,?,?,?)").bind(p,phone,student,subject,message).run();return json({ok:true},201); }
