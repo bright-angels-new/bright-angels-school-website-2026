@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#markForm")?.addEventListener("submit", saveMark);
   $("#feeForm")?.addEventListener("submit", saveFee);
   $("#paymentForm")?.addEventListener("submit", savePayment);
+  $("#printReportCard")?.addEventListener("click", printSelectedReport);
   $("#contentForm")?.addEventListener("submit", saveContent);
   $("#galleryForm")?.addEventListener("submit", saveGallery);
   document.querySelectorAll("[data-panel]").forEach(button => button.addEventListener("click", () => showPanel(button.dataset.panel)));
@@ -72,12 +73,14 @@ function renderAdmissions(){
       const p=document.createElement("p");p.textContent="Parent/Guardian: "+a.guardian_name+" | Phone: "+a.phone+" | Email: "+(a.email||"Not provided");
       const extra=document.createElement("p");extra.textContent="Previous school: "+(a.previous_school||"Not provided")+" | Submitted: "+new Date(a.created_at+"Z").toLocaleString();
       const message=document.createElement("p");message.textContent="Additional information: "+(a.message||"None");
+      const detail=document.createElement("p");detail.textContent="Date of birth: "+(a.date_of_birth||"Not provided")+" | Gender: "+(a.gender||"Not provided")+" | Home: "+(a.home_address||"Not provided")+" | Emergency contact: "+(a.emergency_contact||"Not provided")+" | Study mode: "+(a.study_mode||"Not provided");
+      const needs=document.createElement("p");needs.textContent="Medical information: "+(a.medical_information||"None")+" | Learning needs: "+(a.learning_needs||"None");
       const controls=document.createElement("div");controls.className="admin-row-actions";
       const select=document.createElement("select");["Pending","Under Review","Approved","Rejected"].forEach(s=>{const o=document.createElement("option");o.value=s;o.textContent=s;o.selected=(a.status||"Pending")===s;select.append(o);});
       const save=document.createElement("button");save.textContent="Update status";save.addEventListener("click",()=>updateApplication(a.id,select.value,save));
       controls.append(select,save);
       if(a.admission_number){const letter=document.createElement("button");letter.textContent="Print admission letter";letter.addEventListener("click",()=>printAdmissionLetter(a));controls.append(letter);}
-      body.append(p,extra,message,controls);details.append(summary,body);section.append(details);
+      body.append(p,extra,detail,needs,message,controls);details.append(summary,body);section.append(details);
     });
     box.append(section);
   });
@@ -143,3 +146,17 @@ async function loadContent(){try{const d=await api("admin/content");const f=$("#
 async function saveContent(e){e.preventDefault();const form=e.currentTarget,status=$("#contentStatus"),button=form.querySelector("button");button.disabled=true;status.textContent="Saving…";try{const data=Object.fromEntries(new FormData(form).entries());await api("admin/content",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});status.textContent="Website text saved."; }catch(err){status.textContent=err.message;}finally{button.disabled=false;}}
 async function loadAdminGallery(){const box=$("#adminGalleryList");try{const d=await api("admin/gallery");box.replaceChildren();(d.gallery||[]).forEach(item=>{const row=document.createElement("article");row.className="announcement-item";const title=document.createElement("h3");title.textContent=item.title;const img=document.createElement("img");img.src=item.image_url;img.alt=item.title;img.loading="lazy";img.style.maxWidth="180px";img.style.display="block";const del=document.createElement("button");del.textContent="Remove photo";del.addEventListener("click",async()=>{if(!confirm("Remove this gallery item?"))return;try{await api("admin/gallery/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:item.id})});loadAdminGallery();}catch(e){alert(e.message);}});row.append(title,img,del);box.append(row);});if(!box.children.length)box.textContent="No gallery photos yet.";}catch(e){box.textContent=e.message;}}
 async function saveGallery(e){e.preventDefault();const form=e.currentTarget,status=$("#galleryStatus"),button=form.querySelector("button");button.disabled=true;status.textContent="Saving…";try{await api("admin/gallery",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(new FormData(form).entries()))});form.reset();status.textContent="Gallery photo added.";await loadAdminGallery();}catch(err){status.textContent=err.message;}finally{button.disabled=false;}}
+
+async function printSelectedReport(){
+  const studentId=$("#markStudent")?.value,form=$("#markForm"),year=form?.elements.academic_year.value,term=form?.elements.term.value,status=$("#reportStatus");
+  if(!studentId||!year||!term){status.textContent="Select a student, academic year and term first.";return;}
+  status.textContent="Preparing report card…";
+  try{
+    const report=await api("admin/report-card?student_id="+encodeURIComponent(studentId)+"&academic_year="+encodeURIComponent(year)+"&term="+encodeURIComponent(term));
+    const w=window.open("","_blank","width=850,height=900");if(!w)throw new Error("Allow pop-ups to print the report card.");
+    const esc=v=>String(v??"").replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+    const rows=report.subjects.map(x=>"<tr><td>"+esc(x.subject_name)+"</td><td>"+esc(x.score)+" / "+esc(x.max_score)+"</td><td>"+esc(x.remarks||"")+"</td></tr>").join("");
+    w.document.write("<!doctype html><html><head><title>Bright Angels Report Card</title><style>body{font:15px Arial;max-width:760px;margin:35px auto;color:#20382f}h1,h2{text-align:center;color:#164638}table{width:100%;border-collapse:collapse;margin-top:25px}td,th{padding:10px;border:1px solid #aaa;text-align:left}.foot{margin-top:45px}</style></head><body><h1>BRIGHT ANGELS JUNIOR SCHOOL</h1><h2>LEARNER REPORT CARD</h2><p><b>Learner:</b> "+esc(report.student.full_name)+"<br><b>Admission No:</b> "+esc(report.student.admission_number)+"<br><b>Class:</b> "+esc(report.student.class_name)+"<br><b>Academic year:</b> "+esc(report.academic_year)+"<br><b>Term:</b> "+esc(report.term)+"</p><table><thead><tr><th>Subject</th><th>Score</th><th>Remarks</th></tr></thead><tbody>"+rows+"</tbody></table><h3>Total: "+esc(report.total)+" / "+esc(report.maximum)+" ("+esc(report.percentage)+"%)</h3><p class=foot>Class Teacher: ____________________ &nbsp; Headteacher: ____________________</p><p style=text-align:center>If others can, we can</p><script>window.onload=()=>window.print()<\/script></body></html>");
+    w.document.close();status.textContent="Report card opened for printing.";
+  }catch(e){status.textContent=e.message;}
+}
