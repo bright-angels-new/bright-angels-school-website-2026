@@ -791,7 +791,7 @@ if (!["Day", "Boarding"].includes(studyMode)) {
     medical_information,
     special_learning_needs
   ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
   )`
 ).bind(
   applicationReference,
@@ -800,6 +800,7 @@ if (!["Day", "Boarding"].includes(studyMode)) {
   dateOfBirth,
   gender,
   classApplying,
+  studyMode,
   parentName,
   parentPhone,
   parentEmail,
