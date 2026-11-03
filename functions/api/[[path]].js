@@ -817,38 +817,42 @@ if (!["Day", "Boarding"].includes(studyMode)) {
 
 const applicationId = result.meta.last_row_id;
 
-await sendSchoolEmail(
-  env,
-  "New Admission Application",
-  [
-    "A new admission application has been submitted.",
-    "",
-    `Application ID: ${applicationId}`,
-    `Reference: ${applicationReference}`,
-    `Child's name: ${childName}`,
-    `Date of birth: ${dateOfBirth}`,
-    `Gender: ${gender}`,
-    `Class applying for: ${classApplying}`,
-    `Study mode: ${studyMode}`,
-    "",
-    "PARENT / GUARDIAN DETAILS",
-    `Name: ${parentName}`,
-    `Phone: ${parentPhone}`,
-    `Email: ${parentEmail}`,
-    `Address: ${address}`,
-    "",
-    `Previous school: ${previousSchool}`,
-    "",
-    "EMERGENCY CONTACT",
-    `Name: ${emergencyContactName}`,
-    `Phone: ${emergencyContactPhone}`,
-    `Relationship: ${emergencyContactRelationship}`,
-    "",
-    "MEDICAL AND LEARNING INFORMATION",
-    `Medical information: ${medicalInformation}`,
-    `Special learning needs: ${specialLearningNeeds}`
-  ].join("\n")
-);
+try {
+  await sendSchoolEmail(
+    env,
+    "New Admission Application",
+    [
+      "A new admission application has been submitted.",
+      "",
+      `Application ID: ${applicationId}`,
+      `Reference: ${applicationReference}`,
+      `Child's name: ${childName}`,
+      `Date of birth: ${dateOfBirth}`,
+      `Gender: ${gender}`,
+      `Class applying for: ${classApplying}`,
+      `Study mode: ${studyMode}`,
+      "",
+      "PARENT / GUARDIAN DETAILS",
+      `Name: ${parentName}`,
+      `Phone: ${parentPhone}`,
+      `Email: ${parentEmail}`,
+      `Address: ${address}`,
+      "",
+      `Previous school: ${previousSchool}`,
+      "",
+      "EMERGENCY CONTACT",
+      `Name: ${emergencyContactName}`,
+      `Phone: ${emergencyContactPhone}`,
+      `Relationship: ${emergencyContactRelationship}`,
+      "",
+      "MEDICAL AND LEARNING INFORMATION",
+      `Medical information: ${medicalInformation}`,
+      `Special learning needs: ${specialLearningNeeds}`
+    ].join("\n")
+  );
+} catch (emailError) {
+  console.error("Admission saved, but school email notification failed:", emailError);
+}
 
 return json(
   {
