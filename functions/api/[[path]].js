@@ -16,6 +16,13 @@ async function ensureSchema(db) {
     )`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ba2_admin_sessions (
       token_hash TEXT PRIMARY KEY, expires_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ba2_admission_sequences (year INTEGER PRIMARY KEY, last_number INTEGER NOT NULL DEFAULT 0)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ba2_students (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, application_id INTEGER NOT NULL UNIQUE,
+      admission_number TEXT NOT NULL UNIQUE, full_name TEXT NOT NULL, class_name TEXT NOT NULL,
+      guardian_name TEXT NOT NULL, phone TEXT NOT NULL, email TEXT,
+      admitted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`)
   ]);
 }
@@ -82,8 +89,32 @@ export async function onRequest({request,env}) {
     if(route.startsWith("admin/")) {
       if(!await isAdmin(request,env)) return json({error:"Your session has expired. Please sign in again."},401);
       if(request.method==="GET" && route==="admin/admissions") {
-        const result=await env.DB.prepare("SELECT id,child_name,class_applying,guardian_name,phone,email,status,created_at FROM ba2_admissions ORDER BY created_at DESC LIMIT 500").all();
+        const result=await env.DB.prepare("SELECT a.id,a.child_name,a.class_applying,a.guardian_name,a.phone,a.email,a.previous_school,a.message,a.status,a.created_at,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id ORDER BY a.created_at DESC LIMIT 500").all();
         return json({applications:result.results||[]});
+      }
+      if(request.method==="POST" && route==="admin/admissions/status") {
+        let data;try{data=await request.json();}catch{return json({error:"Invalid application update."},400);}
+        const id=Number(data.id),status=clean(data.status,30);
+        if(!Number.isInteger(id)||id<1||!["Pending","Under Review","Approved","Rejected"].includes(status)) return json({error:"Choose a valid application and status."},400);
+        const application=await env.DB.prepare("SELECT * FROM ba2_admissions WHERE id=?").bind(id).first();
+        if(!application) return json({error:"Application not found."},404);
+        if(status==="Approved") {
+          const existing=await env.DB.prepare("SELECT admission_number FROM ba2_students WHERE application_id=?").bind(id).first();
+          if(!existing) {
+            const year=new Date().getFullYear();
+            await env.DB.prepare("INSERT INTO ba2_admission_sequences (year,last_number) VALUES (?,1) ON CONFLICT(year) DO UPDATE SET last_number=last_number+1").bind(year).run();
+            const sequence=await env.DB.prepare("SELECT last_number FROM ba2_admission_sequences WHERE year=?").bind(year).first();
+            const number="BA/"+year+"/"+String(sequence.last_number).padStart(3,"0");
+            await env.DB.prepare("INSERT OR IGNORE INTO ba2_students (application_id,admission_number,full_name,class_name,guardian_name,phone,email) VALUES (?,?,?,?,?,?,?)").bind(id,number,application.child_name,application.class_applying,application.guardian_name,application.phone,application.email||"").run();
+          }
+        }
+        await env.DB.prepare("UPDATE ba2_admissions SET status=? WHERE id=?").bind(status,id).run();
+        const student=await env.DB.prepare("SELECT admission_number FROM ba2_students WHERE application_id=?").bind(id).first();
+        return json({ok:true,status,admission_number:student?.admission_number||null});
+      }
+      if(request.method==="GET" && route==="admin/students") {
+        const result=await env.DB.prepare("SELECT admission_number,full_name,class_name,guardian_name,phone,email,admitted_at FROM ba2_students ORDER BY class_name,full_name").all();
+        return json({students:result.results||[]});
       }
       if(request.method==="GET" && route==="admin/announcements") {
         const result=await env.DB.prepare("SELECT id,title,body,is_published,created_at FROM ba2_announcements ORDER BY created_at DESC LIMIT 100").all();
