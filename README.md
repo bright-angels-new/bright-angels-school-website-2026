@@ -50,12 +50,19 @@ This rebuild is on the bright-angels-rebuild branch. Keep the current production
 - GET /api/admin/admissions
 - GET /api/admin/announcements
 - POST /api/admin/announcements
+- GET/POST /api/admin/subjects
+- GET/POST /api/admin/marks
+- GET /api/admin/report-card
+- GET/POST /api/admin/fees
+- POST /api/admin/fees/payment
+- POST /api/parent-messages
+- GET /api/admin/messages
 
 ## Next development stages
 1. Verify Cloudflare Pages preview deployment and database binding.
 2. Test admissions, administrator authentication, sessions and announcements.
-3. Add class-grouped admissions, review statuses, student records and permanent admission numbers.
-4. Add subjects, marks, report cards, fees, parent messages and configurable school content.
+3. Complete subject, marks, fee, parent-message and report-card workflow testing.
+4. Add full admission details, editable school content/gallery, message management and email delivery.
 5. Complete end-to-end testing before production cutover.
 
 The D1 setup only creates new ba2_ tables. It does not intentionally delete, rename, or alter existing school database tables.
