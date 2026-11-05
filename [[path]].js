@@ -172,7 +172,11 @@ export async function onRequest({request,env}) {
       if(!app) return json({error:"Website application not found."},404);
       const existing=await env.DB.prepare("SELECT id,admission_number FROM ba2_students WHERE application_id=?").bind(app.id).first();
       if(existing && existing.admission_number!==number) return json({error:"A different admission number is already recorded for this student."},409);
-      if(!existing) return json({error:"The website student record has not yet been created by the originating approval request."},409);
+      if(!existing) {
+        const a=await env.DB.prepare("SELECT * FROM ba2_admissions WHERE id=?").bind(app.id).first();
+        await env.DB.prepare("INSERT INTO ba2_students (application_id,admission_number,full_name,class_name,guardian_name,phone,email,date_of_birth,age,gender,home_address,emergency_contact,medical_information,learning_needs,previous_school) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+          .bind(app.id,number,a.child_name,a.class_applying,a.guardian_name,a.phone,a.email||"",a.date_of_birth||null,a.age??null,a.gender||null,a.home_address||null,a.emergency_contact||null,a.medical_information||null,a.learning_needs||null,a.previous_school||null).run();
+      }
       await env.DB.prepare("UPDATE ba2_admissions SET status='Approved' WHERE id=?").bind(app.id).run();
       return json({ok:true,application_number:ref,admission_number:number});
     }
