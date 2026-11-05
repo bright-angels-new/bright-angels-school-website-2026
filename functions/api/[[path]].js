@@ -13,7 +13,7 @@ async function ensureSchema(db) {
   await db.batch([
     db.prepare(`CREATE TABLE IF NOT EXISTS ba2_admissions (
       id INTEGER PRIMARY KEY AUTOINCREMENT, child_name TEXT NOT NULL, class_applying TEXT NOT NULL,
-      guardian_name TEXT NOT NULL, phone TEXT NOT NULL, email TEXT, previous_school TEXT, message TEXT,
+      guardian_name TEXT NOT NULL, phone TEXT NOT NULL, email TEXT, previous_school TEXT, message TEXT, source TEXT NOT NULL DEFAULT 'PUBLIC',
       date_of_birth TEXT, gender TEXT, home_address TEXT, emergency_contact TEXT, medical_information TEXT, learning_needs TEXT, study_mode TEXT,
       status TEXT NOT NULL DEFAULT 'Pending', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`),
@@ -64,7 +64,7 @@ async function ensureSchema(db) {
   for(const [name,type] of [["date_of_birth","TEXT"],["age","INTEGER"],["gender","TEXT"],["home_address","TEXT"],["emergency_contact","TEXT"],["medical_information","TEXT"],["learning_needs","TEXT"],["previous_school","TEXT"],["student_status","TEXT NOT NULL DEFAULT 'Active'"]]) if(!studentExisting.has(name)) await db.prepare("ALTER TABLE ba2_students ADD COLUMN "+name+" "+type).run();
   const cols=await db.prepare("PRAGMA table_info(ba2_admissions)").all();
   const existing=new Set((cols.results||[]).map(x=>x.name));
-  for(const [name,type] of [["date_of_birth","TEXT"],["age","INTEGER"],["gender","TEXT"],["home_address","TEXT"],["emergency_contact","TEXT"],["medical_information","TEXT"],["learning_needs","TEXT"],["study_mode","TEXT"]]) if(!existing.has(name)) await db.prepare("ALTER TABLE ba2_admissions ADD COLUMN "+name+" "+type).run();
+  for(const [name,type] of [["date_of_birth","TEXT"],["age","INTEGER"],["gender","TEXT"],["home_address","TEXT"],["emergency_contact","TEXT"],["medical_information","TEXT"],["learning_needs","TEXT"],["study_mode","TEXT"],["source","TEXT NOT NULL DEFAULT 'PUBLIC'"]]) if(!existing.has(name)) await db.prepare("ALTER TABLE ba2_admissions ADD COLUMN "+name+" "+type).run();
   await db.prepare("UPDATE ba2_students SET date_of_birth=COALESCE(date_of_birth,(SELECT date_of_birth FROM ba2_admissions WHERE ba2_admissions.id=ba2_students.application_id)),age=COALESCE(age,(SELECT age FROM ba2_admissions WHERE ba2_admissions.id=ba2_students.application_id)),gender=COALESCE(gender,(SELECT gender FROM ba2_admissions WHERE ba2_admissions.id=ba2_students.application_id)),home_address=COALESCE(home_address,(SELECT home_address FROM ba2_admissions WHERE ba2_admissions.id=ba2_students.application_id)),emergency_contact=COALESCE(emergency_contact,(SELECT emergency_contact FROM ba2_admissions WHERE ba2_admissions.id=ba2_students.application_id)),medical_information=COALESCE(medical_information,(SELECT medical_information FROM ba2_admissions WHERE ba2_admissions.id=ba2_students.application_id)),learning_needs=COALESCE(learning_needs,(SELECT learning_needs FROM ba2_admissions WHERE ba2_admissions.id=ba2_students.application_id)),previous_school=COALESCE(previous_school,(SELECT previous_school FROM ba2_admissions WHERE ba2_admissions.id=ba2_students.application_id)) WHERE EXISTS (SELECT 1 FROM ba2_admissions WHERE ba2_admissions.id=ba2_students.application_id)").run();
   await db.prepare("UPDATE ba2_parent_messages SET status='New' WHERE status='0' OR status='0.0'").run();
 }
@@ -162,6 +162,28 @@ export async function onRequest({request,env}) {
       if(token) await env.DB.prepare("DELETE FROM ba2_admin_sessions WHERE token_hash=?").bind(await sha256(token)).run();
       return json({ok:true},200,{"Set-Cookie":sessionCookie("",0)});
     }
+    if(request.method==="POST" && route==="integration/student-created") {
+      if(!env.WEBSITE_SYNC_SECRET || request.headers.get("Authorization")!=="Bearer "+env.WEBSITE_SYNC_SECRET) return json({error:"Integration authentication failed."},401);
+      let data;try{data=await request.json();}catch{return json({error:"Invalid student sync payload."},400);}
+      const number=clean(data.admission_number,40),full=clean(data.full_name,160),klass=clean(data.class_name,40),guardian=clean(data.guardian_name,160),phone=clean(data.guardian_phone,40);
+      const dob=clean(data.date_of_birth,10),gender=clean(data.gender,20),address=clean(data.home_address,300),email=clean(data.email,160),emergency=clean(data.emergency_contact_name||data.emergency_contact_phone,120),medical=clean(data.medical_information,1000),studyMode=data.study_mode==="Boarding"?"Boarding":"Day";
+      if(!/^BA\/\d{4}\/\d{3,}$/.test(number)||!full||!allowedClasses.includes(klass)||!guardian||!phone) return json({error:"Student details are incomplete or invalid."},400);
+      if(dob && !/^\d{4}-\d{2}-\d{2}$/.test(dob)) return json({error:"Invalid date of birth."},400);
+      const existing=await env.DB.prepare("SELECT id,full_name FROM ba2_students WHERE admission_number=?").bind(number).first();
+      if(existing) {
+        if(existing.full_name.toLowerCase()!==full.toLowerCase()) return json({error:"This admission number already belongs to another student."},409);
+        return json({ok:true,already_synced:true,admission_number:number,student_id:existing.id});
+      }
+      const appRef=newApplicationReference();
+      const app=await env.DB.prepare("INSERT INTO ba2_admissions (application_number,child_name,class_applying,guardian_name,phone,email,date_of_birth,gender,home_address,emergency_contact,medical_information,study_mode,status,source) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'Approved','MANUAL_SYNC')").bind(appRef,full,klass,guardian,phone,email||null,dob||null,gender||null,address||null,emergency||null,medical||null,studyMode).run();
+      const applicationId=Number(app.meta?.last_row_id);
+      if(!applicationId) return json({error:"Could not create the linked student record."},500);
+      const birth=dob?new Date(dob+"T00:00:00Z"):null;
+      let age=null;
+      if(birth&&!Number.isNaN(birth.getTime())) { const today=new Date(); age=today.getUTCFullYear()-birth.getUTCFullYear(); if(today.getUTCMonth()<birth.getUTCMonth()||(today.getUTCMonth()===birth.getUTCMonth()&&today.getUTCDate()<birth.getUTCDate())) age--; }
+      const created=await env.DB.prepare("INSERT INTO ba2_students (application_id,admission_number,full_name,class_name,guardian_name,phone,email,date_of_birth,age,gender,home_address,emergency_contact,medical_information) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(applicationId,number,full,klass,guardian,phone,email||"",dob||null,age,gender||null,address||null,emergency||null,medical||null).run();
+      return json({ok:true,already_synced:false,admission_number:number,student_id:Number(created.meta?.last_row_id)},201);
+    }
     if(request.method==="POST" && route==="integration/admission-approved") {
       if(!env.WEBSITE_SYNC_SECRET || request.headers.get("Authorization")!=="Bearer "+env.WEBSITE_SYNC_SECRET) return json({error:"Integration authentication failed."},401);
       let data;try{data=await request.json();}catch{return json({error:"Invalid approval update."},400);}
@@ -183,7 +205,7 @@ export async function onRequest({request,env}) {
     if(route.startsWith("admin/")) {
       if(!await isAdmin(request,env)) return json({error:"Your session has expired. Please sign in again."},401);
       if(request.method==="GET" && route==="admin/admissions") {
-        const result=await env.DB.prepare("SELECT a.id,a.application_number,a.child_name,a.class_applying,a.guardian_name,a.phone,a.email,a.previous_school,a.message,a.date_of_birth,a.age,a.gender,a.home_address,a.emergency_contact,a.medical_information,a.learning_needs,a.study_mode,a.status,a.created_at,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id ORDER BY a.created_at DESC LIMIT 500").all();
+        const result=await env.DB.prepare("SELECT a.id,a.application_number,a.child_name,a.class_applying,a.guardian_name,a.phone,a.email,a.previous_school,a.message,a.date_of_birth,a.age,a.gender,a.home_address,a.emergency_contact,a.medical_information,a.learning_needs,a.study_mode,a.status,a.created_at,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id WHERE a.source!='MANUAL_SYNC' ORDER BY a.created_at DESC LIMIT 500").all();
         return json({applications:result.results||[]});
       }
       if(request.method==="POST" && route==="admin/admissions/status") {
