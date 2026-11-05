@@ -3,6 +3,11 @@ const json = (data,status=200,extra={}) => new Response(JSON.stringify(data),{st
 const clean = (value,max=500) => String(value??"").trim().slice(0,max);
 const safeGalleryUrl = value => { try { const u=new URL(String(value||"")); return u.protocol==="https:" && u.hostname==="ik.imagekit.io" && !u.username && !u.password && !u.port ? u.href : null; } catch { return null; } };
 const allowedClasses = ["Baby Class","Middle Class","Top Class","P1","P2","P3","P4","P5","P6","P7"];
+function newApplicationReference() {
+  const alphabet="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const bytes=crypto.getRandomValues(new Uint8Array(8));
+  return "BA-APP-"+new Date().getFullYear()+"-"+[...bytes].map(value=>alphabet[value%36]).join("");
+}
 
 async function ensureSchema(db) {
   await db.batch([
@@ -115,9 +120,7 @@ export async function onRequest({request,env}) {
       const birthDate=new Date(dob+"T00:00:00"),today=new Date();let age=today.getFullYear()-birthDate.getFullYear();if(today.getMonth()<birthDate.getMonth()||(today.getMonth()===birthDate.getMonth()&&today.getDate()<birthDate.getDate()))age--;
       if(!child||!allowedClasses.includes(klass)||!guardian||!phone||!dob||Number.isNaN(birthDate.getTime())||birthDate>today||age<0||age>100||!["Female","Male"].includes(gender)||!address||!emergency) return json({error:"Please complete all required fields and enter a valid date of birth."},400);
       if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({error:"Please enter a valid email address."},400);
-      const randomBytes=crypto.getRandomValues(new Uint8Array(3));
-      const suffix=[...randomBytes].map(value=>value.toString(16).padStart(2,"0")).join("").slice(0,5).toUpperCase();
-      const applicationNumber=`BA-APP-${new Date().getFullYear()}-${suffix}`;
+      const applicationNumber=newApplicationReference();
       let result;
       try {
         result=await env.DB.prepare("INSERT INTO ba2_admissions (application_number,child_name,class_applying,guardian_name,phone,email,previous_school,message,date_of_birth,age,gender,home_address,emergency_contact,medical_information,learning_needs,study_mode) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(applicationNumber,child,klass,guardian,phone,email,previous,message,dob,age,gender,address,emergency,medical,needs,study).run();
@@ -132,7 +135,7 @@ export async function onRequest({request,env}) {
     if(request.method==="POST" && route==="admission-status") {
       let data;try{data=await request.json();}catch{return json({error:"Enter your application reference and the child’s full name."},400);}
       const ref=clean(data.application_number,30).toUpperCase(),childName=clean(data.child_name,120);
-      if(!/^BA-APP-\d{4}-[A-F0-9]{5}$/.test(ref)||!childName)return json({error:"Enter a valid application reference number and the child’s full name."},400);
+      if(!/^BA-APP-\d{4}-(?:[A-Z0-9]{8}|\\d{5})$/.test(ref)||!childName)return json({error:"Enter a valid application reference number and the child’s full name."},400);
       const application=await env.DB.prepare("SELECT a.child_name,a.class_applying,a.status,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id WHERE a.application_number=?").bind(ref).first();
       const normalizeName=value=>String(value||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
       if(!application||normalizeName(application.child_name)!==normalizeName(childName))return json({error:"No application matches those details. Check the reference number and child’s full name."},404);
