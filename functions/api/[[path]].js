@@ -3,6 +3,11 @@ const json = (data,status=200,extra={}) => new Response(JSON.stringify(data),{st
 const clean = (value,max=500) => String(value??"").trim().slice(0,max);
 const safeGalleryUrl = value => { try { const u=new URL(String(value||"")); return u.protocol==="https:" && u.hostname==="ik.imagekit.io" && !u.username && !u.password && !u.port ? u.href : null; } catch { return null; } };
 const allowedClasses = ["Baby Class","Middle Class","Top Class","P1","P2","P3","P4","P5","P6","P7"];
+function newApplicationReference() {
+  const alphabet="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const bytes=crypto.getRandomValues(new Uint8Array(8));
+  return "BA-APP-"+new Date().getFullYear()+"-"+[...bytes].map(value=>alphabet[value%36]).join("");
+}
 
 async function ensureSchema(db) {
   await db.batch([
@@ -39,6 +44,11 @@ async function ensureSchema(db) {
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_gallery (id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,image_url TEXT NOT NULL,description TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_rate_limits (key_hash TEXT PRIMARY KEY, window_started TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0)")
   ]);
+  const admissionCols=await db.prepare("PRAGMA table_info(ba2_admissions)").all();
+  const admissionExisting=new Set((admissionCols.results||[]).map(x=>x.name));
+  if(!admissionExisting.has("application_number")) await db.prepare("ALTER TABLE ba2_admissions ADD COLUMN application_number TEXT").run();
+  await db.prepare("UPDATE ba2_admissions SET application_number='BA-APP-' || strftime('%Y',created_at) || '-' || printf('%05d',id) WHERE application_number IS NULL OR application_number=''").run();
+  await db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_ba2_admissions_application_number ON ba2_admissions(application_number)").run();
   const markCols=await db.prepare("PRAGMA table_info(ba2_marks)").all();
   const markExisting=new Set((markCols.results||[]).map(x=>x.name));
   if(!markExisting.has("assessment_type")) {
@@ -110,20 +120,23 @@ export async function onRequest({request,env}) {
       const birthDate=new Date(dob+"T00:00:00"),today=new Date();let age=today.getFullYear()-birthDate.getFullYear();if(today.getMonth()<birthDate.getMonth()||(today.getMonth()===birthDate.getMonth()&&today.getDate()<birthDate.getDate()))age--;
       if(!child||!allowedClasses.includes(klass)||!guardian||!phone||!dob||Number.isNaN(birthDate.getTime())||birthDate>today||age<0||age>100||!["Female","Male"].includes(gender)||!address||!emergency) return json({error:"Please complete all required fields and enter a valid date of birth."},400);
       if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({error:"Please enter a valid email address."},400);
-      const result=await env.DB.prepare("INSERT INTO ba2_admissions (child_name,class_applying,guardian_name,phone,email,previous_school,message,date_of_birth,age,gender,home_address,emergency_contact,medical_information,learning_needs,study_mode) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(child,klass,guardian,phone,email,previous,message,dob,age,gender,address,emergency,medical,needs,study).run();
+      const applicationNumber=newApplicationReference();
+      let result;
+      try {
+        result=await env.DB.prepare("INSERT INTO ba2_admissions (application_number,child_name,class_applying,guardian_name,phone,email,previous_school,message,date_of_birth,age,gender,home_address,emergency_contact,medical_information,learning_needs,study_mode) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(applicationNumber,child,klass,guardian,phone,email,previous,message,dob,age,gender,address,emergency,medical,needs,study).run();
+      } catch(error) {
+        if(String(error?.message||"").toLowerCase().includes("unique")) return json({error:"Please submit again. The application reference could not be reserved."},409);
+        throw error;
+      }
       const applicationId=Number(result.meta?.last_row_id||0);
-      const applicationYear=new Date().getFullYear();
-      const applicationNumber=applicationId ? `BA-APP-${applicationYear}-${String(applicationId).padStart(5,"0")}` : null;
       return json({ok:true,application_id:applicationId,application_number:applicationNumber},201);
     }
 
     if(request.method==="POST" && route==="admission-status") {
       let data;try{data=await request.json();}catch{return json({error:"Enter your application reference and the child’s full name."},400);}
       const ref=clean(data.application_number,30).toUpperCase(),childName=clean(data.child_name,120);
-      const match=ref.match(/^BA-APP-(\d{4})-(\d{5})$/);
-      if(!match||!childName)return json({error:"Enter a valid application reference number and the child’s full name."},400);
-      const id=Number(match[2]);
-      const application=await env.DB.prepare("SELECT a.child_name,a.class_applying,a.status,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id WHERE a.id=?").bind(id).first();
+      if(!/^BA-APP-\d{4}-(?:[A-Z0-9]{8}|\d{5})$/.test(ref)||!childName)return json({error:"Enter a valid application reference number and the child’s full name."},400);
+      const application=await env.DB.prepare("SELECT a.child_name,a.class_applying,a.status,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id WHERE a.application_number=?").bind(ref).first();
       const normalizeName=value=>String(value||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
       if(!application||normalizeName(application.child_name)!==normalizeName(childName))return json({error:"No application matches those details. Check the reference number and child’s full name."},404);
       return json({ok:true,status:application.status,admission_number:application.admission_number||null});
@@ -149,10 +162,28 @@ export async function onRequest({request,env}) {
       if(token) await env.DB.prepare("DELETE FROM ba2_admin_sessions WHERE token_hash=?").bind(await sha256(token)).run();
       return json({ok:true},200,{"Set-Cookie":sessionCookie("",0)});
     }
+    if(request.method==="POST" && route==="integration/admission-approved") {
+      if(!env.MANAGEMENT_SYNC_SECRET || request.headers.get("Authorization")!=="Bearer "+env.MANAGEMENT_SYNC_SECRET) return json({error:"Integration authentication failed."},401);
+      let data;try{data=await request.json();}catch{return json({error:"Invalid approval update."},400);}
+      const ref=clean(data.application_number,40).toUpperCase();
+      const number=clean(data.admission_number,40);
+      if(!/^BA-APP-\d{4}-[A-Z0-9]{8}$/.test(ref)||!/^BA\/\d{4}\/\d{3,}$/.test(number)) return json({error:"Invalid application or admission number."},400);
+      const app=await env.DB.prepare("SELECT id,status FROM ba2_admissions WHERE application_number=?").bind(ref).first();
+      if(!app) return json({error:"Website application not found."},404);
+      const existing=await env.DB.prepare("SELECT id,admission_number FROM ba2_students WHERE application_id=?").bind(app.id).first();
+      if(existing && existing.admission_number!==number) return json({error:"A different admission number is already recorded for this student."},409);
+      if(!existing) {
+        const a=await env.DB.prepare("SELECT * FROM ba2_admissions WHERE id=?").bind(app.id).first();
+        await env.DB.prepare("INSERT INTO ba2_students (application_id,admission_number,full_name,class_name,guardian_name,phone,email,date_of_birth,age,gender,home_address,emergency_contact,medical_information,learning_needs,previous_school) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+          .bind(app.id,number,a.child_name,a.class_applying,a.guardian_name,a.phone,a.email||"",a.date_of_birth||null,a.age??null,a.gender||null,a.home_address||null,a.emergency_contact||null,a.medical_information||null,a.learning_needs||null,a.previous_school||null).run();
+      }
+      await env.DB.prepare("UPDATE ba2_admissions SET status='Approved' WHERE id=?").bind(app.id).run();
+      return json({ok:true,application_number:ref,admission_number:number});
+    }
     if(route.startsWith("admin/")) {
       if(!await isAdmin(request,env)) return json({error:"Your session has expired. Please sign in again."},401);
       if(request.method==="GET" && route==="admin/admissions") {
-        const result=await env.DB.prepare("SELECT a.id,a.child_name,a.class_applying,a.guardian_name,a.phone,a.email,a.previous_school,a.message,a.date_of_birth,a.age,a.gender,a.home_address,a.emergency_contact,a.medical_information,a.learning_needs,a.study_mode,a.status,a.created_at,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id ORDER BY a.created_at DESC LIMIT 500").all();
+        const result=await env.DB.prepare("SELECT a.id,a.application_number,a.child_name,a.class_applying,a.guardian_name,a.phone,a.email,a.previous_school,a.message,a.date_of_birth,a.age,a.gender,a.home_address,a.emergency_contact,a.medical_information,a.learning_needs,a.study_mode,a.status,a.created_at,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id ORDER BY a.created_at DESC LIMIT 500").all();
         return json({applications:result.results||[]});
       }
       if(request.method==="POST" && route==="admin/admissions/status") {
@@ -162,13 +193,38 @@ export async function onRequest({request,env}) {
         const application=await env.DB.prepare("SELECT * FROM ba2_admissions WHERE id=?").bind(id).first();
         if(!application) return json({error:"Application not found."},404);
         if(status==="Approved") {
-          const existing=await env.DB.prepare("SELECT admission_number FROM ba2_students WHERE application_id=?").bind(id).first();
-          if(!existing) {
-            const year=new Date().getFullYear();
-            const sequence=await env.DB.prepare("INSERT INTO ba2_admission_sequences (year,last_number) VALUES (?,1) ON CONFLICT(year) DO UPDATE SET last_number=last_number+1 RETURNING last_number").bind(year).first();
-            const number="BA/"+year+"/"+String(sequence.last_number).padStart(3,"0");
-            await env.DB.prepare("INSERT OR IGNORE INTO ba2_students (application_id,admission_number,full_name,class_name,guardian_name,phone,email,date_of_birth,age,gender,home_address,emergency_contact,medical_information,learning_needs,previous_school) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(id,number,application.child_name,application.class_applying,application.guardian_name,application.phone,application.email||"",application.date_of_birth||null,application.age??null,application.gender||null,application.home_address||null,application.emergency_contact||null,application.medical_information||null,application.learning_needs||null,application.previous_school||null).run();
+          if(!env.MANAGEMENT_API_URL||!env.MANAGEMENT_SYNC_SECRET) return json({error:"Secure management connection is not configured. No approval was saved."},503);
+          const endpoint=new URL("/api/integration/approve-website-application",env.MANAGEMENT_API_URL);
+          let centralResponse;
+          try {
+            centralResponse=await fetch(endpoint.toString(),{
+              method:"POST",
+              headers:{"Content-Type":"application/json","Authorization":"Bearer "+env.MANAGEMENT_SYNC_SECRET},
+              body:JSON.stringify({
+                application_number:application.application_number,
+                applicant_full_name:application.child_name,
+                class_name:application.class_applying,
+                guardian_name:application.guardian_name,
+                guardian_phone:application.phone,
+                date_of_birth:application.date_of_birth,
+                gender:application.gender,
+                home_address:application.home_address,
+                emergency_contact:application.emergency_contact,
+                medical_information:application.medical_information,
+                study_mode:application.study_mode
+              })
+            });
+          } catch(error) {
+            console.error("Management approval request failed:",error?.message||error);
+            return json({error:"The management system could not be reached. No approval was saved."},502);
           }
+          let central={};
+          try { central=await centralResponse.json(); } catch {}
+          if(!centralResponse.ok||!central.admission_number) return json({error:central.error||"The management system did not issue an admission number. No approval was saved."},502);
+          await env.DB.prepare("INSERT OR IGNORE INTO ba2_students (application_id,admission_number,full_name,class_name,guardian_name,phone,email,date_of_birth,age,gender,home_address,emergency_contact,medical_information,learning_needs,previous_school) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+            .bind(id,central.admission_number,application.child_name,application.class_applying,application.guardian_name,application.phone,application.email||"",application.date_of_birth||null,application.age??null,application.gender||null,application.home_address||null,application.emergency_contact||null,application.medical_information||null,application.learning_needs||null,application.previous_school||null).run();
+          const saved=await env.DB.prepare("SELECT admission_number FROM ba2_students WHERE application_id=?").bind(id).first();
+          if(!saved||saved.admission_number!==central.admission_number) return json({error:"Admission number verification failed. Contact the administrator before retrying."},409);
         }
         await env.DB.prepare("UPDATE ba2_admissions SET status=? WHERE id=?").bind(status,id).run();
         const student=await env.DB.prepare("SELECT admission_number FROM ba2_students WHERE application_id=?").bind(id).first();
