@@ -126,9 +126,14 @@ export async function onRequest({request,env}) {
     }
     if(request.method==="POST" && route==="parent-messages") {
       let payload;try{payload=await request.json();}catch{return json({error:"Please check your message and try again."},400);}
-      const upstream=await fetch(managementApi+"parent-messages",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(payload)});
-      const data=await upstream.json().catch(()=>({error:"The management system returned an invalid response."}));
-      return json(data,upstream.status);
+      try {
+        const upstream=await fetch(managementApi+"parent-messages",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(12000)});
+        const data=await upstream.json().catch(()=>({error:"The management system returned an invalid response."}));
+        return json(data,upstream.status);
+      } catch(error) {
+        console.error("Parent message forwarding failed:",error?.name==="TimeoutError"?"Management system timed out.":(error?.message||"Network error"));
+        return json({error:"The school message service is temporarily unavailable. Please try again shortly or contact the school by phone."},502);
+      }
     }
     if(request.method==="GET" && route==="health") return json({ok:true,service:"Bright Angels School API"});
     if(request.method==="GET" && route==="content") { const r=await env.DB.prepare("SELECT content_key,content_value FROM ba2_content").all();return json({content:Object.fromEntries((r.results||[]).map(x=>[x.content_key,x.content_value]))}); }
