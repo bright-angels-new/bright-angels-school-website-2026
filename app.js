@@ -35,6 +35,9 @@ document.addEventListener("DOMContentLoaded", () => {
     finally { button.disabled=false; }
   });
   const form=$("#admissionForm");
+  const dob=$("#publicApplicationDob"),ageOutput=$("#publicApplicationAge");
+  function updatePublicAge(){if(!dob||!ageOutput)return;const value=dob.value;if(!value){ageOutput.textContent="Enter date of birth";return;}const birth=new Date(value+"T00:00:00"),today=new Date();let age=today.getFullYear()-birth.getFullYear();if(today.getMonth()<birth.getMonth()||(today.getMonth()===birth.getMonth()&&today.getDate()<birth.getDate()))age--;ageOutput.textContent=age>=0?age+" years":"Enter a valid date";}
+  if(dob){dob.addEventListener("change",updatePublicAge);dob.addEventListener("input",updatePublicAge);}
   if(form) form.addEventListener("submit",submitAdmission);
   const statusForm=$("#applicationStatusForm");
   if(statusForm) statusForm.addEventListener("submit",checkApplicationStatus);
