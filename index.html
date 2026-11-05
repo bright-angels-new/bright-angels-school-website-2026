@@ -69,7 +69,8 @@
         <p class="admin-note">Fields marked * are required. Your application is sent directly to the school management system.</p>
         <div class="form-grid">
           <label>Child's full name *<input name="applicant_full_name" maxlength="120" autocomplete="name" required></label>
-          <label>Date of birth *<input name="date_of_birth" type="date" required></label>
+          <label>Date of birth *<input id="publicApplicationDob" name="date_of_birth" type="date" required></label>
+          <label>Age (calculated automatically)<output id="publicApplicationAge" aria-live="polite">Enter date of birth</output></label>
           <label>Gender *<select name="gender" required><option value="">Select gender</option><option>Female</option><option>Male</option><option>Other</option></select></label>
           <label>Class applying for *<select name="requested_class_id" id="classSelect" required><option value="">Loading classes…</option></select></label>
           <label>Study mode *<select name="study_mode" required><option value="Day">Day</option><option value="Boarding">Boarding</option></select></label>
