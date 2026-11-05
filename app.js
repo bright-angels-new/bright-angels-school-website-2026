@@ -112,26 +112,3 @@ function isApprovedGalleryImage(value){try{const u=new URL(String(value||""),win
 
 async function loadPublicGallery(){const box=$("#publicGallery");if(!box)return;try{const r=await fetch("/api/gallery");if(!r.ok)return;const d=await r.json();box.replaceChildren();(d.gallery||[]).forEach(item=>{const card=document.createElement("article");card.className="feature-card";const img=document.createElement("img");if(!isApprovedGalleryImage(item.image_url)){console.warn("Skipped gallery item with an unapproved image URL.");return;}img.src=item.image_url;img.alt=item.title||"Bright Angels school photo";img.loading="lazy";img.style.width="100%";img.style.height="190px";img.style.objectFit="cover";const h=document.createElement("h3");h.textContent=item.title;const p=document.createElement("p");p.textContent=item.description||"";card.append(img,h,p);box.append(card);});if(!box.children.length)box.innerHTML="<p class=\"muted\">School gallery photos will appear here.</p>";}catch(e){console.warn("Gallery unavailable.",e);}}
 
-async function checkApplicationStatus(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const output = $("#applicationStatusResult");
-  const button = form.querySelector('button[type="submit"]');
-  button.disabled = true;
-  output.textContent = "Checking application…";
-  try {
-    const payload = Object.fromEntries(new FormData(form).entries());
-    const response = await fetch("/api/admission-status", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(payload)
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error || "We could not find that application. Check the details and try again.");
-    output.textContent = "Application status: " + result.status + (result.admission_number ? ". Student admission number: " + result.admission_number : "") + ". For further information, contact the school.";
-  } catch (error) {
-    output.textContent = error.message || "Status check failed. Please contact the school.";
-  } finally {
-    button.disabled = false;
-  }
-}
