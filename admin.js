@@ -51,11 +51,8 @@ async function api(path, options={}) {
 }
 function showPanel(id) {
   currentPanel=id;
-  ["overviewPanel","admissionsPanel","studentsPanel","announcementsPanel","subjectsPanel","marksPanel","feesPanel","messagesPanel","contentPanel","galleryPanel"].forEach(panel=>$("#"+panel)?.classList.toggle("admin-hidden",panel!==id));
+  ["overviewPanel","announcementsPanel","contentPanel","galleryPanel"].forEach(panel=>$("#"+panel)?.classList.toggle("admin-hidden",panel!==id));
   document.querySelectorAll("[data-panel]").forEach(button=>button.classList.toggle("active",button.dataset.panel===id));
-  if(id==="studentsPanel") loadStudents();
-  if(["subjectsPanel","marksPanel","feesPanel"].includes(id)) loadSchoolRecords();
-  if(id==="messagesPanel") loadParentMessages();
   if(id==="contentPanel") loadContent();
   if(id==="galleryPanel") loadAdminGallery();
 }
@@ -66,7 +63,7 @@ async function login(event) {
   catch(error){status.textContent=error.message;} finally{button.disabled=false;}
 }
 async function checkSession(){try{await api("session");await showDashboard();}catch{$("#loginPanel").classList.remove("admin-hidden");$("#dashboard").classList.add("admin-hidden");}}
-async function showDashboard(){ $("#loginPanel").classList.add("admin-hidden");$("#dashboard").classList.remove("admin-hidden");showPanel(currentPanel);await Promise.all([loadAdmissions(),loadAnnouncements()]);}
+async function showDashboard(){ $("#loginPanel").classList.add("admin-hidden");$("#dashboard").classList.remove("admin-hidden");showPanel(currentPanel);await loadAnnouncements();}
 async function logout(){try{await api("logout",{method:"POST"});}catch{}$("#dashboard").classList.add("admin-hidden");$("#loginPanel").classList.remove("admin-hidden");$("#loginStatus").textContent="You have signed out.";}
 
 async function loadAdmissions(){
