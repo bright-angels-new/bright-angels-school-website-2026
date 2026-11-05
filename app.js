@@ -14,77 +14,6 @@ document.addEventListener("DOMContentLoaded", () => {
       menuToggle.setAttribute("aria-expanded", "false");
     }));
   }
-
-  const year = $("#year");
-  if (year) year.textContent = new Date().getFullYear();
-
-  loadAnnouncements();
-  loadPublicContent();
-  loadPublicGallery();
-  const parentForm=$("#parentMessageForm");
-  if(parentForm) parentForm.addEventListener("submit", async event=>{event.preventDefault();const status=$("#parentMessageStatus"),button=parentForm.querySelector('button[type="submit"]');button.disabled=true;status.textContent="Sending…";try{const payload=Object.fromEntries(new FormData(parentForm).entries());const response=await fetch("/api/parent-messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const result=await response.json().catch(()=>({}));if(!response.ok)throw new Error(result.error||"Message could not be sent.");parentForm.reset();status.textContent="Your message has been sent to the school.";}catch(error){status.textContent=error.message;}finally{button.disabled=false;}});
-
-  const form = $("#admissionForm");
-  if (form) {
-    const dobInput = form.querySelector('[name="date_of_birth"]');
-    const ageInput = form.querySelector('[name="age_display"]');
-    const updateAge = () => {
-      if (!dobInput || !ageInput || !dobInput.value) { if (ageInput) ageInput.value = ""; return; }
-      const dob = new Date(dobInput.value + "T00:00:00");
-      const today = new Date();
-      let age = today.getFullYear() - dob.getFullYear();
-      const beforeBirthday = today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate());
-      if (beforeBirthday) age--;
-      ageInput.value = age >= 0 ? String(age) : "";
-    };
-    if (dobInput) dobInput.addEventListener("change", updateAge);
-    if (dobInput) dobInput.addEventListener("input", updateAge);
-    form.addEventListener("submit", submitAdmission);
-  }
-  const statusForm = $("#applicationStatusForm");
-  if (statusForm) statusForm.addEventListener("submit", checkApplicationStatus);
-});
-
-async function loadAnnouncements() {
-  const container = $("#publicAnnouncements");
-  if (!container) return;
-  try {
-    const response = await fetch("/api/announcements");
-    if (!response.ok) return;
-    const data = await response.json();
-    const items = Array.isArray(data.announcements) ? data.announcements : [];
-    if (!items.length) return;
-    container.replaceChildren(...items.map(item => {
-      const article = document.createElement("article");
-      article.className = "announcement-item";
-      const title = document.createElement("h3");
-      title.textContent = item.title || "School announcement";
-      const body = document.createElement("p");
-      body.textContent = item.body || item.message || "";
-      article.append(title, body);
-      return article;
-    }));
-  } catch (error) {
-    console.warn("Announcements are temporarily unavailable.", error);
-  }
-}
-
-const $ = (selector) => document.querySelector(selector);
-
-document.addEventListener("DOMContentLoaded", () => {
-  const menuToggle = $("#menuToggle");
-  const nav = $("#mainNav");
-  if (menuToggle && nav) {
-    menuToggle.addEventListener("click", () => {
-      const opened = nav.classList.toggle("open");
-      menuToggle.setAttribute("aria-expanded", String(opened));
-      menuToggle.setAttribute("aria-label", opened ? "Close navigation" : "Open navigation");
-    });
-    nav.querySelectorAll("a").forEach(link => link.addEventListener("click", () => {
-      nav.classList.remove("open");
-      menuToggle.setAttribute("aria-expanded", "false");
-    }));
-  }
   const year = $("#year");
   if (year) year.textContent = new Date().getFullYear();
   loadAnnouncements();
@@ -110,6 +39,28 @@ document.addEventListener("DOMContentLoaded", () => {
   const statusForm=$("#applicationStatusForm");
   if(statusForm) statusForm.addEventListener("submit",checkApplicationStatus);
 });
+
+async function loadAnnouncements() {
+  const container = $("#publicAnnouncements");
+  if (!container) return;
+  try {
+    const response = await fetch("/api/announcements");
+    if (!response.ok) return;
+    const data = await response.json();
+    const items = Array.isArray(data.announcements) ? data.announcements : [];
+    if (!items.length) return;
+    container.replaceChildren(...items.map(item => {
+      const article = document.createElement("article");
+      article.className = "announcement-item";
+      const title = document.createElement("h3");
+      title.textContent = item.title || "School announcement";
+      const body = document.createElement("p");
+      body.textContent = item.body || item.message || "";
+      article.append(title, body);
+      return article;
+    }));
+  } catch (error) { console.warn("Announcements are temporarily unavailable.", error); }
+}
 
 async function loadApplicationClasses() {
   const select=$("#classSelect");
