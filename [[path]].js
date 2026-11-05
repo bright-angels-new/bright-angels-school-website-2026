@@ -167,7 +167,7 @@ export async function onRequest({request,env}) {
       let data;try{data=await request.json();}catch{return json({error:"Invalid approval update."},400);}
       const ref=clean(data.application_number,40).toUpperCase();
       const number=clean(data.admission_number,40);
-      if(!/^BA-APP-\\d{4}-[A-Z0-9]{8}$/.test(ref)||!/^BA\\/\\d{4}\\/\\d{3,}$/.test(number)) return json({error:"Invalid application or admission number."},400);
+      if(!/^BA-APP-\d{4}-[A-Z0-9]{8}$/.test(ref)||!/^BA\/\d{4}\/\d{3,}$/.test(number)) return json({error:"Invalid application or admission number."},400);
       const app=await env.DB.prepare("SELECT id,status FROM ba2_admissions WHERE application_number=?").bind(ref).first();
       if(!app) return json({error:"Website application not found."},404);
       const existing=await env.DB.prepare("SELECT id,admission_number FROM ba2_students WHERE application_id=?").bind(app.id).first();
