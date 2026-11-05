@@ -163,7 +163,9 @@ export async function onRequest({request,env}) {
       return json({ok:true},200,{"Set-Cookie":sessionCookie("",0)});
     }
     if(request.method==="POST" && route==="integration/student-created") {
-      if(!env.WEBSITE_SYNC_SECRET || request.headers.get("Authorization")!=="Bearer "+env.WEBSITE_SYNC_SECRET) return json({error:"Integration authentication failed."},401);
+      const websiteSyncSecret=String(env.WEBSITE_SYNC_SECRET||"").trim();
+      const suppliedAuthorization=String(request.headers.get("Authorization")||"").trim();
+      if(!websiteSyncSecret || suppliedAuthorization!=="Bearer "+websiteSyncSecret) return json({error:"Integration authentication failed."},401);
       let data;try{data=await request.json();}catch{return json({error:"Invalid student sync payload."},400);}
       const number=clean(data.admission_number,40),full=clean(data.full_name,160),klass=clean(data.class_name,40),guardian=clean(data.guardian_name,160),phone=clean(data.guardian_phone,40);
       const dob=clean(data.date_of_birth,10),gender=clean(data.gender,20),address=clean(data.home_address,300),email=clean(data.email,160),emergency=clean(data.emergency_contact_name||data.emergency_contact_phone,120),medical=clean(data.medical_information,1000),studyMode=data.study_mode==="Boarding"?"Boarding":"Day";
