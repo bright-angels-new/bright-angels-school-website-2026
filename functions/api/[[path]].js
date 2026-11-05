@@ -126,7 +126,7 @@ export async function onRequest({request,env}) {
     }
     if(request.method==="POST" && route==="parent-messages") {
       let payload;try{payload=await request.json();}catch{return json({error:"Please check your message and try again."},400);}
-      const upstream=await fetch(managementApi+"parent-messages",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(payload)});
+      const upstream=await fetch(managementApi+"parent-messages",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(12000)});
       const data=await upstream.json().catch(()=>({error:"The management system returned an invalid response."}));
       return json(data,upstream.status);
     }
