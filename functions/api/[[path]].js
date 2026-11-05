@@ -124,6 +124,12 @@ export async function onRequest({request,env}) {
       const data=await upstream.json().catch(()=>({error:"The management system returned an invalid response."}));
       return json(data,upstream.status);
     }
+    if(request.method==="POST" && route==="parent-messages") {
+      let payload;try{payload=await request.json();}catch{return json({error:"Please check your message and try again."},400);}
+      const upstream=await fetch(managementApi+"parent-messages",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(payload)});
+      const data=await upstream.json().catch(()=>({error:"The management system returned an invalid response."}));
+      return json(data,upstream.status);
+    }
     if(request.method==="GET" && route==="health") return json({ok:true,service:"Bright Angels School API"});
     if(request.method==="GET" && route==="content") { const r=await env.DB.prepare("SELECT content_key,content_value FROM ba2_content").all();return json({content:Object.fromEntries((r.results||[]).map(x=>[x.content_key,x.content_value]))}); }
     if(request.method==="GET" && route==="gallery") { const r=await env.DB.prepare("SELECT id,title,image_url,description FROM ba2_gallery ORDER BY created_at DESC LIMIT 60").all();const gallery=(r.results||[]).flatMap(item=>{const image_url=safeGalleryUrl(item.image_url);if(!image_url){console.warn("Skipped gallery item with an unapproved image URL. Item ID:",item.id);return [];}return [{...item,image_url}];});return json({gallery}); }
