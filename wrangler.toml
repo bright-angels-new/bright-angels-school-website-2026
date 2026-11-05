@@ -1,8 +1,0 @@
-name = "bright-angels-school-website-2026"
-compatibility_date = "2026-11-03"
-pages_build_output_dir = "."
-
-[[d1_databases]]
-binding = "DB"
-database_name = "bright-angels-junior-school-db"
-database_id = "137647d1-a64a-4cc0-b3ba-027a9199f7d3"

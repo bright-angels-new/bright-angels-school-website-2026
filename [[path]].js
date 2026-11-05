@@ -39,6 +39,11 @@ async function ensureSchema(db) {
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_gallery (id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,image_url TEXT NOT NULL,description TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE TABLE IF NOT EXISTS ba2_rate_limits (key_hash TEXT PRIMARY KEY, window_started TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0)")
   ]);
+  const admissionCols=await db.prepare("PRAGMA table_info(ba2_admissions)").all();
+  const admissionExisting=new Set((admissionCols.results||[]).map(x=>x.name));
+  if(!admissionExisting.has("application_number")) await db.prepare("ALTER TABLE ba2_admissions ADD COLUMN application_number TEXT").run();
+  await db.prepare("UPDATE ba2_admissions SET application_number='BA-APP-' || strftime('%Y',created_at) || '-' || printf('%05d',id) WHERE application_number IS NULL OR application_number=''").run();
+  await db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_ba2_admissions_application_number ON ba2_admissions(application_number)").run();
   const markCols=await db.prepare("PRAGMA table_info(ba2_marks)").all();
   const markExisting=new Set((markCols.results||[]).map(x=>x.name));
   if(!markExisting.has("assessment_type")) {
@@ -110,20 +115,25 @@ export async function onRequest({request,env}) {
       const birthDate=new Date(dob+"T00:00:00"),today=new Date();let age=today.getFullYear()-birthDate.getFullYear();if(today.getMonth()<birthDate.getMonth()||(today.getMonth()===birthDate.getMonth()&&today.getDate()<birthDate.getDate()))age--;
       if(!child||!allowedClasses.includes(klass)||!guardian||!phone||!dob||Number.isNaN(birthDate.getTime())||birthDate>today||age<0||age>100||!["Female","Male"].includes(gender)||!address||!emergency) return json({error:"Please complete all required fields and enter a valid date of birth."},400);
       if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({error:"Please enter a valid email address."},400);
-      const result=await env.DB.prepare("INSERT INTO ba2_admissions (child_name,class_applying,guardian_name,phone,email,previous_school,message,date_of_birth,age,gender,home_address,emergency_contact,medical_information,learning_needs,study_mode) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(child,klass,guardian,phone,email,previous,message,dob,age,gender,address,emergency,medical,needs,study).run();
+      const randomBytes=crypto.getRandomValues(new Uint8Array(3));
+      const suffix=[...randomBytes].map(value=>value.toString(16).padStart(2,"0")).join("").slice(0,5).toUpperCase();
+      const applicationNumber=`BA-APP-${new Date().getFullYear()}-${suffix}`;
+      let result;
+      try {
+        result=await env.DB.prepare("INSERT INTO ba2_admissions (application_number,child_name,class_applying,guardian_name,phone,email,previous_school,message,date_of_birth,age,gender,home_address,emergency_contact,medical_information,learning_needs,study_mode) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(applicationNumber,child,klass,guardian,phone,email,previous,message,dob,age,gender,address,emergency,medical,needs,study).run();
+      } catch(error) {
+        if(String(error?.message||"").toLowerCase().includes("unique")) return json({error:"Please submit again. The application reference could not be reserved."},409);
+        throw error;
+      }
       const applicationId=Number(result.meta?.last_row_id||0);
-      const applicationYear=new Date().getFullYear();
-      const applicationNumber=applicationId ? `BA-APP-${applicationYear}-${String(applicationId).padStart(5,"0")}` : null;
       return json({ok:true,application_id:applicationId,application_number:applicationNumber},201);
     }
 
     if(request.method==="POST" && route==="admission-status") {
       let data;try{data=await request.json();}catch{return json({error:"Enter your application reference and the child’s full name."},400);}
       const ref=clean(data.application_number,30).toUpperCase(),childName=clean(data.child_name,120);
-      const match=ref.match(/^BA-APP-(\d{4})-(\d{5})$/);
-      if(!match||!childName)return json({error:"Enter a valid application reference number and the child’s full name."},400);
-      const id=Number(match[2]);
-      const application=await env.DB.prepare("SELECT a.child_name,a.class_applying,a.status,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id WHERE a.id=?").bind(id).first();
+      if(!/^BA-APP-\d{4}-[A-F0-9]{5}$/.test(ref)||!childName)return json({error:"Enter a valid application reference number and the child’s full name."},400);
+      const application=await env.DB.prepare("SELECT a.child_name,a.class_applying,a.status,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id WHERE a.application_number=?").bind(ref).first();
       const normalizeName=value=>String(value||"").trim().replace(/\s+/g," ").toLocaleLowerCase();
       if(!application||normalizeName(application.child_name)!==normalizeName(childName))return json({error:"No application matches those details. Check the reference number and child’s full name."},404);
       return json({ok:true,status:application.status,admission_number:application.admission_number||null});
@@ -152,7 +162,7 @@ export async function onRequest({request,env}) {
     if(route.startsWith("admin/")) {
       if(!await isAdmin(request,env)) return json({error:"Your session has expired. Please sign in again."},401);
       if(request.method==="GET" && route==="admin/admissions") {
-        const result=await env.DB.prepare("SELECT a.id,a.child_name,a.class_applying,a.guardian_name,a.phone,a.email,a.previous_school,a.message,a.date_of_birth,a.age,a.gender,a.home_address,a.emergency_contact,a.medical_information,a.learning_needs,a.study_mode,a.status,a.created_at,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id ORDER BY a.created_at DESC LIMIT 500").all();
+        const result=await env.DB.prepare("SELECT a.id,a.application_number,a.child_name,a.class_applying,a.guardian_name,a.phone,a.email,a.previous_school,a.message,a.date_of_birth,a.age,a.gender,a.home_address,a.emergency_contact,a.medical_information,a.learning_needs,a.study_mode,a.status,a.created_at,s.admission_number FROM ba2_admissions a LEFT JOIN ba2_students s ON s.application_id=a.id ORDER BY a.created_at DESC LIMIT 500").all();
         return json({applications:result.results||[]});
       }
       if(request.method==="POST" && route==="admin/admissions/status") {
