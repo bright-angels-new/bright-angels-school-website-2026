@@ -106,6 +106,24 @@ export async function onRequest({request,env}) {
     if(request.method==="POST" && route==="admissions" && !await rateLimit(env.DB,request,"admissions",5,3600)) return json({error:"Too many admission enquiries from this connection. Please try again later or contact the school by phone."},429,{"Retry-After":"3600"});
     if(request.method==="POST" && route==="parent-messages" && !await rateLimit(env.DB,request,"parent-messages",5,3600)) return json({error:"Too many messages from this connection. Please try again later or contact the school by phone."},429,{"Retry-After":"3600"});
     if(request.method==="POST" && route==="admission-status" && !await rateLimit(env.DB,request,"admission-status",10,900)) return json({error:"Too many status checks. Please wait 15 minutes and try again."},429,{"Retry-After":"900"});
+    const managementApi="https://bright-angels-junior-school-management-system.pages.dev/api/public/";
+    if(request.method==="GET" && route==="public-classes") {
+      const upstream=await fetch(managementApi+"classes",{headers:{"Accept":"application/json"}});
+      const data=await upstream.json().catch(()=>({error:"The management system returned an invalid response."}));
+      return json(data,upstream.status);
+    }
+    if(request.method==="POST" && route==="public-admissions") {
+      let payload;try{payload=await request.json();}catch{return json({error:"Please check the application details."},400);}
+      const upstream=await fetch(managementApi+"admissions",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(payload)});
+      const data=await upstream.json().catch(()=>({error:"The management system returned an invalid response."}));
+      return json(data,upstream.status);
+    }
+    if(request.method==="POST" && route==="public-admission-status") {
+      let payload;try{payload=await request.json();}catch{return json({error:"Enter the application reference and child's full name."},400);}
+      const upstream=await fetch(managementApi+"admission-status",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(payload)});
+      const data=await upstream.json().catch(()=>({error:"The management system returned an invalid response."}));
+      return json(data,upstream.status);
+    }
     if(request.method==="GET" && route==="health") return json({ok:true,service:"Bright Angels School API"});
     if(request.method==="GET" && route==="content") { const r=await env.DB.prepare("SELECT content_key,content_value FROM ba2_content").all();return json({content:Object.fromEntries((r.results||[]).map(x=>[x.content_key,x.content_value]))}); }
     if(request.method==="GET" && route==="gallery") { const r=await env.DB.prepare("SELECT id,title,image_url,description FROM ba2_gallery ORDER BY created_at DESC LIMIT 60").all();const gallery=(r.results||[]).flatMap(item=>{const image_url=safeGalleryUrl(item.image_url);if(!image_url){console.warn("Skipped gallery item with an unapproved image URL. Item ID:",item.id);return [];}return [{...item,image_url}];});return json({gallery}); }
