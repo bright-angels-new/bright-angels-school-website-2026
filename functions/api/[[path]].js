@@ -22,6 +22,7 @@ async function ensureSchema(db) {
       id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, body TEXT NOT NULL,
       is_published INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`),
+    db.prepare("CREATE TABLE IF NOT EXISTS ba2_events (id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,event_date TEXT NOT NULL,start_time TEXT,location TEXT,description TEXT NOT NULL,is_published INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare(`CREATE TABLE IF NOT EXISTS ba2_admin_sessions (
       token_hash TEXT PRIMARY KEY, expires_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`),
@@ -143,6 +144,10 @@ export async function onRequest({request,env}) {
     if(request.method==="GET" && route==="gallery") { const [r,featured]=await Promise.all([env.DB.prepare("SELECT id,title,image_url,description FROM ba2_gallery ORDER BY created_at DESC LIMIT 60").all(),env.DB.prepare("SELECT content_value FROM ba2_content WHERE content_key='hero_image_url'").first()]);const gallery=(r.results||[]).flatMap(item=>{const image_url=safeGalleryUrl(item.image_url);if(!image_url){console.warn("Skipped gallery item with an unapproved image URL. Item ID:",item.id);return [];}return [{...item,image_url}];});const featured_image_url=safeGalleryUrl(featured?.content_value)||"";return json({gallery,featured_image_url}); }
     if(request.method==="GET" && route==="videos") {const r=await env.DB.prepare("SELECT id,title,video_url,provider,video_id FROM ba2_videos ORDER BY created_at DESC LIMIT 40").all();const videos=(r.results||[]).flatMap(item=>{const video_url=safeGalleryUrl(item.video_url);return video_url&&item.provider==="ImageKit"?[{id:item.id,title:item.title,video_url}]:[];});return json({videos});}
     if(request.method==="GET" && route==="stories") { const r=await env.DB.prepare("SELECT id,title,body,image_url,created_at FROM ba2_stories WHERE is_published=1 ORDER BY created_at DESC LIMIT 30").all();return json({stories:(r.results||[]).map(item=>({...item,image_url:safeGalleryUrl(item.image_url)||""}))}); }
+    if(request.method==="GET" && route==="events") {
+      const result=await env.DB.prepare("SELECT id,title,event_date,start_time,location,description FROM ba2_events WHERE is_published=1 AND event_date>=date('now') ORDER BY event_date ASC,COALESCE(start_time,'23:59') ASC LIMIT 30").all();
+      return json({events:result.results||[]});
+    }
     if(request.method==="GET" && route==="announcements") {
       const result=await env.DB.prepare("SELECT id,title,body,created_at FROM ba2_announcements WHERE is_published=1 ORDER BY created_at DESC LIMIT 20").all();
       return json({announcements:result.results||[]});
@@ -407,6 +412,28 @@ export async function onRequest({request,env}) {
       if(request.method==="GET" && route==="admin/stories") { const r=await env.DB.prepare("SELECT id,title,body,image_url,is_published,created_at FROM ba2_stories ORDER BY created_at DESC LIMIT 100").all();return json({stories:(r.results||[]).map(item=>({...item,image_url:safeGalleryUrl(item.image_url)||""}))}); }
       if(request.method==="POST" && route==="admin/stories") { let d;try{d=await request.json();}catch{return json({error:"Enter the story details."},400);}const title=clean(d.title,140),body=clean(d.body,2500),image=safeGalleryUrl(d.image_url)||null,published=d.is_published?1:0;if(!title||!body)return json({error:"A story title and story text are required."},400);if(d.image_url&&!image)return json({error:"Choose a school photo from the approved gallery."},400);await env.DB.prepare("INSERT INTO ba2_stories (title,body,image_url,is_published) VALUES (?,?,?,?)").bind(title,body,image,published).run();return json({ok:true},201); }
       if(request.method==="POST" && route==="admin/stories/delete") { let d;try{d=await request.json();}catch{return json({error:"Choose a story to remove."},400);}const id=Number(d.id);if(!Number.isInteger(id)||id<1)return json({error:"Choose a valid story."},400);await env.DB.prepare("DELETE FROM ba2_stories WHERE id=?").bind(id).run();return json({ok:true}); }
+      if(request.method==="GET" && route==="admin/events") {
+        const result=await env.DB.prepare("SELECT id,title,event_date,start_time,location,description,is_published,created_at FROM ba2_events ORDER BY event_date ASC,COALESCE(start_time,'23:59') ASC LIMIT 200").all();
+        return json({events:result.results||[]});
+      }
+      if(request.method==="POST" && route==="admin/events") {
+        let data;try{data=await request.json();}catch{return json({error:"Enter the event details."},400);}
+        const id=Number(data.id||0),title=clean(data.title,160),eventDate=clean(data.event_date,10),time=clean(data.start_time,5),location=clean(data.location,180),description=clean(data.description,1500),published=data.is_published?1:0;
+        if(!title||!/^\\d{4}-\\d{2}-\\d{2}$/.test(eventDate)||Number.isNaN(Date.parse(eventDate+"T00:00:00"))||!description)return json({error:"Enter an event title, valid date and description."},400);
+        if(time&&!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(time))return json({error:"Enter a valid event time."},400);
+        if(id>0){
+          await env.DB.prepare("UPDATE ba2_events SET title=?,event_date=?,start_time=?,location=?,description=?,is_published=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(title,eventDate,time||null,location||null,description,published,id).run();
+          return json({ok:true,updated:true});
+        }
+        await env.DB.prepare("INSERT INTO ba2_events (title,event_date,start_time,location,description,is_published) VALUES (?,?,?,?,?,?)").bind(title,eventDate,time||null,location||null,description,published).run();
+        return json({ok:true},201);
+      }
+      if(request.method==="POST" && route==="admin/events/delete") {
+        let data;try{data=await request.json();}catch{return json({error:"Choose an event to remove."},400);}
+        const id=Number(data.id);if(!Number.isInteger(id)||id<1)return json({error:"Choose a valid event."},400);
+        await env.DB.prepare("DELETE FROM ba2_events WHERE id=?").bind(id).run();
+        return json({ok:true});
+      }
       if(request.method==="GET" && route==="admin/announcements") {
         const result=await env.DB.prepare("SELECT id,title,body,is_published,created_at FROM ba2_announcements ORDER BY created_at DESC LIMIT 100").all();
         return json({announcements:result.results||[]});
