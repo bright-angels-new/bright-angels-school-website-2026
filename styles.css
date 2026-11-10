@@ -514,3 +514,19 @@ footer .footer-bottom{max-width:1120px;margin:0 auto}
 @media(prefers-reduced-motion:reduce){
   .hero-rotator span{transition:none!important}
 }
+
+/* Word-by-word entrance animation across the welcome panel */
+.hero-content .ba-word{
+  display:inline-block;
+  opacity:0;
+  animation:baWelcomeWordIn .62s cubic-bezier(.2,.75,.25,1) both;
+  animation-delay:var(--word-delay,0ms);
+  will-change:transform,opacity;
+}
+@keyframes baWelcomeWordIn{
+  from{opacity:0;transform:translate3d(0,13px,0);filter:blur(2px)}
+  to{opacity:1;transform:translate3d(0,0,0);filter:blur(0)}
+}
+@media(prefers-reduced-motion:reduce){
+  .hero-content .ba-word{opacity:1;animation:none!important;filter:none;transform:none}
+}
