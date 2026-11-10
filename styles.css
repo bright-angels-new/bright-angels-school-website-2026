@@ -419,3 +419,73 @@ footer{background:#091f35}
   .hero-content{margin:0 auto}
   .hero-actions{justify-content:center}
 }
+
+
+/* Homepage completion: stronger photography, refined visual hierarchy and subtle motion */
+.hero{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  background-color:#123b66;
+  background-image:none;
+}
+.hero::before{
+  content:"";
+  position:absolute;
+  z-index:-2;
+  inset:0;
+  background-image:
+    linear-gradient(90deg,rgba(7,29,51,.38) 0%,rgba(12,48,79,.20) 55%,rgba(12,48,79,.08) 100%),
+    var(--hero-photo,linear-gradient(120deg,#0d2d4c,#1e6595));
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+  transform:scale(1.035);
+  animation:baHeroPhotoIn 1.1s ease-out both;
+}
+.hero::after{
+  z-index:-1;
+  pointer-events:none;
+}
+.hero-content{animation:baHeroTextIn .75s .08s ease-out both}
+.hero .eyebrow{display:inline-flex;align-items:center;gap:10px}
+.hero .eyebrow::before{content:"";display:inline-block;width:28px;height:2px;background:#f0c96f}
+.hero h1{max-width:780px;text-wrap:balance}
+.hero-copy{max-width:620px}
+.hero-actions .button{min-width:178px}
+.hero .motto{display:inline-block;padding:7px 14px;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(7,29,51,.20);backdrop-filter:blur(5px)}
+.welcome-strip{position:relative;z-index:2;box-shadow:0 8px 24px rgba(18,59,102,.08)}
+.school-at-a-glance{box-shadow:0 12px 32px rgba(18,59,102,.035)}
+.glance-icon{transition:transform .2s ease,background .2s ease}
+.school-at-a-glance>div:hover .glance-icon{transform:translateY(-3px);background:#dceefa}
+.section-heading h2{text-wrap:balance}
+.pathway-card,.feature-card,.steps-grid article,.value-card,.announcement-item,.faq-list details{transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}
+.pathway-card:hover,.feature-card:hover,.steps-grid article:hover,.announcement-item:hover{border-color:#c7ddec;box-shadow:0 20px 42px rgba(18,59,102,.11)}
+#publicGallery .feature-card{padding:12px}
+#publicGallery .feature-card img{display:block;width:100%;height:245px;object-fit:cover;border-radius:12px}
+#publicGallery .feature-card h3{padding:4px 9px 0}
+#publicGallery .feature-card p{padding:0 9px 10px}
+.admissions-steps{background:linear-gradient(180deg,#fff 0%,#f6faff 100%)}
+.admissions-steps .steps-grid article{position:relative;overflow:hidden}
+.admissions-steps .steps-grid article>span{box-shadow:0 8px 20px rgba(18,59,102,.18)}
+.parent-help-section{background:linear-gradient(180deg,#f3f8fc,#f8fbfe)}
+.contact-section{position:relative;overflow:hidden}
+.contact-section::before{content:"";position:absolute;width:420px;height:420px;border:1px solid rgba(255,255,255,.09);border-radius:50%;right:-180px;top:-220px;pointer-events:none}
+footer .footer-bottom{max-width:1120px;margin:0 auto}
+@keyframes baHeroPhotoIn{from{opacity:.65;transform:scale(1.08)}to{opacity:1;transform:scale(1.035)}}
+@keyframes baHeroTextIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:760px){
+  .hero::before{
+    background-image:
+      linear-gradient(180deg,rgba(7,29,51,.40),rgba(7,29,51,.52)),
+      var(--hero-photo,linear-gradient(145deg,#0d2d4c,#1e6595));
+    background-position:center;
+  }
+  .hero .eyebrow{justify-content:center;font-size:.66rem}
+  .hero-actions .button{min-width:0}
+  #publicGallery .feature-card img{height:220px}
+}
+@media(prefers-reduced-motion:reduce){
+  .hero::before,.hero-content{animation:none!important}
+  .glance-icon,.pathway-card,.feature-card,.steps-grid article,.announcement-item{transition:none!important}
+}
