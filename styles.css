@@ -164,3 +164,55 @@ footer small{color:#b8cad9}
   .contact-section .contact-details{display:block}
   .contact-details p{margin-bottom:15px}
 }
+
+
+/* Research-led public school website sections and responsive polish */
+.school-at-a-glance{display:grid;grid-template-columns:repeat(4,1fr);gap:0;padding:25px max(7vw,24px);background:#fff;border-bottom:1px solid #e8eef4}
+.school-at-a-glance>div{display:flex;align-items:center;justify-content:center;gap:13px;padding:8px 15px;border-right:1px solid #e6edf3}
+.school-at-a-glance>div:last-child{border-right:0}
+.glance-icon{width:42px;height:42px;display:grid;place-items:center;flex:0 0 42px;border-radius:13px;background:#edf6fc;color:#2c7eae;font-size:1.2rem}
+.school-at-a-glance strong,.school-at-a-glance small{display:block;line-height:1.4}
+.school-at-a-glance strong{font-size:.88rem;color:#123b66}
+.school-at-a-glance small{font-size:.76rem;color:#718397;margin-top:3px}
+.hero-visual{position:relative;width:min(100%,440px);margin:auto;padding:0 0 24px 24px}
+.hero-visual:before{content:"";position:absolute;inset:24px 24px 0 0;border:1px solid rgba(255,255,255,.45);border-radius:24px}
+.hero-visual>img{position:relative;display:block;width:100%;height:370px;object-fit:cover;border-radius:22px;background:#fff;box-shadow:0 25px 65px rgba(0,0,0,.23)}
+.hero-photo-caption{position:absolute;right:-10px;bottom:0;display:flex;align-items:center;gap:11px;padding:12px 18px;background:#fff;border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.15);color:#123b66}
+.hero-photo-caption img{width:42px;height:42px;object-fit:contain}
+.hero-photo-caption strong,.hero-photo-caption small{display:block;line-height:1.35}
+.hero-photo-caption strong{font-size:.88rem}
+.hero-photo-caption small{font-size:.72rem;color:#728397}
+.pathway-section{background:#fff}
+.pathway-grid{max-width:1080px;margin:auto;display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.pathway-card{position:relative;overflow:hidden;padding:36px;border-radius:18px;border:1px solid #e0eaf2;background:linear-gradient(140deg,#f4f9fd,#fff);box-shadow:0 14px 35px rgba(18,59,102,.06)}
+.pathway-card.primary-years{background:linear-gradient(140deg,#edf6fc,#fff)}
+.pathway-number{position:absolute;right:24px;top:15px;font:700 3.8rem Georgia,serif;color:rgba(37,112,161,.10)}
+.pathway-label{font-size:.7rem;letter-spacing:.16em;font-weight:800;color:#3986b8;margin:0 0 12px}
+.pathway-card h3{font:700 1.65rem Georgia,serif;color:#123b66;margin:0 0 12px}
+.pathway-card>p:not(.pathway-label){color:#617487;line-height:1.8}
+.class-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.class-pills span{padding:7px 12px;border-radius:999px;background:#fff;border:1px solid #dce9f2;color:#315b7a;font-size:.78rem;font-weight:700}
+.admissions-steps{padding:78px max(8vw,24px);background:#fff}
+.steps-grid{max-width:1050px;margin:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.steps-grid article{padding:28px 25px;border:1px solid #e1ebf3;border-radius:15px;background:#fff;box-shadow:0 12px 30px rgba(18,59,102,.055)}
+.steps-grid article>span{width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:#123b66;color:#fff;font-weight:800}
+.steps-grid h3{color:#123b66;margin:17px 0 8px}
+.steps-grid p{margin:0;color:#65788b;line-height:1.75;font-size:.92rem}
+.parent-help-section{background:#f3f8fc}
+.faq-list{max-width:900px;margin:auto;display:grid;gap:12px}
+.faq-list details{padding:18px 22px;background:#fff;border:1px solid #e0eaf2;border-radius:12px}
+.faq-list summary{cursor:pointer;font-weight:750;color:#123b66}
+.faq-list details p{margin:12px 0 0;color:#607487;line-height:1.8}
+.contact-details a[href^="tel:"]{color:#e4f0f8}
+.contact-details a[href*="google.com/maps"]{display:inline-block;margin-top:8px;color:#f3cd7c;font-weight:700}
+footer .footer-inner{max-width:1120px;margin:auto}
+.footer-school{display:flex;align-items:center;justify-content:center;gap:14px}
+.footer-school img{width:52px;height:52px;object-fit:contain;background:#fff;border-radius:50%;padding:4px}
+.footer-school .footer-brand{display:block}
+.footer-school p{margin:3px 0 0}
+.footer-links{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 26px;padding:25px 0;color:#d8e8f5;font-size:.82rem}
+.footer-links a:hover,.footer-bottom a:hover{color:#f0c56e}
+.footer-bottom{display:flex;justify-content:space-between;align-items:center;gap:15px;padding-top:18px;border-top:1px solid rgba(255,255,255,.16)}
+.footer-bottom a{font-size:.78rem;color:#f0c56e}
+@media(max-width:900px){.school-at-a-glance{grid-template-columns:repeat(2,1fr)}.school-at-a-glance>div:nth-child(2){border-right:0}.school-at-a-glance>div:nth-child(-n+2){border-bottom:1px solid #e6edf3}.hero-visual{max-width:380px}}
+@media(max-width:700px){.school-at-a-glance{padding:17px 12px;gap:0}.school-at-a-glance>div{justify-content:flex-start;padding:12px 8px;gap:9px}.glance-icon{width:35px;height:35px;flex-basis:35px;border-radius:10px}.school-at-a-glance strong{font-size:.78rem}.school-at-a-glance small{font-size:.68rem}.hero-visual{width:min(88%,350px);padding-left:12px}.hero-visual>img{height:245px;border-radius:17px}.hero-photo-caption{right:-8px;padding:9px 12px}.hero-photo-caption img{width:34px;height:34px}.pathway-grid,.steps-grid{grid-template-columns:1fr}.pathway-card{padding:28px 23px}.admissions-steps{padding:60px 20px}.footer-bottom{flex-direction:column;text-align:center}.footer-links{gap:12px 17px}}
