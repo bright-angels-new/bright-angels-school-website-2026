@@ -140,7 +140,7 @@ export async function onRequest({request,env}) {
     if(request.method==="GET" && route==="health") return json({ok:true,service:"Bright Angels School API"});
     if(request.method==="GET" && route==="content") { const r=await env.DB.prepare("SELECT content_key,content_value FROM ba2_content").all();return json({content:Object.fromEntries((r.results||[]).map(x=>[x.content_key,x.content_value]))}); }
     if(request.method==="GET" && route==="gallery") { const [r,featured]=await Promise.all([env.DB.prepare("SELECT id,title,image_url,description FROM ba2_gallery ORDER BY created_at DESC LIMIT 60").all(),env.DB.prepare("SELECT content_value FROM ba2_content WHERE content_key='hero_image_url'").first()]);const gallery=(r.results||[]).flatMap(item=>{const image_url=safeGalleryUrl(item.image_url);if(!image_url){console.warn("Skipped gallery item with an unapproved image URL. Item ID:",item.id);return [];}return [{...item,image_url}];});const featured_image_url=safeGalleryUrl(featured?.content_value)||"";return json({gallery,featured_image_url}); }
-    if(request.method==="GET" && route==="videos") {const r=await env.DB.prepare("SELECT id,title,video_url,provider,video_id FROM ba2_videos ORDER BY created_at DESC LIMIT 40").all();const videos=(r.results||[]).flatMap(item=>{const safe=parseSchoolVideo(item.video_url);return safe&&safe.provider===item.provider&&safe.video_id===item.video_id?[{id:item.id,title:item.title,provider:safe.provider,video_id:safe.video_id,embed_url:safe.embed_url,thumbnail_url:safe.thumbnail_url}]:[];});return json({videos});}
+    if(request.method==="GET" && route==="videos") {const r=await env.DB.prepare("SELECT id,title,video_url,provider,video_id FROM ba2_videos ORDER BY created_at DESC LIMIT 40").all();const videos=(r.results||[]).flatMap(item=>{const video_url=safeGalleryUrl(item.video_url);return video_url&&item.provider==="ImageKit"?[{id:item.id,title:item.title,video_url}]:[];});return json({videos});}
     if(request.method==="GET" && route==="announcements") {
       const result=await env.DB.prepare("SELECT id,title,body,created_at FROM ba2_announcements WHERE is_published=1 ORDER BY created_at DESC LIMIT 20").all();
       return json({announcements:result.results||[]});
@@ -349,8 +349,29 @@ export async function onRequest({request,env}) {
       if(request.method==="GET" && route==="admin/content") { const r=await env.DB.prepare("SELECT content_key,content_value FROM ba2_content").all();return json({content:Object.fromEntries((r.results||[]).map(x=>[x.content_key,x.content_value]))}); }
       if(request.method==="POST" && route==="admin/content") { let d;try{d=await request.json();}catch{return json({error:"Invalid content."},400);} const allowed=["hero_title","hero_text","about_text","learning_text"];for(const k of allowed)if(typeof d[k]==="string")await env.DB.prepare("INSERT INTO ba2_content (content_key,content_value) VALUES (?,?) ON CONFLICT(content_key) DO UPDATE SET content_value=excluded.content_value,updated_at=CURRENT_TIMESTAMP").bind(k,clean(d[k],1200)).run();return json({ok:true}); }
       if(request.method==="GET" && route==="admin/gallery") { const r=await env.DB.prepare("SELECT id,title,image_url,description FROM ba2_gallery ORDER BY created_at DESC").all();const gallery=(r.results||[]).flatMap(item=>{const image_url=safeGalleryUrl(item.image_url);if(!image_url){console.warn("Skipped gallery item with an unapproved image URL. Item ID:",item.id);return [];}return [{...item,image_url}];});return json({gallery}); }
-      if(request.method==="GET" && route==="admin/videos") {const r=await env.DB.prepare("SELECT id,title,video_url,provider,video_id FROM ba2_videos ORDER BY created_at DESC").all();return json({videos:r.results||[]});}
-      if(request.method==="POST" && route==="admin/videos") {let d;try{d=await request.json();}catch{return json({error:"Enter a video title and YouTube or Vimeo link."},400);}const title=clean(d.title,120),video=parseSchoolVideo(d.video_url);if(!title||!video)return json({error:"Enter a title and a valid public YouTube or Vimeo video link."},400);const exists=await env.DB.prepare("SELECT id FROM ba2_videos WHERE video_url=?").bind(video.watch_url).first();if(exists)return json({error:"That video has already been added."},409);await env.DB.prepare("INSERT INTO ba2_videos (title,video_url,provider,video_id) VALUES (?,?,?,?)").bind(title,video.watch_url,video.provider,video.video_id).run();return json({ok:true},201);}
+      if(request.method==="GET" && route==="admin/videos") {const r=await env.DB.prepare("SELECT id,title,video_url,provider,video_id FROM ba2_videos ORDER BY created_at DESC").all();return json({videos:(r.results||[]).filter(item=>item.provider==="ImageKit"&&safeGalleryUrl(item.video_url)).map(item=>({...item,video_url:safeGalleryUrl(item.video_url)}))});}
+      if(request.method==="POST" && route==="admin/videos") {
+         if(!env.IMAGEKIT_PRIVATE_KEY) return json({error:"Video storage is not configured. Please contact the website administrator."},503);
+         let form;try{form=await request.formData();}catch{return json({error:"Choose a video from your phone and try again."},400);}
+         const title=clean(form.get("title"),120),video=form.get("video");
+         if(!title||!video||typeof video.arrayBuffer!=="function"||!video.size)return json({error:"Enter a video title and choose a video from your phone."},400);
+         const mime=String(video.type||"").toLowerCase();
+         if(!["video/mp4","video/webm","video/quicktime"].includes(mime))return json({error:"Please choose an MP4, WebM or MOV video."},400);
+         if(video.size<1||video.size>90*1024*1024)return json({error:"The video must be 90 MB or smaller. Please choose a shorter or smaller video."},400);
+         const signature=new Uint8Array(await video.slice(0,16).arrayBuffer());
+         const isMp4=signature.length>=8&&String.fromCharCode(...signature.slice(4,8))==="ftyp";
+         const isWebm=signature.length>=4&&signature[0]===0x1a&&signature[1]===0x45&&signature[2]===0xdf&&signature[3]===0xa3;
+         if(!isMp4&&!isWebm)return json({error:"The selected file does not appear to be a supported video."},400);
+         const uploadForm=new FormData(),safeName=(video.name||"bright-angels-video.mp4").replace(/[^a-zA-Z0-9._-]/g,"_");
+         uploadForm.append("file",video,safeName);uploadForm.append("fileName",safeName);uploadForm.append("useUniqueFileName","true");
+         let uploadResponse,uploaded;
+         try{uploadResponse=await fetch("https://upload.imagekit.io/api/v1/files/upload",{method:"POST",headers:{Authorization:"Basic "+btoa(String(env.IMAGEKIT_PRIVATE_KEY)+":")},body:uploadForm});uploaded=await uploadResponse.json();}
+         catch{return json({error:"The video upload service could not be reached. Please try again."},502);}
+         if(!uploadResponse.ok||!uploaded?.url||!safeGalleryUrl(uploaded.url)){console.error("ImageKit video upload failed:",uploaded);return json({error:"The video could not be uploaded. Check ImageKit storage and video upload capacity, then try again."},502);}
+         const videoId=clean(uploaded.fileId||crypto.randomUUID(),120);
+         await env.DB.prepare("INSERT INTO ba2_videos (title,video_url,provider,video_id) VALUES (?,?,?,?)").bind(title,uploaded.url,"ImageKit",videoId).run();
+         return json({ok:true,video_url:uploaded.url},201);
+       }
       if(request.method==="POST" && route==="admin/videos/delete") {let d;try{d=await request.json();}catch{return json({error:"Choose a video to remove."},400);}const id=Number(d.id);if(!Number.isInteger(id)||id<1)return json({error:"Choose a valid video."},400);await env.DB.prepare("DELETE FROM ba2_videos WHERE id=?").bind(id).run();return json({ok:true});}
       if(request.method==="POST" && route==="admin/gallery") {
         if(!env.IMAGEKIT_PRIVATE_KEY) return json({error:"Photo storage is not configured. Please contact the website administrator."},503);
