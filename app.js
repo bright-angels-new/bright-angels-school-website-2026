@@ -33,6 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (year) year.textContent = new Date().getFullYear();
   loadAnnouncements();
   loadPublicContent();
+  animateWelcomeWords();
   startHeroTextRotation();
   loadPublicGallery();
   loadApplicationClasses();
@@ -126,7 +127,7 @@ async function checkApplicationStatus(event) {
   finally { button.disabled=false; }
 }
 
-async function loadPublicContent(){try{const r=await fetch("/api/content");if(!r.ok)return;const d=await r.json(),v=d.content||{};if(v.hero_title)document.querySelector(".hero h1").textContent=v.hero_title;if(v.hero_text)document.querySelector(".hero-copy").textContent=v.hero_text;if(v.about_text){const p=document.querySelector(".about-grid > div:first-child p");if(p)p.textContent=v.about_text;}if(v.learning_text){const p=document.querySelector(".learning-section .section-heading > p:last-child");if(p)p.textContent=v.learning_text;}}catch(e){console.warn("Website text could not be loaded.",e);}}
+async function loadPublicContent(){try{const r=await fetch("/api/content");if(!r.ok)return;const d=await r.json(),v=d.content||{};if(v.hero_title)document.querySelector(".hero h1").textContent=v.hero_title;if(v.hero_text)document.querySelector(".hero-copy").textContent=v.hero_text;if(v.about_text){const p=document.querySelector(".about-grid > div:first-child p");if(p)p.textContent=v.about_text;}if(v.learning_text){const p=document.querySelector(".learning-section .section-heading > p:last-child");if(p)p.textContent=v.learning_text;}animateWelcomeWords();}catch(e){console.warn("Website text could not be loaded.",e);}}
 function isApprovedGalleryImage(value){try{const u=new URL(String(value||""),window.location.origin);return u.protocol==="https:"&&u.hostname==="ik.imagekit.io"&&!u.username&&!u.password&&!u.port;}catch{return false;}}
 
 async function loadPublicGallery(){const box=$("#publicGallery");if(!box)return;try{const r=await fetch("/api/gallery");if(!r.ok)return;const d=await r.json();const items=Array.isArray(d.gallery)?d.gallery:[];const heroPhoto=$("#heroSchoolPhoto");const selected=d.featured_image_url;const featured=items.find(item=>isApprovedGalleryImage(item.image_url)&&item.image_url===selected)||items.find(item=>isApprovedGalleryImage(item.image_url));if(heroPhoto&&featured){heroPhoto.src=featured.image_url;heroPhoto.alt=featured.title||"A moment at Bright Angels Junior School";const hero=document.querySelector(".hero");if(hero)hero.style.setProperty("--hero-photo",`url("${featured.image_url}")`);}box.replaceChildren();items.forEach(item=>{const card=document.createElement("article");card.className="feature-card";const img=document.createElement("img");if(!isApprovedGalleryImage(item.image_url)){console.warn("Skipped gallery item with an unapproved image URL.");return;}img.src=item.image_url;img.alt=item.title||"Bright Angels school photo";img.loading="lazy";img.style.width="100%";img.style.height="190px";img.style.objectFit="cover";const h=document.createElement("h3");h.textContent=item.title;const p=document.createElement("p");p.textContent=item.description||"";card.append(img,h,p);box.append(card);});if(!box.children.length)box.innerHTML="<p class=\"muted\">School gallery photos will appear here.</p>";}catch(e){console.warn("Gallery unavailable.",e);}}
@@ -150,4 +151,35 @@ function startHeroTextRotation(){
       target.classList.remove("is-changing");
     },420);
   },4200);
+}
+
+function animateWelcomeWords(){
+  const content=document.querySelector(".hero-content");
+  if(!content||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  const walker=document.createTreeWalker(content,NodeFilter.SHOW_TEXT,{
+    acceptNode(node){
+      if(!node.nodeValue.trim())return NodeFilter.FILTER_REJECT;
+      const parent=node.parentElement;
+      if(!parent||parent.closest(".hero-rotator,.ba-word"))return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  const nodes=[];
+  while(walker.nextNode())nodes.push(walker.currentNode);
+  let wordIndex=0;
+  nodes.forEach(node=>{
+    const parts=node.nodeValue.split(/(\\s+)/);
+    const fragment=document.createDocumentFragment();
+    parts.forEach(part=>{
+      if(!part)return;
+      if(/^\\s+$/.test(part)){fragment.append(document.createTextNode(part));return;}
+      const word=document.createElement("span");
+      word.className="ba-word";
+      word.textContent=part;
+      word.style.setProperty("--word-delay",Math.min(wordIndex*55,1100)+"ms");
+      wordIndex++;
+      fragment.append(word);
+    });
+    node.parentNode.replaceChild(fragment,node);
+  });
 }
