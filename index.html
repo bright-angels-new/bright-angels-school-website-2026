@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="google-site-verification" content="kbonm_sJ5XgxJXihxH2mrQ3tB0QGT1uZ1Docc-RLwLg" />
   <meta name="theme-color" content="#123b32">
-  <meta name="description" content="Bright Angels Junior School, Lukwanga, Wakiso. If others can, we can.">
+  <meta name="description" content="Discover Bright Angels Junior School in Lukwanga, Wakiso. Explore our early years and primary classes, school life, admissions and latest updates. If others can, we can.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Bright Angels Junior School | If others can, we can">
+  <meta property="og:description" content="A caring learning community in Lukwanga, Wakiso, helping children grow in knowledge, confidence and character.">
+  <meta property="og:image" content="/school-logo.jpg">
   <title>Bright Angels Junior School | If others can, we can</title>
   <link rel="icon" href="/school-logo.jpg">
   <link rel="stylesheet" href="/styles.css">
@@ -19,8 +23,8 @@
     </a>
     <button class="menu-toggle" id="menuToggle" aria-label="Open navigation" aria-expanded="false">☰</button>
     <nav id="mainNav" aria-label="Main navigation">
-      <a href="#home">Home</a><a href="#about">About</a><a href="#learning">Learning</a>
-      <a href="#admissions">Admissions</a><a href="#application-status">Check Status</a><a href="#news">News</a><a href="#gallery">Gallery</a><a href="#contact">Contact</a>
+      <a href="#home">Home</a><a href="#about">Our School</a><a href="#programmes">Academics</a>
+      <a href="#admissions">Admissions</a><a href="#application-status">Parents</a><a href="#news">News</a><a href="#gallery">Gallery</a><a href="#contact">Contact</a>
       <a class="nav-admin" href="/admin.html">Admin Login</a>
     </nav>
   </header>
@@ -34,10 +38,16 @@
         <div class="hero-actions"><a class="button button-gold" href="#admissions">Apply for Admission</a><a class="button button-outline" href="#about">Discover Our School</a></div>
         <p class="motto">“If others can, we can”</p>
       </div>
-      <div class="hero-mark"><img src="/school-logo.jpg" alt="Bright Angels school badge"></div>
+      <div class="hero-visual"><img id="heroSchoolPhoto" src="/school-logo.jpg" alt="Bright Angels Junior School" fetchpriority="high"><div class="hero-photo-caption"><img src="/school-logo.jpg" alt=""><span><strong>Bright Angels</strong><small>Junior School · Lukwanga</small></span></div></div>
     </section>
 
     <section class="welcome-strip"><span>LEARN</span><i>✦</i><span>GROW</span><i>✦</i><span>SHINE</span></section>
+    <section class="school-at-a-glance" aria-label="School overview">
+      <div><span class="glance-icon">✦</span><span><strong>Early Years</strong><small>Baby · Middle · Top</small></span></div>
+      <div><span class="glance-icon">▤</span><span><strong>Primary School</strong><small>Primary 1 to Primary 7</small></span></div>
+      <div><span class="glance-icon">⌖</span><span><strong>Our Location</strong><small>Lukwanga, Wakiso District</small></span></div>
+      <div><span class="glance-icon">★</span><span><strong>Our Motto</strong><small>If others can, we can</small></span></div>
+    </section>
 
     <section class="section news-section" id="news">
       <div class="section-heading"><p class="eyebrow">SCHOOL UPDATES</p><h2>What's happening <span>at school.</span></h2></div>
@@ -54,12 +64,29 @@
       </div>
     </section>
 
+    <section class="section pathway-section" id="programmes">
+      <div class="section-heading"><p class="eyebrow">OUR ACADEMIC JOURNEY</p><h2>A strong start for <span>every learner.</span></h2><p>From the first classroom experiences to the final years of primary school, learners are supported as they take each step forward.</p></div>
+      <div class="pathway-grid">
+        <article class="pathway-card early-years"><span class="pathway-number">01</span><p class="pathway-label">EARLY YEARS</p><h3>Discover, play and grow.</h3><p>Our nursery pathway introduces children to learning through caring guidance, exploration and foundational skills.</p><div class="class-pills"><span>Baby Class</span><span>Middle Class</span><span>Top Class</span></div></article>
+        <article class="pathway-card primary-years"><span class="pathway-number">02</span><p class="pathway-label">PRIMARY SCHOOL</p><h3>Build knowledge and confidence.</h3><p>Primary learning develops literacy, numeracy, curiosity, responsibility and the skills children need for the next stage.</p><div class="class-pills"><span>P1</span><span>P2</span><span>P3</span><span>P4</span><span>P5</span><span>P6</span><span>P7</span></div></article>
+      </div>
+    </section>
+
     <section class="section learning-section" id="learning">
       <div class="section-heading"><p class="eyebrow">GROWING TOGETHER</p><h2>Learning that builds <span>confidence.</span></h2><p>We support learners through meaningful classroom experiences and a strong partnership between school and home.</p></div>
       <div class="feature-grid">
         <article class="feature-card"><div class="feature-icon">✎</div><h3>Strong foundations</h3><p>Building essential literacy, numeracy and learning skills step by step.</p></article>
         <article class="feature-card"><div class="feature-icon">◎</div><h3>Whole-child growth</h3><p>Encouraging responsibility, creativity, confidence and positive values.</p></article>
         <article class="feature-card"><div class="feature-icon">♡</div><h3>Caring community</h3><p>Working together with families to support every child's progress.</p></article>
+      </div>
+    </section>
+
+    <section class="admissions-steps" aria-label="How admissions work">
+      <div class="section-heading"><p class="eyebrow">A SIMPLE START</p><h2>How to apply to <span>Bright Angels.</span></h2><p>Our online application helps parents share the essential details with the school.</p></div>
+      <div class="steps-grid">
+        <article><span>1</span><h3>Complete the form</h3><p>Enter your child's details and select the class you are applying for.</p></article>
+        <article><span>2</span><h3>Submit your application</h3><p>Send the form to the school through this website.</p></article>
+        <article><span>3</span><h3>Keep your reference</h3><p>Use the application reference and your child's full name to check progress.</p></article>
       </div>
     </section>
 
@@ -104,13 +131,28 @@
       </form>
     </section>
 
+    <section class="section parent-help-section">
+      <div class="section-heading"><p class="eyebrow">HERE TO HELP</p><h2>Helpful information for <span>parents.</span></h2><p>Quick answers to common questions about applying to Bright Angels Junior School.</p></div>
+      <div class="faq-list">
+        <details><summary>Which classes can I apply for?</summary><p>Applications are available for Baby Class, Middle Class, Top Class and Primary 1 to Primary 7, subject to the classes currently open for applications.</p></details>
+        <details><summary>How do I check my child's application?</summary><p>Open the Parents section, enter the application reference number and the child's full name exactly as entered on the application form.</p></details>
+        <details><summary>How can I contact the school?</summary><p>You can call the school or send a message using the contact form on this page.</p></details>
+      </div>
+    </section>
+
     <section class="contact-section" id="contact">
       <div><p class="eyebrow">GET IN TOUCH</p><h2>We look forward to <span>hearing from you.</span></h2><p>For admissions and general enquiries, contact the school using the details below.</p></div>
       <form id="parentMessageForm" class="form-card"><h3>Send the school a message</h3><label>Parent/guardian name<input name="parent_name" required maxlength="120"></label><label>Phone number<input name="phone" required maxlength="30" type="tel"></label><label>Learner name (optional)<input name="student_name" maxlength="120"></label><label>Subject<input name="subject" required maxlength="160"></label><label>Message<textarea name="message" rows="4" required maxlength="2000"></textarea></label><button class="button button-green" type="submit">Send message</button><p id="parentMessageStatus" class="form-status" role="status"></p></form>
-      <div class="contact-details"><p><strong>Address</strong><br>Lukwanga–Kataluko Sentema Road, Wakiso District, Uganda</p><p><strong>Telephone</strong><br>+256 755 660 550<br>+256 525 136 626</p><p><strong>Email</strong><br><a href="mailto:brightangels26@gmail.com">brightangels26@gmail.com</a></p></div>
+      <div class="contact-details"><p><strong>Address</strong><br>Lukwanga–Kataluko Sentema Road, Wakiso District, Uganda<br><a href="https://www.google.com/maps/search/?api=1&query=Bright+Angels+Junior+School+Lukwanga+Wakiso" target="_blank" rel="noopener">Get directions ↗</a></p><p><strong>Telephone</strong><br><a href="tel:+256755660550">+256 755 660 550</a><br><a href="tel:+256525136626">+256 525 136 626</a></p><p><strong>Email</strong><br><a href="mailto:brightangels26@gmail.com">brightangels26@gmail.com</a></p></div>
     </section>
   </main>
 
-  <footer><a class="footer-brand" href="#home">Bright Angels Junior School</a><p>“If others can, we can”</p><small>© <span id="year"></span> Bright Angels Junior School. All rights reserved.</small></footer>
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-school"><img src="/school-logo.jpg" alt="Bright Angels logo"><div><a class="footer-brand" href="#home">Bright Angels Junior School</a><p>“If others can, we can”</p></div></div>
+      <div class="footer-links"><a href="#about">Our School</a><a href="#programmes">Academics</a><a href="#admissions">Admissions</a><a href="#news">News & Updates</a><a href="#application-status">Parents</a><a href="#contact">Contact</a></div>
+      <div class="footer-bottom"><small>© <span id="year"></span> Bright Angels Junior School. All rights reserved.</small><a href="#home">Back to top ↑</a></div>
+    </div>
+  </footer>
 </body>
 </html>
