@@ -51,6 +51,53 @@ async function loadPublicStories(){
   }
 }
 
+
+function initScrollReveal(){
+  if(window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  if(!("IntersectionObserver" in window))return;
+  const selector=[
+    ".section-heading",".school-at-a-glance > div",".gallery-photo",
+    ".school-video-card",".school-story-card",".pathway-card",
+    ".feature-card",".announcement-item",".public-event-card",
+    ".admissions-class-list",".admissions-guidance",".steps-grid article",
+    ".contact-section > div",".contact-section > form"
+  ].join(",");
+  const observed=new WeakSet();
+  const observer=new IntersectionObserver(entries=>{
+    entries.forEach(entry=>{
+      if(!entry.isIntersecting)return;
+      entry.target.classList.add("is-revealed");
+      observer.unobserve(entry.target);
+    });
+  },{threshold:.12,rootMargin:"0px 0px -45px 0px"});
+  const scan=root=>{
+    if(root.nodeType!==1)return;
+    if(root.matches(selector)&&!observed.has(root)){
+      observed.add(root);
+      const siblings=root.parentElement?Array.from(root.parentElement.querySelectorAll(":scope > "+root.tagName.toLowerCase())):[];
+      const position=Math.max(0,siblings.indexOf(root));
+      root.style.setProperty("--reveal-delay",Math.min(position*85,340)+"ms");
+      root.classList.add("reveal-on-scroll");
+      observer.observe(root);
+    }
+    root.querySelectorAll?.(selector).forEach(element=>{
+      if(observed.has(element))return;
+      observed.add(element);
+      const siblings=element.parentElement?Array.from(element.parentElement.children):[];
+      const position=Math.max(0,siblings.indexOf(element));
+      element.style.setProperty("--reveal-delay",Math.min(position*85,340)+"ms");
+      element.classList.add("reveal-on-scroll");
+      observer.observe(element);
+    });
+  };
+  scan(document.querySelector("#main-content"));
+  const mutations=new MutationObserver(records=>{
+    records.forEach(record=>record.addedNodes.forEach(node=>scan(node)));
+  });
+  const main=document.querySelector("#main-content");
+  if(main)mutations.observe(main,{childList:true,subtree:true});
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const menuToggle = $("#menuToggle");
   const nav = $("#mainNav");
@@ -80,6 +127,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (window.innerWidth > 1020) closeMenu();
     }, { passive: true });
   }
+  initScrollReveal();
   const year = $("#year");
   if (year) year.textContent = new Date().getFullYear();
   const backToTop=$("#backToTop");
