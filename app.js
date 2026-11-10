@@ -83,6 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const year = $("#year");
   if (year) year.textContent = new Date().getFullYear();
   loadAnnouncements();
+  loadPublicEvents();
   loadPublicStories();
   loadPublicContent();
   animateWelcomeWords();
@@ -113,6 +114,31 @@ document.addEventListener("DOMContentLoaded", () => {
   const statusForm=$("#applicationStatusForm");
   if(statusForm) statusForm.addEventListener("submit",checkApplicationStatus);
 });
+
+async function loadPublicEvents(){
+  const box=$("#publicEvents");if(!box)return;
+  try{
+    const response=await fetch("/api/events");if(!response.ok)throw new Error("Events unavailable.");
+    const data=await response.json(),items=Array.isArray(data.events)?data.events:[];
+    box.replaceChildren();
+    if(!items.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="There are no upcoming events at the moment. Please check again soon.";box.append(empty);return;}
+    items.forEach(item=>{
+      const card=document.createElement("article");card.className="public-event-card";
+      const date=new Date(item.event_date+"T00:00:00");
+      const dateBox=document.createElement("div");dateBox.className="event-date-block";
+      const month=document.createElement("span");month.textContent=date.toLocaleDateString(undefined,{month:"short"});
+      const day=document.createElement("strong");day.textContent=date.toLocaleDateString(undefined,{day:"2-digit"});
+      const year=document.createElement("small");year.textContent=date.toLocaleDateString(undefined,{year:"numeric"});
+      dateBox.append(month,day,year);
+      const content=document.createElement("div");content.className="event-content";
+      const title=document.createElement("h3");title.textContent=item.title||"School event";
+      const details=document.createElement("p");details.textContent=item.description||"";
+      const meta=document.createElement("p");meta.className="event-meta";
+      meta.textContent=date.toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long",year:"numeric"})+(item.start_time?" · "+item.start_time:"")+(item.location?" · "+item.location:"");
+      content.append(title,meta,details);card.append(dateBox,content);box.append(card);
+    });
+  }catch(error){console.warn("School events are temporarily unavailable.",error);box.textContent="School events are temporarily unavailable.";}
+}
 
 async function loadAnnouncements() {
   const container = $("#publicAnnouncements");
