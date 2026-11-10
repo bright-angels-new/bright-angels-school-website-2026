@@ -35,6 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadPublicContent();
   animateWelcomeWords();
   startHeroTextRotation();
+  initGalleryLightbox();
   loadPublicGallery();
   loadApplicationClasses();
   const parentForm=$("#parentMessageForm");
@@ -130,7 +131,109 @@ async function checkApplicationStatus(event) {
 async function loadPublicContent(){try{const r=await fetch("/api/content");if(!r.ok)return;const d=await r.json(),v=d.content||{};if(v.hero_title)document.querySelector(".hero h1").textContent=v.hero_title;if(v.hero_text)document.querySelector(".hero-copy").textContent=v.hero_text;if(v.about_text){const p=document.querySelector(".about-grid > div:first-child p");if(p)p.textContent=v.about_text;}if(v.learning_text){const p=document.querySelector(".learning-section .section-heading > p:last-child");if(p)p.textContent=v.learning_text;}animateWelcomeWords();}catch(e){console.warn("Website text could not be loaded.",e);}}
 function isApprovedGalleryImage(value){try{const u=new URL(String(value||""),window.location.origin);return u.protocol==="https:"&&u.hostname==="ik.imagekit.io"&&!u.username&&!u.password&&!u.port;}catch{return false;}}
 
-async function loadPublicGallery(){const box=$("#publicGallery");if(!box)return;try{const r=await fetch("/api/gallery");if(!r.ok)return;const d=await r.json();const items=Array.isArray(d.gallery)?d.gallery:[];const heroPhoto=$("#heroSchoolPhoto");const selected=d.featured_image_url;const featured=items.find(item=>isApprovedGalleryImage(item.image_url)&&item.image_url===selected)||items.find(item=>isApprovedGalleryImage(item.image_url));if(heroPhoto&&featured){heroPhoto.src=featured.image_url;heroPhoto.alt=featured.title||"A moment at Bright Angels Junior School";const hero=document.querySelector(".hero");if(hero)hero.style.setProperty("--hero-photo",`url("${featured.image_url}")`);}box.replaceChildren();items.forEach(item=>{const card=document.createElement("article");card.className="feature-card";const img=document.createElement("img");if(!isApprovedGalleryImage(item.image_url)){console.warn("Skipped gallery item with an unapproved image URL.");return;}img.src=item.image_url;img.alt=item.title||"Bright Angels school photo";img.loading="lazy";img.style.width="100%";img.style.height="190px";img.style.objectFit="cover";const h=document.createElement("h3");h.textContent=item.title;const p=document.createElement("p");p.textContent=item.description||"";card.append(img,h,p);box.append(card);});if(!box.children.length)box.innerHTML="<p class=\"muted\">School gallery photos will appear here.</p>";}catch(e){console.warn("Gallery unavailable.",e);}}
+async function loadPublicGallery(){
+  const box=$("#publicGallery");
+  if(!box)return;
+  try{
+    const response=await fetch("/api/gallery");
+    if(!response.ok)throw new Error("Gallery request failed");
+    const data=await response.json();
+    const items=(Array.isArray(data.gallery)?data.gallery:[]).filter(item=>isApprovedGalleryImage(item.image_url));
+    const heroPhoto=$("#heroSchoolPhoto");
+    const selected=data.featured_image_url;
+    const featured=items.find(item=>item.image_url===selected)||items[0];
+    if(heroPhoto&&featured){
+      heroPhoto.src=featured.image_url;
+      heroPhoto.alt=featured.title||"A moment at Bright Angels Junior School";
+      const hero=document.querySelector(".hero");
+      if(hero)hero.style.setProperty("--hero-photo",`url("${featured.image_url}")`);
+    }
+    box.replaceChildren();
+    if(!items.length){
+      const empty=document.createElement("p");
+      empty.className="muted";
+      empty.textContent="School gallery photos will appear here.";
+      box.append(empty);
+      return;
+    }
+    const photos=items.slice(0,18);
+    photos.forEach((item,index)=>{
+      const card=document.createElement("button");
+      card.type="button";
+      card.className="gallery-photo";
+      card.setAttribute("aria-label",`View photo ${index+1}: ${item.title||"Bright Angels school life"}`);
+      const img=document.createElement("img");
+      img.src=item.image_url;
+      img.alt=item.title||"Bright Angels Junior School";
+      img.loading=index<4?"eager":"lazy";
+      img.decoding="async";
+      const caption=document.createElement("span");
+      caption.className="gallery-photo-caption";
+      caption.textContent=item.title||"Life at Bright Angels";
+      card.append(img,caption);
+      card.addEventListener("click",()=>openGalleryLightbox(photos,index));
+      box.append(card);
+    });
+  }catch(error){
+    console.warn("Gallery unavailable.",error);
+    box.innerHTML="<p class=\"muted\">School gallery is temporarily unavailable.</p>";
+  }
+}
+
+let galleryItems=[];
+let galleryIndex=0;
+let galleryPreviousFocus=null;
+function openGalleryLightbox(items,index){
+  const modal=$("#galleryLightbox");
+  if(!modal)return;
+  galleryItems=items;
+  galleryIndex=index;
+  galleryPreviousFocus=document.activeElement;
+  updateGalleryLightbox();
+  modal.classList.add("is-open");
+  modal.setAttribute("aria-hidden","false");
+  document.body.classList.add("gallery-view-open");
+  $("#galleryClose")?.focus();
+}
+function updateGalleryLightbox(){
+  const item=galleryItems[galleryIndex];
+  if(!item)return;
+  const image=$("#galleryLightboxImage");
+  image.src=item.image_url;
+  image.alt=item.title||"Bright Angels Junior School";
+  $("#galleryLightboxCaption").textContent=item.title||"Life at Bright Angels";
+  $("#galleryLightboxCounter").textContent=`${galleryIndex+1} / ${galleryItems.length}`;
+  $("#galleryPrev").disabled=galleryItems.length<2;
+  $("#galleryNext").disabled=galleryItems.length<2;
+}
+function closeGalleryLightbox(){
+  const modal=$("#galleryLightbox");
+  if(!modal||!modal.classList.contains("is-open"))return;
+  modal.classList.remove("is-open");
+  modal.setAttribute("aria-hidden","true");
+  document.body.classList.remove("gallery-view-open");
+  $("#galleryLightboxImage").removeAttribute("src");
+  if(galleryPreviousFocus?.focus)galleryPreviousFocus.focus();
+}
+function moveGalleryLightbox(direction){
+  if(!galleryItems.length)return;
+  galleryIndex=(galleryIndex+direction+galleryItems.length)%galleryItems.length;
+  updateGalleryLightbox();
+}
+function initGalleryLightbox(){
+  $("#galleryClose")?.addEventListener("click",closeGalleryLightbox);
+  $("#galleryPrev")?.addEventListener("click",()=>moveGalleryLightbox(-1));
+  $("#galleryNext")?.addEventListener("click",()=>moveGalleryLightbox(1));
+  $("#galleryLightbox")?.addEventListener("click",event=>{
+    if(event.target.id==="galleryLightbox")closeGalleryLightbox();
+  });
+  document.addEventListener("keydown",event=>{
+    if(!$("#galleryLightbox")?.classList.contains("is-open"))return;
+    if(event.key==="Escape")closeGalleryLightbox();
+    if(event.key==="ArrowLeft")moveGalleryLightbox(-1);
+    if(event.key==="ArrowRight")moveGalleryLightbox(1);
+  });
+}
 
 function startHeroTextRotation(){
   const target=$("#heroRotatingText");
