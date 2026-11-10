@@ -349,7 +349,7 @@ async function saveVideo(event){
     });
     if(!uploaded.url||!uploaded.fileId)throw new Error("The upload service did not return the video file details.");
     status.textContent="Saving video to the school website…";
-    await api("admin/videos",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title,video_url:uploaded.url,file_id:uploaded.fileId,mime_type:uploaded.fileType||mime,file_size:uploaded.size||video.size})});
+    await api("admin/videos",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title,video_url:uploaded.url,file_id:uploaded.fileId,mime_type:mime,file_size:uploaded.size||video.size})});
     form.reset();
     status.textContent="Video uploaded successfully and added to the school website.";
     await loadAdminVideos();
