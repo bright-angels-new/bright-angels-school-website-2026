@@ -638,3 +638,21 @@ body.gallery-view-open{overflow:hidden}
   .school-video-card{transition:none!important}
   .school-video-card:hover{transform:none}
 }
+
+
+/* Learners' Corner and school stories */
+.learners-corner-section{background:linear-gradient(180deg,#f2f8fc 0%,#fff 100%)}
+.learners-corner-section .section-heading{margin-bottom:30px}
+.school-stories-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px;align-items:stretch}
+.school-story-card{overflow:hidden;border:1px solid #dce9f3;border-radius:18px;background:#fff;box-shadow:0 12px 32px rgba(18,59,102,.08);transition:transform .22s ease,box-shadow .22s ease}
+.school-story-card:hover{transform:translateY(-4px);box-shadow:0 18px 38px rgba(18,59,102,.13)}
+.school-story-card>img{display:block;width:100%;height:235px;object-fit:cover;background:#eaf2f8}
+.school-story-copy{padding:22px 23px 25px}
+.school-story-copy .eyebrow{margin:0 0 8px;color:#b18436;font-size:.68rem;font-weight:800;letter-spacing:.14em}
+.school-story-copy h3{margin:0 0 10px;color:#123b66;font:700 1.35rem/1.25 Georgia,serif}
+.school-story-copy>p:last-child{margin:0;color:#53677b;line-height:1.75;white-space:pre-wrap}
+.story-admin-image{display:block;width:min(100%,420px);max-height:240px;object-fit:cover;border-radius:12px;margin-bottom:14px}
+#adminStoriesList{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+#adminStoriesList .announcement-item{margin:0}
+@media(max-width:650px){.school-stories-grid{grid-template-columns:1fr}.school-story-card>img{height:215px}.school-story-copy{padding:19px}}
+@media(prefers-reduced-motion:reduce){.school-story-card{transition:none}}
