@@ -248,6 +248,8 @@ async function loadPublicGallery(){
       heroPhoto.alt=featured.title||"A moment at Bright Angels Junior School";
       const hero=document.querySelector(".hero");
       if(hero)hero.style.setProperty("--hero-photo",`url("${featured.image_url}")`);
+      const contact=document.querySelector(".contact-section");
+      if(contact)contact.style.setProperty("--contact-photo",`url("${featured.image_url}")`);
     }
     box.replaceChildren();
     if(!items.length){
