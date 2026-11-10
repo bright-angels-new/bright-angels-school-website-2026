@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const year = $("#year");
   if (year) year.textContent = new Date().getFullYear();
   loadAnnouncements();
+  loadPublicStories();
   loadPublicContent();
   animateWelcomeWords();
   startHeroTextRotation();
