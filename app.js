@@ -98,6 +98,26 @@ function initScrollReveal(){
   if(main)mutations.observe(main,{childList:true,subtree:true});
 }
 
+
+function initActiveNavigation(){
+  const nav=$("#mainNav");
+  if(!nav||!("IntersectionObserver" in window))return;
+  const links=Array.from(nav.querySelectorAll('a[href^="#"]')).filter(link=>link.getAttribute("href").length>1);
+  const sections=links.map(link=>document.querySelector(link.getAttribute("href"))).filter(Boolean);
+  if(!sections.length)return;
+  const observer=new IntersectionObserver(entries=>{
+    const visible=entries.filter(entry=>entry.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];
+    if(!visible)return;
+    links.forEach(link=>{
+      const active=link.getAttribute("href")==="#"+visible.target.id;
+      link.classList.toggle("is-active",active);
+      if(active)link.setAttribute("aria-current","location");
+      else link.removeAttribute("aria-current");
+    });
+  },{rootMargin:"-18% 0px -68% 0px",threshold:[0,.15,.35,.6]});
+  sections.forEach(section=>observer.observe(section));
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const menuToggle = $("#menuToggle");
   const nav = $("#mainNav");
@@ -128,6 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }, { passive: true });
   }
   initScrollReveal();
+  initActiveNavigation();
   const year = $("#year");
   if (year) year.textContent = new Date().getFullYear();
   const backToTop=$("#backToTop");
@@ -316,6 +337,7 @@ async function loadPublicGallery(){
     }
     const photos=items.slice(0,30);
     addSchoolPhotos(photos);
+    initFeaturedPhotoCarousel(photos);
     photos.forEach((item,index)=>{
       const card=document.createElement("button");
       card.type="button";
@@ -339,6 +361,58 @@ async function loadPublicGallery(){
   }
 }
 
+
+
+function initFeaturedPhotoCarousel(photos){
+  const carousel=$("#featuredCarousel");
+  const image=$("#featuredCarouselImage");
+  const title=$("#featuredCarouselTitle");
+  const count=$("#featuredCarouselCount");
+  const dots=$("#featuredCarouselDots");
+  if(!carousel||!image||!photos.length)return;
+  carousel.hidden=false;
+  let index=0,paused=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let timer=null;
+  const render=()=>{
+    const item=photos[index];
+    image.src=item.image_url;
+    image.alt=item.title||"Bright Angels Junior School";
+    title.textContent=item.title||"Life at Bright Angels";
+    count.textContent=(index+1)+" / "+photos.length;
+    dots.querySelectorAll("button").forEach((dot,i)=>{
+      dot.classList.toggle("is-current",i===index);
+      dot.setAttribute("aria-current",i===index?"true":"false");
+    });
+  };
+  const go=step=>{index=(index+step+photos.length)%photos.length;render();};
+  dots.replaceChildren();
+  photos.forEach((item,i)=>{
+    const dot=document.createElement("button");
+    dot.type="button";dot.className="carousel-dot";
+    dot.setAttribute("aria-label","Show photo "+(i+1));
+    dot.addEventListener("click",()=>{index=i;render();});
+    dots.append(dot);
+  });
+  $("#featuredCarouselPrev")?.addEventListener("click",()=>go(-1));
+  $("#featuredCarouselNext")?.addEventListener("click",()=>go(1));
+  image.addEventListener("click",()=>openGalleryLightbox(photos,index));
+  image.tabIndex=0;image.setAttribute("role","button");image.setAttribute("aria-label","Open featured photo in full screen");
+  image.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();openGalleryLightbox(photos,index);}});
+  const pause=$("#featuredCarouselPause");
+  const stop=()=>{if(timer)window.clearInterval(timer);timer=null;};
+  const start=()=>{stop();if(!paused&&photos.length>1)timer=window.setInterval(()=>go(1),5500);};
+  pause?.addEventListener("click",()=>{
+    paused=!paused;
+    pause.textContent=paused?"Play":"Pause";
+    pause.setAttribute("aria-pressed",String(paused));
+    start();
+  });
+  carousel.addEventListener("mouseenter",stop);
+  carousel.addEventListener("mouseleave",start);
+  carousel.addEventListener("focusin",stop);
+  carousel.addEventListener("focusout",event=>{if(!carousel.contains(event.relatedTarget))start();});
+  render();start();
+}
 
 function addSchoolPhotos(photos){
   const targets=[
