@@ -489,3 +489,28 @@ footer .footer-bottom{max-width:1120px;margin:0 auto}
   .hero::before,.hero-content{animation:none!important}
   .glance-icon,.pathway-card,.feature-card,.steps-grid article,.announcement-item{transition:none!important}
 }
+
+/* Rotating welcome message */
+.hero-rotator{
+  min-height:2.1em;
+  margin:0 0 13px;
+  color:#f2c96d;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:clamp(1.18rem,2.2vw,1.65rem);
+  font-weight:700;
+  line-height:1.35;
+  letter-spacing:.01em;
+}
+.hero-rotator span{
+  display:inline-block;
+  opacity:1;
+  transform:translateY(0);
+  transition:opacity .38s ease,transform .38s ease;
+}
+.hero-rotator span.is-changing{opacity:0;transform:translateY(9px)}
+@media(max-width:760px){
+  .hero-rotator{font-size:1.18rem;min-height:2.7em;margin-bottom:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .hero-rotator span{transition:none!important}
+}
