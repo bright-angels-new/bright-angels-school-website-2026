@@ -156,7 +156,8 @@ async function loadPublicGallery(){
       box.append(empty);
       return;
     }
-    const photos=items.slice(0,18);
+    const photos=items.slice(0,30);
+    addSchoolPhotos(photos);
     photos.forEach((item,index)=>{
       const card=document.createElement("button");
       card.type="button";
@@ -178,6 +179,27 @@ async function loadPublicGallery(){
     console.warn("Gallery unavailable.",error);
     box.innerHTML="<p class=\"muted\">School gallery is temporarily unavailable.</p>";
   }
+}
+
+
+function addSchoolPhotos(photos){
+  const targets=[
+    ...document.querySelectorAll(".pathway-card"),
+    ...document.querySelectorAll(".learning-section .feature-card")
+  ];
+  targets.forEach((card,index)=>{
+    if(card.querySelector(".section-photo"))return;
+    const item=photos[index];
+    if(!item)return;
+    const image=document.createElement("img");
+    image.className="section-photo";
+    image.src=item.image_url;
+    image.alt=item.title||"A school-life moment at Bright Angels Junior School";
+    image.loading="lazy";
+    image.decoding="async";
+    card.prepend(image);
+    card.classList.add("photo-enhanced-card");
+  });
 }
 
 let galleryItems=[];
