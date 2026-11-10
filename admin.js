@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#loginForm").addEventListener("submit", login);
   $("#logoutButton").addEventListener("click", logout);
   $("#announcementForm").addEventListener("submit", saveAnnouncement);
+  $("#storyForm")?.addEventListener("submit", saveStory);
   $("#subjectForm")?.addEventListener("submit", saveSubject);
   $("#subjectClassTabs")?.addEventListener("click", event => { const button=event.target.closest("[data-subject-class]"); if(!button)return; selectedSubjectClass=button.dataset.subjectClass; const select=$("#subjectClassSelect"); if(select)select.value=selectedSubjectClass; renderClassSubjects(); });
   $("#subjectClassSelect")?.addEventListener("change", event => { selectedSubjectClass=event.target.value; renderClassSubjects(); });
@@ -61,10 +62,11 @@ async function api(path, options={}) {
 }
 function showPanel(id) {
   currentPanel=id;
-  ["overviewPanel","announcementsPanel","contentPanel","galleryPanel"].forEach(panel=>$("#"+panel)?.classList.toggle("admin-hidden",panel!==id));
+  ["overviewPanel","announcementsPanel","storiesPanel","contentPanel","galleryPanel"].forEach(panel=>$("#"+panel)?.classList.toggle("admin-hidden",panel!==id));
   document.querySelectorAll("[data-panel]").forEach(button=>button.classList.toggle("active",button.dataset.panel===id));
   if(id==="contentPanel") loadContent();
   if(id==="galleryPanel"){loadAdminGallery();loadAdminVideos();}
+  if(id==="storiesPanel") loadStories();
 }
 async function login(event) {
   event.preventDefault(); const status=$("#loginStatus"),button=event.currentTarget.querySelector("button");
@@ -254,6 +256,35 @@ async function loadAnnouncements(){
 async function saveAnnouncement(event){
   event.preventDefault();const status=$("#announcementStatus"),button=event.currentTarget.querySelector("button");button.disabled=true;status.textContent="Saving…";
   try{const form=event.currentTarget,data=Object.fromEntries(new FormData(form).entries());data.is_published=form.elements.is_published.checked;await api("admin/announcements",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});form.reset();form.elements.is_published.checked=true;status.textContent="Announcement saved.";await loadAnnouncements();}
+  catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+}
+
+
+async function loadStories(){
+  const list=$("#adminStoriesList"),select=$("#storyImageSelect");
+  if(!list)return;
+  try{
+    const [data,gallery]=await Promise.all([api("admin/stories"),api("admin/gallery")]);
+    if(select){const previous=select.value;select.replaceChildren();const none=document.createElement("option");none.value="";none.textContent="No photo";select.append(none);(gallery.gallery||[]).forEach(photo=>{const option=document.createElement("option");option.value=photo.image_url;option.textContent=photo.title||"School photo";select.append(option);});if([...select.options].some(o=>o.value===previous))select.value=previous;}
+    list.replaceChildren();
+    const stories=data.stories||[];
+    if(!stories.length){list.textContent="No school stories have been published yet.";return;}
+    stories.forEach(story=>{
+      const card=document.createElement("article");card.className="announcement-item";
+      if(story.image_url){const img=document.createElement("img");img.src=story.image_url;img.alt=story.title;img.loading="lazy";img.className="story-admin-image";card.append(img);}
+      const title=document.createElement("h3");title.textContent=story.title;
+      const body=document.createElement("p");body.textContent=story.body;
+      const meta=document.createElement("p");meta.className="admin-note";meta.textContent=story.is_published?"Published":"Draft";
+      const remove=document.createElement("button");remove.type="button";remove.textContent="Delete story";remove.addEventListener("click",async()=>{if(!confirm("Delete this school story?"))return;remove.disabled=true;try{await api("admin/stories/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:story.id})});await loadStories();}catch(error){alert(error.message);remove.disabled=false;}});
+      card.append(title,body,meta,remove);list.append(card);
+    });
+  }catch(error){list.textContent=error.message;}
+}
+async function saveStory(event){
+  event.preventDefault();const form=event.currentTarget,status=$("#storyStatus"),button=form.querySelector('button[type="submit"]');
+  const data=Object.fromEntries(new FormData(form).entries());data.is_published=form.elements.is_published.checked;
+  button.disabled=true;status.textContent="Publishing story…";
+  try{await api("admin/stories",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});form.reset();form.elements.is_published.checked=true;status.textContent="Story saved successfully.";await loadStories();}
   catch(error){status.textContent=error.message;}finally{button.disabled=false;}
 }
 
