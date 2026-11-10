@@ -9,6 +9,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#loginForm").addEventListener("submit", login);
   $("#logoutButton").addEventListener("click", logout);
   $("#announcementForm").addEventListener("submit", saveAnnouncement);
+  $("#eventForm")?.addEventListener("submit", saveEvent);
+  $("#eventCancelEdit")?.addEventListener("click", resetEventForm);
   $("#storyForm")?.addEventListener("submit", saveStory);
   $("#subjectForm")?.addEventListener("submit", saveSubject);
   $("#subjectClassTabs")?.addEventListener("click", event => { const button=event.target.closest("[data-subject-class]"); if(!button)return; selectedSubjectClass=button.dataset.subjectClass; const select=$("#subjectClassSelect"); if(select)select.value=selectedSubjectClass; renderClassSubjects(); });
@@ -62,8 +64,9 @@ async function api(path, options={}) {
 }
 function showPanel(id) {
   currentPanel=id;
-  ["overviewPanel","announcementsPanel","storiesPanel","contentPanel","galleryPanel"].forEach(panel=>$("#"+panel)?.classList.toggle("admin-hidden",panel!==id));
+  ["overviewPanel","announcementsPanel","eventsPanel","storiesPanel","contentPanel","galleryPanel"].forEach(panel=>$("#"+panel)?.classList.toggle("admin-hidden",panel!==id));
   document.querySelectorAll("[data-panel]").forEach(button=>button.classList.toggle("active",button.dataset.panel===id));
+  if(id==="eventsPanel") loadAdminEvents();
   if(id==="contentPanel") loadContent();
   if(id==="galleryPanel"){loadAdminGallery();loadAdminVideos();}
   if(id==="storiesPanel") loadStories();
@@ -248,6 +251,54 @@ async function changeStudentClass(student,action,button){
     await loadSchoolRecords();
   }catch(error){alert(error.message);}finally{button.disabled=false;}
 }
+
+async function loadAdminEvents(){
+  const box=$("#adminEventsList");if(!box)return;
+  try{
+    const data=await api("admin/events"),items=data.events||[];box.replaceChildren();
+    if(!items.length){box.textContent="No events have been added yet.";return;}
+    items.forEach(item=>{
+      const card=document.createElement("article");card.className="announcement-item event-admin-card";
+      const title=document.createElement("h3");title.textContent=item.title;
+      const date=document.createElement("p");date.textContent=new Date(item.event_date+"T00:00:00").toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"long",year:"numeric"})+(item.start_time?" · "+item.start_time:"");
+      const details=document.createElement("p");details.textContent=item.description;
+      const meta=document.createElement("p");meta.className="admin-note";meta.textContent=(item.location?item.location+" · ":"")+(item.is_published?"Published":"Draft");
+      const actions=document.createElement("div");actions.className="admin-actions";
+      const edit=document.createElement("button");edit.type="button";edit.className="button button-secondary";edit.textContent="Edit";edit.addEventListener("click",()=>editEvent(item));
+      const remove=document.createElement("button");remove.type="button";remove.className="button button-danger";remove.textContent="Delete";remove.addEventListener("click",()=>deleteEvent(item.id,item.title));
+      actions.append(edit,remove);card.append(title,date,details,meta,actions);box.append(card);
+    });
+  }catch(error){box.textContent=error.message;}
+}
+async function saveEvent(event){
+  event.preventDefault();const form=event.currentTarget,status=$("#eventStatus"),button=$("#eventSaveButton");
+  button.disabled=true;status.textContent="Saving event…";
+  try{
+    const data=Object.fromEntries(new FormData(form).entries());data.is_published=form.elements.is_published.checked;
+    await api("admin/events",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+    resetEventForm();status.textContent="Event saved successfully.";await loadAdminEvents();
+  }catch(error){status.textContent=error.message;}
+  finally{button.disabled=false;}
+}
+function editEvent(item){
+  const form=$("#eventForm");form.elements.id.value=item.id;form.elements.title.value=item.title||"";
+  form.elements.event_date.value=item.event_date||"";form.elements.start_time.value=item.start_time||"";
+  form.elements.location.value=item.location||"";form.elements.description.value=item.description||"";
+  form.elements.is_published.checked=Boolean(item.is_published);
+  $("#eventSaveButton").textContent="Update event";$("#eventCancelEdit").hidden=false;
+  $("#eventStatus").textContent="Editing: "+item.title;form.scrollIntoView({behavior:"smooth",block:"start"});
+}
+function resetEventForm(){
+  const form=$("#eventForm");if(!form)return;form.reset();form.elements.id.value="";
+  form.elements.is_published.checked=true;$("#eventSaveButton").textContent="Save event";
+  $("#eventCancelEdit").hidden=true;$("#eventStatus").textContent="";
+}
+async function deleteEvent(id,title){
+  if(!confirm("Delete the event '"+title+"'?"))return;
+  try{await api("admin/events/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});await loadAdminEvents();}
+  catch(error){alert(error.message);}
+}
+
 async function loadAnnouncements(){
   const box=$("#adminAnnouncements");
   try{const data=await api("admin/announcements"),items=data.announcements||[];$("#announcementCount").textContent=items.length+" announcement(s)";box.replaceChildren();if(!items.length){box.textContent="No announcements yet.";return;}items.forEach(item=>{const article=document.createElement("article");article.className="announcement-item";const title=document.createElement("h3");title.textContent=item.title;const body=document.createElement("p");body.textContent=item.body;const meta=document.createElement("p");meta.className="admin-note";meta.textContent=item.is_published?"Published":"Draft";article.append(title,body,meta);box.append(article);});}
