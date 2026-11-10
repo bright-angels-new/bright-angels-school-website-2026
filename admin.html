@@ -142,6 +142,8 @@ body{background:#f3f7fb;color:#20384d}
  *,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}
 }
 
+
+    .overview-stat-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:22px 0 26px}.overview-stat{min-width:0;padding:17px;border:1px solid #dce8f1;border-radius:12px;background:linear-gradient(145deg,#f5faff,#edf6fc)}.overview-stat span{display:block;color:#526b80;font-size:.8rem;font-weight:750}.overview-stat strong{display:block;margin-top:8px;color:#123b66;font-size:1.8rem;line-height:1.15;overflow-wrap:anywhere}.overview-actions-title{margin:8px 0 12px;color:#123b66}.overview-quick-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px}.overview-quick-actions button{min-height:48px;padding:11px 13px;border:1px solid #d6e5ef;border-radius:9px;background:#fff;color:#123b66;font-weight:750;text-align:left;cursor:pointer}.overview-quick-actions button:hover{background:#edf6fc;border-color:#8dbbd8}.overview-refresh-note{margin-top:17px}@media(max-width:1050px){.overview-stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:560px){.overview-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.overview-stat{padding:13px}.overview-stat strong{font-size:1.55rem}.overview-quick-actions{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -180,7 +182,7 @@ body{background:#f3f7fb;color:#20384d}
           </div>
         </aside>
         <div class="admin-main">
-      <section id="overviewPanel" class="admin-card"><h2>Welcome to the school dashboard</h2><p class="admin-note">Manage public school information, announcements and the photo gallery here. Admissions and private school records are managed only in the school management system.</p><div class="admin-grid"><div><h3>Announcements</h3><p id="announcementCount">Loading announcements…</p></div></div></section>
+      <section id="overviewPanel" class="admin-card"><h2>Welcome to the school dashboard</h2><p class="admin-note">A quick view of the public website content managed by your school office.</p><div class="overview-stat-grid"><article class="overview-stat"><span>Announcements</span><strong id="announcementCount">Loading…</strong></article><article class="overview-stat"><span>Upcoming events</span><strong id="eventCount">Loading…</strong></article><article class="overview-stat"><span>Published stories</span><strong id="storyCount">Loading…</strong></article><article class="overview-stat"><span>School photos</span><strong id="photoCount">Loading…</strong></article><article class="overview-stat"><span>School videos</span><strong id="videoCount">Loading…</strong></article></div><h3 class="overview-actions-title">Quick actions</h3><div class="overview-quick-actions"><button type="button" data-panel="announcementsPanel">＋ Add announcement</button><button type="button" data-panel="eventsPanel">＋ Add school event</button><button type="button" data-panel="storiesPanel">＋ Publish learner story</button><button type="button" data-panel="galleryPanel">＋ Manage photos & videos</button><button type="button" data-panel="contentPanel">✎ Edit website text</button></div><p class="admin-note overview-refresh-note">Counts update when the dashboard is opened. Use the menu or quick actions to manage each section.</p></section>
       
       
 
