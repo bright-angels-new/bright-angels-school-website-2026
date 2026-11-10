@@ -4,15 +4,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const menuToggle = $("#menuToggle");
   const nav = $("#mainNav");
   if (menuToggle && nav) {
+    menuToggle.setAttribute("aria-controls", "mainNav");
+    const closeMenu = () => {
+      nav.classList.remove("open");
+      menuToggle.setAttribute("aria-expanded", "false");
+      menuToggle.setAttribute("aria-label", "Open navigation");
+    };
     menuToggle.addEventListener("click", () => {
       const opened = nav.classList.toggle("open");
       menuToggle.setAttribute("aria-expanded", String(opened));
       menuToggle.setAttribute("aria-label", opened ? "Close navigation" : "Open navigation");
     });
-    nav.querySelectorAll("a").forEach(link => link.addEventListener("click", () => {
-      nav.classList.remove("open");
-      menuToggle.setAttribute("aria-expanded", "false");
-    }));
+    nav.querySelectorAll("a").forEach(link => link.addEventListener("click", closeMenu));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        closeMenu();
+        menuToggle.focus();
+      }
+    });
+    document.addEventListener("click", event => {
+      if (nav.classList.contains("open") && !nav.contains(event.target) && !menuToggle.contains(event.target)) closeMenu();
+    });
+    window.addEventListener("resize", () => {
+      if (window.innerWidth > 1020) closeMenu();
+    }, { passive: true });
   }
   const year = $("#year");
   if (year) year.textContent = new Date().getFullYear();
