@@ -669,3 +669,13 @@ body.gallery-view-open{overflow:hidden}
 .admissions-process{max-width:1100px;margin:2rem auto 0}
 .process-title{text-align:center}
 @media(max-width:640px){.admissions-class-list,.admissions-guidance{padding:1.1rem}.class-chips span{font-size:.85rem}}
+
+
+/* Clear parent-facing admission status result */
+.admission-status-result{display:flex;flex-direction:column;align-items:flex-start;gap:.65rem;margin-top:1rem;padding:1rem;border-radius:14px;background:#f0f7fb;color:#263b48;line-height:1.5}
+.admission-status-badge{display:inline-flex;padding:.4rem .8rem;border-radius:999px;background:#e4edf3;color:#24465b;font-weight:800}
+.admission-status-badge.status-approved{background:#e2f5e9;color:#176638}
+.admission-status-badge.status-under-review{background:#fff3d6;color:#805600}
+.admission-status-badge.status-rejected{background:#fde8e7;color:#9a2823}
+.admission-number{font-weight:800;color:#123b32}
+.admission-status-result.is-error{background:#fff0ef;color:#8f2924}
