@@ -1,5 +1,56 @@
 const $ = (selector) => document.querySelector(selector);
 
+async function loadPublicStories(){
+  const box=$("#publicStories");
+  if(!box)return;
+  try{
+    const response=await fetch("/api/stories",{credentials:"same-origin"});
+    if(!response.ok)throw new Error("Stories unavailable");
+    const data=await response.json();
+    const stories=Array.isArray(data.stories)?data.stories:[];
+    box.replaceChildren();
+    if(!stories.length){
+      const empty=document.createElement("p");
+      empty.className="muted";
+      empty.textContent="Learner stories and school highlights will appear here soon.";
+      box.append(empty);
+      return;
+    }
+    stories.forEach(story=>{
+      const card=document.createElement("article");
+      card.className="school-story-card";
+      if(story.image_url){
+        try{
+          const imageUrl=new URL(story.image_url);
+          if(imageUrl.protocol==="https:"&&imageUrl.hostname==="ik.imagekit.io"&&!imageUrl.username&&!imageUrl.password&&!imageUrl.port){
+            const img=document.createElement("img");
+            img.src=imageUrl.href;
+            img.alt=story.title||"Bright Angels learner story";
+            img.loading="lazy";
+            img.decoding="async";
+            card.append(img);
+          }
+        }catch{}
+      }
+      const copy=document.createElement("div");
+      copy.className="school-story-copy";
+      const label=document.createElement("p");
+      label.className="eyebrow";
+      label.textContent="LIFE AT BRIGHT ANGELS";
+      const title=document.createElement("h3");
+      title.textContent=story.title||"School story";
+      const body=document.createElement("p");
+      body.textContent=story.body||"";
+      copy.append(label,title,body);
+      card.append(copy);
+      box.append(card);
+    });
+  }catch(error){
+    console.warn("Learner stories unavailable.",error);
+    box.textContent="Learner stories are temporarily unavailable.";
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const menuToggle = $("#menuToggle");
   const nav = $("#mainNav");
