@@ -215,7 +215,11 @@ async function loadPublicVideos(){
       let mediaUrl;try{const u=new URL(video.video_url);if(u.protocol!=="https:"||u.hostname!=="ik.imagekit.io"||u.username||u.password||u.port)return;mediaUrl=u.href;}catch{return;}
       const card=document.createElement("article");card.className="school-video-card";
       const stage=document.createElement("div");stage.className="school-video-stage";
-      const player=document.createElement("video");player.src=mediaUrl;player.controls=true;player.preload="metadata";player.playsInline=true;player.setAttribute("aria-label",video.title||"Bright Angels school video");stage.append(player);
+      const player=document.createElement("video");player.src=mediaUrl;player.controls=true;player.preload="metadata";player.playsInline=true;player.setAttribute("aria-label",video.title||"Bright Angels school video");
+      player.addEventListener("play",()=>{
+        box.querySelectorAll("video").forEach(other=>{if(other!==player)other.pause();});
+      });
+      stage.append(player);
       const title=document.createElement("h3");title.textContent=video.title||"Bright Angels school video";card.append(stage,title);box.append(card);
     });
     if(!box.children.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="School videos will be added here soon.";box.append(empty);}
