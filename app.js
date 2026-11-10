@@ -204,8 +204,23 @@ function addSchoolPhotos(photos){
 }
 
 
-async function loadPublicVideos(){const box=$("#publicVideos");if(!box)return;try{const response=await fetch("/api/videos");if(!response.ok)throw new Error("Videos unavailable");const data=await response.json(),videos=Array.isArray(data.videos)?data.videos:[];box.replaceChildren();if(!videos.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="School videos will be added here soon.";box.append(empty);return;}videos.forEach(video=>{const yt=/^https:\/\/(www\.)?youtube-nocookie\.com\/embed\/[A-Za-z0-9_-]{11}$/.test(video.embed_url),vm=/^https:\/\/player\.vimeo\.com\/video\/\d{5,12}$/.test(video.embed_url);if(!yt&&!vm)return;const card=document.createElement("article");card.className="school-video-card";const stage=document.createElement("div");stage.className="school-video-stage";if(yt&&/^https:\/\/i\.ytimg\.com\/vi\/[A-Za-z0-9_-]{11}\/hqdefault\.jpg$/.test(video.thumbnail_url)){const img=document.createElement("img");img.src=video.thumbnail_url;img.alt="Video preview: "+(video.title||"Bright Angels school video");img.loading="lazy";img.decoding="async";stage.append(img);}else{const placeholder=document.createElement("div");placeholder.className="video-placeholder";placeholder.textContent="BRIGHT ANGELS · "+video.provider;stage.append(placeholder);}const play=document.createElement("button");play.type="button";play.className="video-play-button";play.setAttribute("aria-label","Play "+(video.title||"school video"));play.textContent="▶";stage.append(play);play.addEventListener("click",()=>{const frame=document.createElement("iframe");frame.src=video.embed_url+"?autoplay=1&rel=0";frame.title=video.title||"Bright Angels school video";frame.loading="lazy";frame.allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";frame.allowFullscreen=true;frame.referrerPolicy="strict-origin-when-cross-origin";stage.replaceChildren(frame);});const title=document.createElement("h3");title.textContent=video.title||"Bright Angels school video";card.append(stage,title);box.append(card);});if(!box.children.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="School videos will be added here soon.";box.append(empty);}}catch(error){console.warn("School videos unavailable.",error);box.textContent="School videos are temporarily unavailable.";}}
-
+async function loadPublicVideos(){
+  const box=$("#publicVideos");if(!box)return;
+  try{
+    const response=await fetch("/api/videos");if(!response.ok)throw new Error("Videos unavailable");
+    const data=await response.json(),videos=Array.isArray(data.videos)?data.videos:[];
+    box.replaceChildren();
+    if(!videos.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="School videos will be added here soon.";box.append(empty);return;}
+    videos.forEach(video=>{
+      let mediaUrl;try{const u=new URL(video.video_url);if(u.protocol!=="https:"||u.hostname!=="ik.imagekit.io"||u.username||u.password||u.port)return;mediaUrl=u.href;}catch{return;}
+      const card=document.createElement("article");card.className="school-video-card";
+      const stage=document.createElement("div");stage.className="school-video-stage";
+      const player=document.createElement("video");player.src=mediaUrl;player.controls=true;player.preload="metadata";player.playsInline=true;player.setAttribute("aria-label",video.title||"Bright Angels school video");stage.append(player);
+      const title=document.createElement("h3");title.textContent=video.title||"Bright Angels school video";card.append(stage,title);box.append(card);
+    });
+    if(!box.children.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="School videos will be added here soon.";box.append(empty);}
+  }catch(error){console.warn("School videos unavailable.",error);box.textContent="School videos are temporarily unavailable.";}
+}
 let galleryItems=[];
 let galleryIndex=0;
 let galleryPreviousFocus=null;
