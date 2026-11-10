@@ -801,3 +801,32 @@ footer{padding:42px 22px 24px}
   .public-event-card{transition:none}
   .public-event-card:hover{transform:none}
 }
+
+
+/* Get in touch: use the school's selected gallery photo with a strong readable overlay */
+.contact-section{
+  position:relative;
+  isolation:isolate;
+  background-color:#102f50;
+  background-image:linear-gradient(105deg,rgba(7,29,51,.91),rgba(13,54,86,.84) 52%,rgba(14,65,101,.78)),var(--contact-photo,linear-gradient(120deg,#102f50,#286b96));
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+}
+.contact-section>div,.contact-section>form{position:relative;z-index:1}
+.contact-section .eyebrow{color:#f4cf7c}
+.contact-section h2 span{color:#f4cf7c}
+.contact-section .contact-details{
+  background:rgba(7,29,51,.38);
+  border-color:rgba(255,255,255,.35);
+  backdrop-filter:blur(5px);
+}
+.contact-section .contact-details a{color:#ffe09a}
+.contact-section .form-card{
+  border:1px solid rgba(255,255,255,.55);
+  box-shadow:0 18px 48px rgba(0,0,0,.22);
+}
+@media(max-width:700px){
+  .contact-section{background-position:center;background-image:linear-gradient(180deg,rgba(7,29,51,.89),rgba(13,54,86,.88)),var(--contact-photo,linear-gradient(145deg,#102f50,#286b96))}
+  .contact-section .form-card{padding:22px 17px}
+}
