@@ -170,14 +170,36 @@ async function submitAdmission(event) {
 async function checkApplicationStatus(event) {
   event.preventDefault();
   const form=event.currentTarget,output=$("#applicationStatusResult"),button=form.querySelector('button[type="submit"]');
-  button.disabled=true;output.textContent="Checking application…";
+  button.disabled=true;output.className="form-status admission-status-result";output.textContent="Checking application…";
   try {
     const payload=Object.fromEntries(new FormData(form).entries());
     const response=await fetch("/api/public-admission-status",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
     const result=await response.json().catch(()=>({}));
     if(!response.ok)throw new Error(result.error||"No matching application was found. Check the details and try again.");
-    output.textContent="Application status: "+result.status+(result.admission_number?". Student admission number: "+result.admission_number:"")+". For further information, contact the school.";
-  } catch(error) { output.textContent=error.message||"Status check failed."; }
+    const status=String(result.status||"Pending").trim();
+    const key=status.toLowerCase().replace(/[^a-z]+/g,"-");
+    const explanations={
+      "pending":"Your application has been received and is waiting for the school's review.",
+      "under-review":"The school is currently reviewing your child's application.",
+      "approved":"Your child's application has been approved. Please contact the school for the next steps.",
+      "rejected":"The application was not approved. Please contact the school if you need clarification."
+    };
+    const heading=document.createElement("strong");
+    heading.className="admission-status-badge status-"+key;
+    heading.textContent=status;
+    const detail=document.createElement("span");
+    detail.textContent=explanations[key]||"Please contact the school for more information about this application.";
+    output.replaceChildren(heading,detail);
+    if(result.admission_number){
+      const number=document.createElement("span");
+      number.className="admission-number";
+      number.textContent="Student admission number: "+result.admission_number;
+      output.append(number);
+    }
+  } catch(error) {
+    output.className="form-status admission-status-result is-error";
+    output.textContent=error.message||"Status check failed.";
+  }
   finally { button.disabled=false; }
 }
 
