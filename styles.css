@@ -866,3 +866,14 @@ footer{padding:42px 22px 24px}
   .whatsapp-float{left:14px;bottom:15px;min-height:45px;padding:0 13px;font-size:.82rem}
 }
 @media(prefers-reduced-motion:reduce){.whatsapp-float{transition:none}.whatsapp-float:hover{transform:none}}
+
+
+/* Keyboard accessibility: let visitors skip repeated navigation */
+.skip-link{
+  position:fixed;top:10px;left:10px;z-index:2000;
+  transform:translateY(-160%);padding:12px 18px;
+  border-radius:8px;background:#123b66;color:#fff;
+  font-weight:800;box-shadow:0 5px 18px rgba(0,0,0,.2);
+}
+.skip-link:focus{transform:translateY(0);outline:3px solid #efc66f;outline-offset:3px}
+#main-content:focus{outline:none}
