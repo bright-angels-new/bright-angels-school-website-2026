@@ -78,7 +78,22 @@ async function login(event) {
   catch(error){status.textContent=error.message;} finally{button.disabled=false;}
 }
 async function checkSession(){try{await api("session");await showDashboard();}catch{$("#loginPanel").classList.remove("admin-hidden");$("#dashboard").classList.add("admin-hidden");}}
-async function showDashboard(){ $("#loginPanel").classList.add("admin-hidden");$("#dashboard").classList.remove("admin-hidden");showPanel(currentPanel);await loadAnnouncements();}
+async function showDashboard(){ $("#loginPanel").classList.add("admin-hidden");$("#dashboard").classList.remove("admin-hidden");showPanel(currentPanel);await Promise.all([loadAnnouncements(),loadDashboardSummary()]);}
+async function loadDashboardSummary(){
+  const setCount=(id,value)=>{const el=$("#"+id);if(el)el.textContent=value;};
+  ["eventCount","storyCount","photoCount","videoCount"].forEach(id=>setCount(id,"Loading…"));
+  const results=await Promise.allSettled([api("admin/events"),api("admin/stories"),api("admin/gallery"),api("admin/videos")]);
+  const today=new Date();today.setHours(0,0,0,0);
+  const value=(result,key)=>result.status==="fulfilled"?(result.value[key]||[]):null;
+  const events=value(results[0],"events");
+  const stories=value(results[1],"stories");
+  const photos=value(results[2],"gallery");
+  const videos=value(results[3],"videos");
+  setCount("eventCount",events?events.filter(item=>Boolean(item.is_published)&&String(item.event_date||"")>=today.toISOString().slice(0,10)).length:"Unavailable");
+  setCount("storyCount",stories?stories.filter(item=>Boolean(item.is_published)).length:"Unavailable");
+  setCount("photoCount",photos?photos.length:"Unavailable");
+  setCount("videoCount",videos?videos.length:"Unavailable");
+}
 async function logout(){try{await api("logout",{method:"POST"});}catch{}$("#dashboard").classList.add("admin-hidden");$("#loginPanel").classList.remove("admin-hidden");$("#loginStatus").textContent="You have signed out.";}
 
 async function loadAdmissions(){
