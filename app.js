@@ -33,6 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (year) year.textContent = new Date().getFullYear();
   loadAnnouncements();
   loadPublicContent();
+  startHeroTextRotation();
   loadPublicGallery();
   loadApplicationClasses();
   const parentForm=$("#parentMessageForm");
@@ -130,3 +131,23 @@ function isApprovedGalleryImage(value){try{const u=new URL(String(value||""),win
 
 async function loadPublicGallery(){const box=$("#publicGallery");if(!box)return;try{const r=await fetch("/api/gallery");if(!r.ok)return;const d=await r.json();const items=Array.isArray(d.gallery)?d.gallery:[];const heroPhoto=$("#heroSchoolPhoto");const selected=d.featured_image_url;const featured=items.find(item=>isApprovedGalleryImage(item.image_url)&&item.image_url===selected)||items.find(item=>isApprovedGalleryImage(item.image_url));if(heroPhoto&&featured){heroPhoto.src=featured.image_url;heroPhoto.alt=featured.title||"A moment at Bright Angels Junior School";const hero=document.querySelector(".hero");if(hero)hero.style.setProperty("--hero-photo",`url("${featured.image_url}")`);}box.replaceChildren();items.forEach(item=>{const card=document.createElement("article");card.className="feature-card";const img=document.createElement("img");if(!isApprovedGalleryImage(item.image_url)){console.warn("Skipped gallery item with an unapproved image URL.");return;}img.src=item.image_url;img.alt=item.title||"Bright Angels school photo";img.loading="lazy";img.style.width="100%";img.style.height="190px";img.style.objectFit="cover";const h=document.createElement("h3");h.textContent=item.title;const p=document.createElement("p");p.textContent=item.description||"";card.append(img,h,p);box.append(card);});if(!box.children.length)box.innerHTML="<p class=\"muted\">School gallery photos will appear here.</p>";}catch(e){console.warn("Gallery unavailable.",e);}}
 
+function startHeroTextRotation(){
+  const target=$("#heroRotatingText");
+  if(!target)return;
+  const messages=[
+    "Growing minds. Building confidence.",
+    "Inspiring curiosity. Celebrating every achievement.",
+    "Learning with purpose. Growing with character.",
+    "A caring community where every child can shine."
+  ];
+  if(window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  let index=0;
+  window.setInterval(()=>{
+    target.classList.add("is-changing");
+    window.setTimeout(()=>{
+      index=(index+1)%messages.length;
+      target.textContent=messages[index];
+      target.classList.remove("is-changing");
+    },420);
+  },4200);
+}
