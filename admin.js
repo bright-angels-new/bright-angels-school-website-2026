@@ -84,12 +84,13 @@ async function loadDashboardSummary(){
   ["eventCount","storyCount","photoCount","videoCount"].forEach(id=>setCount(id,"Loading…"));
   const results=await Promise.allSettled([api("admin/events"),api("admin/stories"),api("admin/gallery"),api("admin/videos")]);
   const today=new Date();today.setHours(0,0,0,0);
+  const todayKey=[today.getFullYear(),String(today.getMonth()+1).padStart(2,"0"),String(today.getDate()).padStart(2,"0")].join("-");
   const value=(result,key)=>result.status==="fulfilled"?(result.value[key]||[]):null;
   const events=value(results[0],"events");
   const stories=value(results[1],"stories");
   const photos=value(results[2],"gallery");
   const videos=value(results[3],"videos");
-  setCount("eventCount",events?events.filter(item=>Boolean(item.is_published)&&String(item.event_date||"")>=today.toISOString().slice(0,10)).length:"Unavailable");
+  setCount("eventCount",events?events.filter(item=>Boolean(item.is_published)&&String(item.event_date||"")>=todayKey).length:"Unavailable");
   setCount("storyCount",stories?stories.filter(item=>Boolean(item.is_published)).length:"Unavailable");
   setCount("photoCount",photos?photos.length:"Unavailable");
   setCount("videoCount",videos?videos.length:"Unavailable");
