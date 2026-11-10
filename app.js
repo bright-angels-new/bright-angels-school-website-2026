@@ -268,6 +268,24 @@ function initGalleryLightbox(){
   $("#galleryLightbox")?.addEventListener("click",event=>{
     if(event.target.id==="galleryLightbox")closeGalleryLightbox();
   });
+
+  // Let visitors swipe between photos on touch-screen phones and tablets.
+  const photoStage=$("#galleryLightbox")?.querySelector("figure");
+  let touchStartX=0,touchStartY=0;
+  photoStage?.addEventListener("touchstart",event=>{
+    if(event.touches.length!==1)return;
+    touchStartX=event.touches[0].clientX;
+    touchStartY=event.touches[0].clientY;
+  },{passive:true});
+  photoStage?.addEventListener("touchend",event=>{
+    if(!touchStartX||!event.changedTouches.length)return;
+    const deltaX=event.changedTouches[0].clientX-touchStartX;
+    const deltaY=event.changedTouches[0].clientY-touchStartY;
+    touchStartX=0;touchStartY=0;
+    if(Math.abs(deltaX)<45||Math.abs(deltaX)<Math.abs(deltaY)*1.25)return;
+    moveGalleryLightbox(deltaX<0?1:-1);
+  },{passive:true});
+
   document.addEventListener("keydown",event=>{
     if(!$("#galleryLightbox")?.classList.contains("is-open"))return;
     if(event.key==="Escape")closeGalleryLightbox();
