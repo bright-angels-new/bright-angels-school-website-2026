@@ -145,7 +145,7 @@ export async function onRequest({request,env}) {
     if(request.method==="GET" && route==="videos") {const r=await env.DB.prepare("SELECT id,title,video_url,provider,video_id FROM ba2_videos ORDER BY created_at DESC LIMIT 40").all();const videos=(r.results||[]).flatMap(item=>{const video_url=safeGalleryUrl(item.video_url);return video_url&&item.provider==="ImageKit"?[{id:item.id,title:item.title,video_url}]:[];});return json({videos});}
     if(request.method==="GET" && route==="stories") { const r=await env.DB.prepare("SELECT id,title,body,image_url,created_at FROM ba2_stories WHERE is_published=1 ORDER BY created_at DESC LIMIT 30").all();return json({stories:(r.results||[]).map(item=>({...item,image_url:safeGalleryUrl(item.image_url)||""}))}); }
     if(request.method==="GET" && route==="events") {
-      const result=await env.DB.prepare("SELECT id,title,event_date,start_time,location,description FROM ba2_events WHERE is_published=1 AND event_date>=date('now') ORDER BY event_date ASC,COALESCE(start_time,'23:59') ASC LIMIT 30").all();
+      const result=await env.DB.prepare("SELECT id,title,event_date,start_time,location,description FROM ba2_events WHERE is_published=1 AND event_date>=date('now','+3 hours') ORDER BY event_date ASC,COALESCE(start_time,'23:59') ASC LIMIT 30").all();
       return json({events:result.results||[]});
     }
     if(request.method==="GET" && route==="announcements") {
@@ -419,8 +419,8 @@ export async function onRequest({request,env}) {
       if(request.method==="POST" && route==="admin/events") {
         let data;try{data=await request.json();}catch{return json({error:"Enter the event details."},400);}
         const id=Number(data.id||0),title=clean(data.title,160),eventDate=clean(data.event_date,10),time=clean(data.start_time,5),location=clean(data.location,180),description=clean(data.description,1500),published=data.is_published?1:0;
-        if(!title||!/^\\d{4}-\\d{2}-\\d{2}$/.test(eventDate)||Number.isNaN(Date.parse(eventDate+"T00:00:00"))||!description)return json({error:"Enter an event title, valid date and description."},400);
-        if(time&&!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(time))return json({error:"Enter a valid event time."},400);
+        if(!title||!/^\d{4}-\d{2}-\d{2}$/.test(eventDate)||Number.isNaN(Date.parse(eventDate+"T00:00:00"))||!description)return json({error:"Enter an event title, valid date and description."},400);
+        if(time&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))return json({error:"Enter a valid event time."},400);
         if(id>0){
           await env.DB.prepare("UPDATE ba2_events SET title=?,event_date=?,start_time=?,location=?,description=?,is_published=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(title,eventDate,time||null,location||null,description,published,id).run();
           return json({ok:true,updated:true});
