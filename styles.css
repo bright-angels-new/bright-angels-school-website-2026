@@ -384,3 +384,38 @@ footer{background:#091f35}
 @media(prefers-reduced-motion:reduce){
   .pathway-card,.feature-card,.steps-grid article,.button{transition:none}
 }
+
+
+/* Full-width welcome hero with a school photo and readable overlay */
+.hero{
+  display:flex;
+  align-items:center;
+  min-height:620px;
+  padding:clamp(76px,9vw,120px) clamp(24px,9vw,130px);
+  background-color:#123b66;
+  background-image:
+    linear-gradient(90deg,rgba(7,29,51,.92) 0%,rgba(12,48,79,.82) 48%,rgba(12,48,79,.42) 100%),
+    var(--hero-photo,linear-gradient(120deg,#0d2d4c,#1e6595));
+  background-position:center;
+  background-size:cover;
+  background-repeat:no-repeat;
+}
+.hero-content{position:relative;z-index:1;width:min(100%,760px);max-width:760px}
+.hero-visual{display:none!important}
+.hero h1{max-width:760px;text-shadow:0 3px 22px rgba(0,0,0,.2)}
+.hero-copy{max-width:620px;text-shadow:0 2px 12px rgba(0,0,0,.22)}
+.hero .motto{font-weight:700}
+@media(max-width:760px){
+  .hero{
+    min-height:590px;
+    padding:76px 23px 68px;
+    justify-content:center;
+    text-align:center;
+    background-image:
+      linear-gradient(180deg,rgba(7,29,51,.76),rgba(7,29,51,.88)),
+      var(--hero-photo,linear-gradient(145deg,#0d2d4c,#1e6595));
+    background-position:center;
+  }
+  .hero-content{margin:0 auto}
+  .hero-actions{justify-content:center}
+}
