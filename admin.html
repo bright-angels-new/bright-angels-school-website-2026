@@ -62,7 +62,87 @@
       .admin-main>.admin-card{padding:17px}
     }
 
-    .subject-class-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:18px 0}.subject-class-tabs button{padding:13px 10px;border:1px solid #d9dfed;border-radius:9px;background:#eaf6ff;color:#31536b;font-weight:800;cursor:pointer}.subject-class-tabs button.active{background:#6bb8e8;border-color:#6bb8e8;color:#173b56;box-shadow:0 4px 12px rgba(49,88,180,.15)}.subject-class-list{min-height:90px;padding:18px;border:1px solid #dcecf7;border-radius:10px;background:#f3faff}.subject-class-list h3{margin:0 0 12px;color:#24469b}.subject-subject-chip{display:inline-block;margin:5px 7px 5px 0;padding:9px 13px;border-radius:20px;background:#e8f5ff;color:#24469b;font-weight:700}.subject-add-heading{margin:25px 0 8px;color:#24469b}@media(max-width:650px){.subject-class-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}}\n  </style>
+    .subject-class-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:18px 0}.subject-class-tabs button{padding:13px 10px;border:1px solid #d9dfed;border-radius:9px;background:#eaf6ff;color:#31536b;font-weight:800;cursor:pointer}.subject-class-tabs button.active{background:#6bb8e8;border-color:#6bb8e8;color:#173b56;box-shadow:0 4px 12px rgba(49,88,180,.15)}.subject-class-list{min-height:90px;padding:18px;border:1px solid #dcecf7;border-radius:10px;background:#f3faff}.subject-class-list h3{margin:0 0 12px;color:#24469b}.subject-subject-chip{display:inline-block;margin:5px 7px 5px 0;padding:9px 13px;border-radius:20px;background:#e8f5ff;color:#24469b;font-weight:700}.subject-add-heading{margin:25px 0 8px;color:#24469b}@media(max-width:650px){.subject-class-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}}\n  
+/* Administrator page: responsive layout and clearer visual hierarchy */
+:root{--admin-navy:#123b66;--admin-blue:#4b9acb;--admin-pale:#edf6fc;--admin-line:#dce8f1}
+body{background:#f3f7fb;color:#20384d}
+.site-header{height:auto;min-height:76px;padding:12px clamp(16px,4vw,52px);gap:14px}
+.site-header .brand{min-width:0}
+.site-header .nav-admin{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 16px;border:1px solid #c9ddeb;border-radius:999px;color:var(--admin-navy);font-size:.86rem;font-weight:750;white-space:nowrap}
+.admin-wrap{width:min(100% - 32px,1440px);margin:clamp(18px,3vw,34px) auto;padding:0}
+.login-card{width:min(100%,480px);margin:clamp(30px,7vh,75px) auto;padding:clamp(22px,4vw,36px);border:1px solid var(--admin-line);border-radius:18px;box-shadow:0 18px 48px rgba(18,59,102,.09)}
+.login-card:before{content:"";display:block;width:64px;height:5px;margin-bottom:22px;border-radius:8px;background:linear-gradient(90deg,#123b66,#6bb8e8,#e5b65b)}
+.admin-title h1{color:var(--admin-navy)}
+.admin-title p{line-height:1.6}
+.admin-card{border:1px solid var(--admin-line);border-radius:15px;box-shadow:0 10px 30px rgba(18,59,102,.055)}
+.admin-form label{color:#344f68;line-height:1.5}
+.admin-form input,.admin-form textarea,.admin-form select{min-width:0;max-width:100%;font-size:16px;border:1px solid #d5e3ee;border-radius:9px;padding:13px 14px}
+.admin-form input:focus,.admin-form textarea:focus,.admin-form select:focus{outline:3px solid rgba(75,154,203,.18);border-color:#4b9acb}
+.admin-form button,.top-actions button,.admin-row-actions button,.small-button{min-height:42px}
+.admin-form button:disabled,.top-actions button:disabled{opacity:.65;cursor:wait}
+.dashboard-layout{grid-template-columns:250px minmax(0,1fr);gap:22px}
+.admin-sidebar{border-color:var(--admin-line);border-radius:15px}
+.dashboard-menu-toggle{min-height:44px;background:var(--admin-navy);border-radius:9px}
+.admin-nav button{min-height:43px}
+.admin-nav button.active{background:var(--admin-navy);color:#fff}
+.admin-main{min-width:0}
+.admin-main>.admin-card{min-width:0;overflow:hidden}
+.admin-table-wrap,.table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.admin-table{min-width:680px}
+.admin-table th,.admin-table td{white-space:normal;overflow-wrap:anywhere}
+.admin-grid>*{min-width:0}
+.admin-status{overflow-wrap:anywhere;line-height:1.5}
+.admin-row-actions{align-items:center}
+.admin-row-actions button,.small-button{border-radius:8px}
+@media(min-width:851px){
+ .dashboard-menu-toggle{display:none}
+ .dashboard-menu,.dashboard-menu.admin-hidden{display:block!important;max-height:none;overflow:visible}
+ .admin-sidebar{top:18px}
+}
+@media(max-width:850px){
+ .admin-wrap{width:calc(100% - 28px);margin:18px auto}
+ .dashboard-layout{grid-template-columns:minmax(0,1fr);gap:13px}
+ .admin-sidebar{position:relative;top:auto;min-height:0;padding:10px}
+ .dashboard-menu{max-height:min(62vh,520px);overflow-y:auto}
+ .admin-nav{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .admin-nav button{min-width:0;overflow-wrap:anywhere}
+ .admin-main>.admin-card{padding:clamp(17px,3vw,23px)}
+ .admin-top{align-items:center}
+}
+@media(max-width:560px){
+ .site-header{min-height:68px;padding:9px 14px}
+ .site-header .brand img{width:43px;height:43px}
+ .site-header .brand strong{font-size:1rem}
+ .site-header .brand small{font-size:.65rem}
+ .site-header .nav-admin{font-size:.75rem;padding:8px 11px;min-height:39px}
+ .admin-wrap{width:calc(100% - 22px);margin:13px auto}
+ .login-card{margin:26px auto;padding:22px 18px}
+ .admin-top{align-items:stretch;flex-direction:column}
+ .admin-title h1{font-size:1.65rem}
+ .top-actions{width:100%}
+ .top-actions button{width:100%}
+ .admin-nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+ .admin-nav button{font-size:.77rem;padding:10px 8px;gap:6px}
+ .admin-nav button span{flex:0 0 16px}
+ .admin-main>.admin-card{padding:16px 13px;border-radius:12px}
+ .admin-grid{grid-template-columns:1fr}
+ .student-total-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .subject-class-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .admin-form button{width:100%}
+ .admin-row-actions{flex-wrap:wrap}
+ .admin-row-actions button{flex:1 1 auto}
+}
+@media(max-width:360px){
+ .site-header .nav-admin{font-size:.7rem;padding:7px 9px}
+ .admin-title h1{font-size:1.45rem}
+ .admin-nav button{font-size:.72rem}
+ .student-total-cards{grid-template-columns:1fr 1fr}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}
+}
+
+  </style>
 </head>
 <body>
   <header class="site-header"><a class="brand" href="/"><img src="/school-logo.jpg" alt=""><span><strong>Bright Angels</strong><small>School Administration</small></span></a><a class="nav-admin" href="/">View public website</a></header>
