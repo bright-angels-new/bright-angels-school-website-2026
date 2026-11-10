@@ -11,3 +11,156 @@
 .announcement-list .announcement-item h3{font-family:"Playfair Display",Georgia,serif;font-size:1.45rem;line-height:1.25;letter-spacing:.01em;color:#6bb8e8;margin:0 0 12px}
 .announcement-list .announcement-item p{font-family:"Source Serif 4",Georgia,serif;font-size:1.04rem;line-height:1.75;color:#40566a;white-space:pre-wrap}
 @media(max-width:700px){.news-section{padding:48px 18px}.announcement-list{grid-template-columns:1fr}.announcement-list .announcement-item{padding:21px 20px 21px 24px}}
+
+
+/* =========================================================
+   BRIGHT ANGELS — PROFESSIONAL PUBLIC WEBSITE REFRESH
+   Visual-only overrides. Existing forms, IDs and app logic
+   remain unchanged.
+   ========================================================= */
+:root{
+  --green:#123b66;
+  --green2:#6bb8e8;
+  --gold:#e5b65b;
+  --cream:#f3f8fc;
+  --ink:#1d3044;
+  --muted:#66788a;
+  --line:#e1eaf2;
+  --shadow:0 18px 48px rgba(18,59,102,.09);
+}
+html{scroll-padding-top:96px}
+body{font-family:Inter,"Segoe UI",Arial,sans-serif;color:var(--ink);background:#fff;line-height:1.7}
+.site-header{
+  height:88px;padding:0 clamp(20px,5.5vw,86px);
+  background:rgba(255,255,255,.97);backdrop-filter:blur(14px);
+  border-bottom:1px solid #e8eef4;box-shadow:0 8px 28px rgba(18,59,102,.055)
+}
+.brand{gap:13px;color:var(--green)}
+.brand img{width:58px;height:58px;object-fit:contain}
+.brand strong{font-size:1.18rem;letter-spacing:-.025em;color:#123b66}
+.brand small{font-size:.7rem;letter-spacing:.15em;color:#718397}
+nav{gap:clamp(12px,1.55vw,25px)}
+nav a{font-size:.82rem;font-weight:700;color:#40566d;transition:color .18s ease}
+nav a:hover{color:#3b91c9}
+nav .nav-admin{padding:10px 17px;border:1px solid #c9ddeb;border-radius:999px;color:#123b66;background:#f5faff}
+nav .nav-admin:hover{background:#123b66;color:#fff;border-color:#123b66}
+.hero{
+  min-height:620px;padding:clamp(65px,8vw,112px) max(8vw,25px);
+  grid-template-columns:minmax(0,1.15fr) minmax(260px,.85fr);
+  background:
+    radial-gradient(circle at 83% 26%,rgba(255,255,255,.42),transparent 25%),
+    linear-gradient(118deg,#102f50 0%,#174d78 56%,#4b9acb 100%);
+  position:relative;isolation:isolate
+}
+.hero:after{content:"";position:absolute;width:520px;height:520px;border:1px solid rgba(255,255,255,.12);border-radius:50%;right:-125px;bottom:-280px;z-index:-1}
+.hero-content{max-width:720px}
+.hero .eyebrow{color:#b9ddf4;font-size:.72rem;letter-spacing:.2em}
+.hero h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(3rem,5.5vw,5.1rem);letter-spacing:-.035em;line-height:1.04;margin-bottom:24px}
+.hero h1 span{color:#f2c66f}
+.hero-copy{font-size:1.08rem;line-height:1.85;color:#e2eff8;max-width:590px}
+.hero-actions{gap:14px;margin-top:32px}
+.button{border-radius:999px;padding:14px 23px;min-height:49px;letter-spacing:.01em;box-shadow:0 8px 20px rgba(0,0,0,.08)}
+.button-gold{background:#f0c56e;color:#173a59}
+.button-gold:hover{background:#ffda8a}
+.button-outline{border:1px solid rgba(255,255,255,.62);background:rgba(255,255,255,.07);backdrop-filter:blur(6px)}
+.button-outline:hover{background:rgba(255,255,255,.16)}
+.motto{font-size:1.05rem;color:#f5d99d;margin-top:25px}
+.hero-mark{position:relative}
+.hero-mark:before{content:"";position:absolute;width:min(390px,90%);aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.2);box-shadow:0 25px 70px rgba(0,0,0,.12)}
+.hero-mark img{position:relative;width:min(310px,72%);max-height:330px;padding:17px;border-radius:28px;background:rgba(255,255,255,.94);box-shadow:0 24px 65px rgba(0,0,0,.22)}
+.welcome-strip{background:#f0c56e;color:#173a59;padding:17px;gap:clamp(20px,4vw,55px);font-size:.72rem}
+.welcome-strip i{color:#fff;font-size:1rem}
+.section{padding:clamp(65px,7vw,96px) max(8vw,25px)}
+.section-heading{margin-bottom:42px}
+.section-heading .eyebrow,.eyebrow{color:#3986b8}
+.section-heading h2,.contact-section h2{font-size:clamp(2.15rem,4vw,3.35rem);letter-spacing:-.025em;color:#123b66}
+.section-heading h2 span{color:#4b9acb}
+.section-heading>p:last-child{font-size:1rem;line-height:1.8;max-width:680px;margin:14px auto 0}
+.news-section{background:linear-gradient(180deg,#f3f8fc 0%,#fff 100%);border-bottom:1px solid #e7eff6}
+.news-section .eyebrow{color:#3986b8}
+.announcement-list .announcement-item{border:1px solid #e0ebf3;border-left:4px solid #e5b65b;border-radius:15px;padding:25px 27px;box-shadow:0 12px 34px rgba(18,59,102,.065)}
+.announcement-list .announcement-item:before{background:#fff5df;color:#8d6826}
+.announcement-list .announcement-item h3{font-family:Georgia,serif;color:#123b66;font-size:1.4rem}
+.announcement-list .announcement-item p{font-family:inherit;color:#53677b;font-size:.98rem}
+#gallery{background:#fff}
+#gallery .feature-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+#gallery img{width:100%;height:250px;object-fit:cover;border-radius:15px}
+.about-section{background:#f8fbfe}
+.about-grid{max-width:1080px;gap:clamp(30px,6vw,75px)}
+.about-grid>div:first-child{font-size:1.02rem;line-height:1.95;color:#52677b}
+.value-card{padding:34px 36px;background:#fff;border:1px solid #e1ebf3;border-left:4px solid #e5b65b;border-radius:16px;box-shadow:var(--shadow)}
+.value-card h3{color:#123b66}
+.learning-section{background:#edf5fb}
+.feature-grid{gap:22px}
+.feature-card{padding:32px 29px;border:1px solid #e3edf5;border-radius:16px;box-shadow:0 12px 34px rgba(18,59,102,.06);transition:transform .2s ease,box-shadow .2s ease}
+.feature-card:hover{transform:translateY(-5px);box-shadow:0 20px 42px rgba(18,59,102,.11)}
+.feature-icon{background:#e6f3fc;color:#2475ad}
+.feature-card h3{color:#123b66;font-size:1.12rem}
+.feature-card p{line-height:1.8}
+.admissions-section{padding:clamp(65px,7vw,96px) max(6vw,22px);background:linear-gradient(180deg,#f3f8fc,#eaf3fa)}
+.form-card{padding:clamp(23px,4vw,38px);border:1px solid #e0eaf2;border-radius:18px;box-shadow:0 18px 50px rgba(18,59,102,.08)}
+.form-card h3{color:#123b66;margin-top:26px}
+.form-card label{color:#344f68;font-size:.86rem}
+.form-card input,.form-card select,.form-card textarea{
+  border:1px solid #d7e4ee;border-radius:9px;padding:13px 14px;
+  transition:border-color .18s ease,box-shadow .18s ease
+}
+.form-card input:focus,.form-card select:focus,.form-card textarea:focus{
+  outline:0;border-color:#4b9acb;box-shadow:0 0 0 3px rgba(75,154,203,.15)
+}
+.form-card output{display:block;margin-top:7px;padding:13px 14px;border:1px solid #e0eaf2;border-radius:9px;background:#f7fafc;color:#64788b;font-weight:500}
+.admin-note{padding:12px 15px;border-radius:9px;background:#f1f7fc;color:#536b80}
+.button-green{background:#123b66;color:#fff}
+.button-green:hover{background:#1d5b8c}
+.form-status{color:#176b9c}
+#application-status{background:#fff}
+.contact-section{
+  padding:clamp(60px,7vw,90px) max(8vw,25px);
+  display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:28px 48px;
+  background:linear-gradient(125deg,#102f50,#174d78);color:#fff
+}
+.contact-section h2{color:#fff}
+.contact-section h2 span{color:#f0c56e}
+.contact-section>div:first-child{padding:12px 0}
+.contact-section>div>p:not(.eyebrow){color:#dceaf5;line-height:1.85}
+.contact-section .eyebrow{color:#b9ddf4}
+.contact-section .form-card{grid-column:2;grid-row:1 / span 2;color:#1d3044}
+.contact-section .contact-details{grid-column:1;grid-row:2;display:grid;grid-template-columns:1fr;gap:10px;padding:23px 26px;border:1px solid rgba(255,255,255,.2);border-radius:15px;background:rgba(255,255,255,.07)}
+.contact-details p{margin:0;color:#e4eff7;line-height:1.75}
+.contact-details a{color:#f3cd7c}
+footer{padding:34px 20px;background:#0d2944;color:#d8e8f5}
+footer p{color:#f0c56e}
+.footer-brand{color:#fff;font-size:1rem}
+footer small{color:#b8cad9}
+@media(max-width:900px){
+  nav{gap:12px}
+  nav a{font-size:.76rem}
+  .hero{gap:20px}
+}
+@media(max-width:700px){
+  .site-header{height:74px;padding:0 18px}
+  .brand img{width:47px;height:47px}
+  .menu-toggle{display:block;background:#123b66;border-radius:9px}
+  nav{top:74px;padding:18px 22px 24px;background:#fff;border-top:1px solid #edf2f6;box-shadow:0 18px 30px rgba(18,59,102,.12)}
+  nav a{font-size:.92rem;padding:5px 0}
+  nav .nav-admin{padding:11px 16px}
+  .hero{min-height:auto;grid-template-columns:1fr;text-align:center;padding:65px 22px 52px}
+  .hero-content{margin:auto}
+  .hero h1{font-size:clamp(2.65rem,11vw,3.4rem)}
+  .hero-copy{font-size:1rem}
+  .hero-actions{justify-content:center}
+  .hero-mark{margin-top:15px}
+  .hero-mark img{width:165px;max-height:165px;padding:10px;border-radius:20px}
+  .hero-mark:before{width:205px}
+  .welcome-strip{gap:18px;font-size:.65rem}
+  .section{padding:62px 21px}
+  .section-heading{margin-bottom:30px}
+  .about-grid,.feature-grid{grid-template-columns:1fr}
+  .admissions-section{padding:62px 16px}
+  .form-card{padding:23px 18px}
+  .form-grid{grid-template-columns:1fr}
+  .contact-section{grid-template-columns:1fr;padding:58px 20px;gap:22px}
+  .contact-section .form-card,.contact-section .contact-details{grid-column:1;grid-row:auto}
+  .contact-section .contact-details{display:block}
+  .contact-details p{margin-bottom:15px}
+}
