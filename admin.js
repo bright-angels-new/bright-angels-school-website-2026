@@ -22,12 +22,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#galleryForm")?.addEventListener("submit", saveGallery);
   const menuToggle = $("#dashboardMenuToggle");
   const dashboardMenu = $("#dashboardMenu");
+  const syncDashboardMenu = () => {
+    if (!dashboardMenu || !menuToggle) return;
+    const desktop = window.matchMedia("(min-width: 851px)").matches;
+    dashboardMenu.classList.toggle("admin-hidden", !desktop);
+    menuToggle.setAttribute("aria-expanded", String(desktop));
+    menuToggle.querySelector("span").textContent = desktop ? "Choose a section" : "Open dashboard sections";
+  };
   menuToggle?.addEventListener("click", () => {
     const isOpen = !dashboardMenu.classList.contains("admin-hidden");
     dashboardMenu.classList.toggle("admin-hidden", isOpen);
     menuToggle.setAttribute("aria-expanded", String(!isOpen));
     menuToggle.querySelector("span").textContent = isOpen ? "Open dashboard sections" : "Choose a section";
   });
+  window.addEventListener("resize", syncDashboardMenu, { passive: true });
+  syncDashboardMenu();
   document.querySelectorAll("[data-panel]").forEach(button => button.addEventListener("click", () => {
     showPanel(button.dataset.panel);
     dashboardMenu?.classList.add("admin-hidden");
