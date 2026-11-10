@@ -318,7 +318,44 @@ async function saveContent(e){e.preventDefault();const form=e.currentTarget,stat
 function isApprovedAdminGalleryImage(value){try{const u=new URL(String(value||""),window.location.origin);return u.protocol==="https:"&&u.hostname==="ik.imagekit.io"&&!u.username&&!u.password&&!u.port;}catch{return false;}}
 
 async function loadAdminVideos(){const box=$("#adminVideoList");if(!box)return;try{const data=await api("admin/videos");box.replaceChildren();(data.videos||[]).forEach(video=>{const row=document.createElement("article");row.className="announcement-item";const title=document.createElement("h3");title.textContent=video.title;const player=document.createElement("video");player.src=video.video_url;player.controls=true;player.preload="metadata";player.playsInline=true;player.style.display="block";player.style.width="min(100%,420px)";player.style.maxHeight="240px";const controls=document.createElement("div");controls.className="admin-row-actions";const remove=document.createElement("button");remove.className="danger";remove.type="button";remove.textContent="Remove video";remove.addEventListener("click",async()=>{if(!confirm("Remove this school video from the website?"))return;remove.disabled=true;try{await api("admin/videos/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:video.id})});await loadAdminVideos();}catch(error){remove.disabled=false;alert(error.message);}});controls.append(remove);row.append(title,player,controls);box.append(row);});if(!box.children.length)box.textContent="No school videos have been uploaded yet.";}catch(error){box.textContent=error.message;}}
-async function saveVideo(event){event.preventDefault();const form=event.currentTarget,status=$("#videoStatus"),button=form.querySelector("button"),video=form.elements.video?.files?.[0];if(!video){status.textContent="Choose a video from your phone first.";return;}button.disabled=true;status.textContent="Uploading video… Please keep this page open.";try{const payload=new FormData();payload.append("title",form.elements.title.value.trim());payload.append("video",video,video.name);await api("admin/videos",{method:"POST",body:payload});form.reset();status.textContent="Video uploaded successfully and added to the school website.";await loadAdminVideos();}catch(error){status.textContent=error.message;}finally{button.disabled=false;}}
+async function saveVideo(event){
+  event.preventDefault();
+  const form=event.currentTarget,status=$("#videoStatus"),button=form.querySelector("button"),video=form.elements.video?.files?.[0],title=form.elements.title.value.trim();
+  if(!video){status.textContent="Choose a video from your phone first.";return;}
+  const mime=String(video.type||"").toLowerCase();
+  if(!["video/mp4","video/webm","video/quicktime"].includes(mime)){status.textContent="Choose an MP4, WebM or MOV video.";return;}
+  if(video.size>90*1024*1024){status.textContent="The video must be 90 MB or smaller.";return;}
+  button.disabled=true;
+  try{
+    status.textContent="Preparing secure upload…";
+    const auth=await api("admin/videos/auth");
+    const payload=new FormData();
+    payload.append("file",video,video.name);
+    payload.append("fileName",video.name.replace(/[^a-zA-Z0-9._-]/g,"_"));
+    payload.append("useUniqueFileName","true");
+    payload.append("token",auth.token);
+    payload.append("expire",String(auth.expire));
+    payload.append("signature",auth.signature);
+    payload.append("publicKey",auth.publicKey);
+    status.textContent="Uploading video: 0%";
+    const uploaded=await new Promise((resolve,reject)=>{
+      const xhr=new XMLHttpRequest();
+      xhr.open("POST","https://upload.imagekit.io/api/v1/files/upload");
+      xhr.upload.addEventListener("progress",event=>{if(event.lengthComputable)status.textContent="Uploading video: "+Math.round(event.loaded/event.total*100)+"%";});
+      xhr.addEventListener("load",()=>{let data={};try{data=JSON.parse(xhr.responseText||"{}");}catch{}if(xhr.status>=200&&xhr.status<300)resolve(data);else reject(new Error(data.message||data.help||"ImageKit could not accept this video. Check its file size and try again."));});
+      xhr.addEventListener("error",()=>reject(new Error("The upload connection was interrupted. Check your internet connection and try again.")));
+      xhr.addEventListener("abort",()=>reject(new Error("The video upload was cancelled.")));
+      xhr.send(payload);
+    });
+    if(!uploaded.url||!uploaded.fileId)throw new Error("The upload service did not return the video file details.");
+    status.textContent="Saving video to the school website…";
+    await api("admin/videos",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title,video_url:uploaded.url,file_id:uploaded.fileId,mime_type:uploaded.fileType||mime,file_size:uploaded.size||video.size})});
+    form.reset();
+    status.textContent="Video uploaded successfully and added to the school website.";
+    await loadAdminVideos();
+  }catch(error){status.textContent=error.message||"Video upload failed. Please try again.";}
+  finally{button.disabled=false;}
+}
 
 async function loadAdminGallery(){const box=$("#adminGalleryList");try{const [d,content]=await Promise.all([api("admin/gallery"),api("admin/content")]);const featured=content.content?.hero_image_url||"";box.replaceChildren();(d.gallery||[]).forEach(item=>{const row=document.createElement("article");row.className="announcement-item";const title=document.createElement("h3");title.textContent=item.title;const img=document.createElement("img");if(!isApprovedAdminGalleryImage(item.image_url)){console.warn("Skipped gallery item with an unapproved image URL.");return;}img.src=item.image_url;img.alt=item.title||"Bright Angels school photo";img.loading="lazy";img.style.maxWidth="min(100%,320px)";img.style.maxHeight="190px";img.style.objectFit="cover";img.style.display="block";const controls=document.createElement("div");controls.className="admin-row-actions";const choose=document.createElement("button");const isFeatured=item.image_url===featured;choose.textContent=isFeatured?"✓ Homepage photo selected":"Set as homepage photo";choose.disabled=isFeatured;choose.addEventListener("click",async()=>{choose.disabled=true;try{await api("admin/gallery/featured",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:item.id})});await loadAdminGallery();const status=$("#galleryStatus");if(status)status.textContent="Homepage photo updated successfully.";}catch(e){choose.disabled=false;alert(e.message);}});const del=document.createElement("button");del.className="danger";del.textContent="Remove photo";del.addEventListener("click",async()=>{if(!confirm("Remove this gallery item?"))return;try{await api("admin/gallery/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:item.id})});loadAdminGallery();}catch(e){alert(e.message);}});controls.append(choose,del);row.append(title,img,controls);box.append(row);});if(!box.children.length)box.textContent="No gallery photos yet. Upload a photo first.";}catch(e){box.textContent=e.message;}}
 async function saveGallery(e){e.preventDefault();const form=e.currentTarget,status=$("#galleryStatus"),button=form.querySelector("button"),photo=form.elements.photo?.files?.[0];if(!photo){status.textContent="Choose a photo from your phone first.";return;}button.disabled=true;status.textContent="Uploading photo…";try{const data=new FormData();data.append("title",form.elements.title.value.trim());data.append("photo",photo,photo.name);data.append("description",form.elements.description.value.trim());await api("admin/gallery",{method:"POST",body:data});form.reset();status.textContent="Photo uploaded successfully.";await loadAdminGallery();}catch(err){status.textContent=err.message;}finally{button.disabled=false;}}
