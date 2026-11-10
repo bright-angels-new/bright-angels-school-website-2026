@@ -281,11 +281,53 @@ async function loadStories(){
   }catch(error){list.textContent=error.message;}
 }
 async function saveStory(event){
-  event.preventDefault();const form=event.currentTarget,status=$("#storyStatus"),button=form.querySelector('button[type="submit"]');
-  const data=Object.fromEntries(new FormData(form).entries());data.is_published=form.elements.is_published.checked;
-  button.disabled=true;status.textContent="Publishing story…";
-  try{await api("admin/stories",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});form.reset();form.elements.is_published.checked=true;status.textContent="Story saved successfully.";await loadStories();}
-  catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+  event.preventDefault();
+  const form=event.currentTarget,status=$("#storyStatus"),button=form.querySelector('button[type="submit"]');
+  const photo=form.elements.story_photo?.files?.[0]||null;
+  let imageUrl=form.elements.image_url?.value||"";
+  button.disabled=true;
+  try{
+    if(photo){
+      const mime=String(photo.type||"").toLowerCase();
+      if(!["image/jpeg","image/png","image/webp","image/gif"].includes(mime))throw new Error("Choose a JPG, PNG, WebP or GIF photo.");
+      if(photo.size>10*1024*1024)throw new Error("The photo must be 10 MB or smaller.");
+      status.textContent="Preparing secure photo upload…";
+      const auth=await api("admin/videos/auth");
+      const payload=new FormData();
+      payload.append("file",photo,photo.name);
+      payload.append("fileName",photo.name.replace(/[^a-zA-Z0-9._-]/g,"_"));
+      payload.append("useUniqueFileName","true");
+      payload.append("token",auth.token);
+      payload.append("expire",String(auth.expire));
+      payload.append("signature",auth.signature);
+      payload.append("publicKey",auth.publicKey);
+      status.textContent="Uploading photo: 0%";
+      const uploaded=await new Promise((resolve,reject)=>{
+        const xhr=new XMLHttpRequest();
+        xhr.open("POST","https://upload.imagekit.io/api/v1/files/upload");
+        xhr.upload.addEventListener("progress",event=>{if(event.lengthComputable)status.textContent="Uploading photo: "+Math.round(event.loaded/event.total*100)+"%";});
+        xhr.addEventListener("load",()=>{let data={};try{data=JSON.parse(xhr.responseText||"{}");}catch{}if(xhr.status>=200&&xhr.status<300)resolve(data);else reject(new Error(data.message||data.help||"The photo storage service could not accept this image."));});
+        xhr.addEventListener("error",()=>reject(new Error("The photo upload connection was interrupted. Check your internet connection and try again.")));
+        xhr.addEventListener("abort",()=>reject(new Error("The photo upload was cancelled.")));
+        xhr.send(payload);
+      });
+      if(!uploaded.url||!isApprovedAdminGalleryImage(uploaded.url))throw new Error("The upload service did not return a valid photo.");
+      imageUrl=uploaded.url;
+    }
+    status.textContent="Publishing story…";
+    const data={
+      title:form.elements.title.value.trim(),
+      body:form.elements.body.value.trim(),
+      image_url:imageUrl,
+      is_published:form.elements.is_published.checked
+    };
+    await api("admin/stories",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+    form.reset();
+    form.elements.is_published.checked=true;
+    status.textContent="Story saved successfully.";
+    await loadStories();
+  }catch(error){status.textContent=error.message||"The story could not be saved. Please try again.";}
+  finally{button.disabled=false;}
 }
 
 async function loadSchoolRecords(){
