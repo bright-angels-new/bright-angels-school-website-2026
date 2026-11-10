@@ -698,3 +698,106 @@ body.gallery-view-open{overflow:hidden}
 .button-secondary{background:#eaf2f8;color:#123b66;border:1px solid #d7e5ef}
 .button-danger{background:#fff0ef;color:#9a2823;border:1px solid #f2d2d0}
 @media(max-width:600px){.public-events-grid{grid-template-columns:1fr}.public-event-card{grid-template-columns:72px 1fr;padding:16px;gap:13px}.event-date-block{min-height:94px}.event-date-block strong{font-size:1.7rem}}
+
+
+/* Final public-homepage professional polish: clear hierarchy, consistent spacing,
+   accessible controls and a photo-led experience across screen sizes. */
+:root{
+  --ba-navy:#102f50;
+  --ba-blue:#2d82b8;
+  --ba-light:#edf5fb;
+  --ba-gold:#efc66f;
+  --ba-border:#e1eaf2;
+}
+body{letter-spacing:.002em}
+.site-header{z-index:100;box-shadow:0 5px 22px rgba(16,47,80,.075)}
+.brand{flex-shrink:0}
+nav a:not(.nav-admin){position:relative;padding-block:8px}
+nav a:not(.nav-admin):after{
+  content:"";position:absolute;left:0;right:100%;bottom:2px;height:2px;
+  border-radius:3px;background:var(--ba-gold);transition:right .2s ease
+}
+nav a:not(.nav-admin):hover:after,nav a:not(.nav-admin):focus-visible:after{right:0}
+.hero{min-height:clamp(560px,66vw,700px)}
+.hero:before{background-image:
+  linear-gradient(90deg,rgba(7,26,45,.78) 0%,rgba(10,42,69,.58) 48%,rgba(10,42,69,.22) 100%),
+  var(--hero-photo,linear-gradient(120deg,#0d2d4c,#1e6595))}
+.hero-content{max-width:790px}
+.hero h1{max-width:760px}
+.hero-copy{font-size:clamp(1rem,1.25vw,1.12rem)}
+.welcome-strip{min-height:54px}
+.school-at-a-glance{max-width:1440px;margin:0 auto;padding-inline:clamp(18px,5vw,70px)}
+.section{scroll-margin-top:95px}
+.section-heading{max-width:760px}
+.section-heading h2{line-height:1.12}
+.photo-gallery-section{padding-top:clamp(48px,6vw,76px);padding-bottom:clamp(58px,7vw,90px)}
+.photo-gallery-grid{grid-auto-rows:clamp(160px,18vw,230px);gap:clamp(9px,1.2vw,15px)}
+.gallery-photo{border-radius:17px;box-shadow:0 13px 30px rgba(16,47,80,.12)}
+.gallery-photo-caption{opacity:1;transform:none;padding:48px 17px 14px}
+.school-videos-section{background:#f5f9fc;padding-bottom:clamp(58px,7vw,90px)}
+.school-video-card{border-color:#e0e9f1;box-shadow:0 12px 30px rgba(16,47,80,.075)}
+.learners-corner-section{background:#fff}
+.school-story-card{border-color:#e0e9f1;box-shadow:0 12px 30px rgba(16,47,80,.07)}
+.about-section{background:#f5f9fc}
+.pathway-section{background:#fff}
+.pathway-card{min-height:100%}
+.learning-section{background:#edf5fb}
+.news-section{background:#fff;padding-block:clamp(58px,7vw,88px)}
+.announcement-list{max-width:1120px}
+.announcement-list .announcement-item{min-height:100%;border-radius:16px}
+.school-events-section{background:#f4f8fc}
+.public-event-card{height:100%;border-color:#e0eaf2;transition:transform .2s ease,box-shadow .2s ease}
+.public-event-card:hover{transform:translateY(-3px);box-shadow:0 18px 38px rgba(18,59,102,.11)}
+.admissions-steps{background:linear-gradient(180deg,#fff,#f6faff)}
+.admissions-steps>.section-heading{margin-bottom:34px}
+.admissions-class-list,.admissions-guidance{border-color:#e1eaf2;box-shadow:0 12px 30px rgba(18,59,102,.055)}
+.admissions-class-list h3,.admissions-guidance h3,.process-title{color:#123b66}
+.steps-grid{grid-template-columns:repeat(4,minmax(0,1fr));max-width:1180px}
+.steps-grid article{height:100%;border-color:#e1eaf2}
+.admissions-section{background:linear-gradient(180deg,#edf5fb,#f8fbfe)}
+.form-card{max-width:980px}
+.form-card button[type=submit]{min-width:190px}
+.faq-list details{transition:border-color .18s ease,box-shadow .18s ease}
+.faq-list details[open]{border-color:#bdd7e8;box-shadow:0 8px 24px rgba(18,59,102,.06)}
+.faq-list summary{line-height:1.5}
+.contact-section{gap:30px clamp(28px,5vw,64px)}
+.contact-section .form-card{border:1px solid rgba(255,255,255,.35)}
+.contact-details{align-self:start}
+footer{padding:42px 22px 24px}
+.footer-links{row-gap:14px}
+.footer-bottom{margin-top:5px}
+@media(max-width:1020px){
+  .site-header{padding-inline:clamp(18px,4vw,34px)}
+  .steps-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+  .hero{min-height:570px;padding:65px 21px 55px}
+  .hero:before{background-image:
+    linear-gradient(180deg,rgba(7,26,45,.62),rgba(7,26,45,.78)),
+    var(--hero-photo,linear-gradient(145deg,#0d2d4c,#1e6595))}
+  .hero h1{font-size:clamp(2.45rem,9.5vw,3.35rem)}
+  .hero-copy{margin-inline:auto}
+  .school-at-a-glance{padding-inline:14px}
+  .photo-gallery-grid{grid-auto-rows:clamp(130px,34vw,190px);gap:8px}
+  .gallery-photo{border-radius:12px}
+  .gallery-photo-caption{font-size:.78rem;padding:30px 11px 9px}
+  .school-video-grid{grid-template-columns:1fr}
+  .school-story-card>img{height:230px}
+  .steps-grid{grid-template-columns:1fr}
+  .contact-section{gap:22px}
+  .contact-section .form-card{grid-column:1;grid-row:auto}
+  .contact-section .contact-details{grid-column:1;grid-row:auto}
+}
+@media(max-width:420px){
+  .hero{min-height:540px;padding-inline:17px}
+  .hero-actions{flex-direction:column;align-items:stretch}
+  .hero-actions .button{width:100%}
+  .welcome-strip{gap:13px;letter-spacing:.15em}
+  .photo-gallery-grid{grid-auto-rows:128px}
+  .gallery-photo:nth-child(7n+1){grid-column:span 2;grid-row:span 2}
+}
+@media(prefers-reduced-motion:reduce){
+  nav a:not(.nav-admin):after{transition:none}
+  .public-event-card{transition:none}
+  .public-event-card:hover{transform:none}
+}
