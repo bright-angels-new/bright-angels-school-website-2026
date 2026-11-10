@@ -81,7 +81,16 @@
       <div><span class="glance-icon">★</span><span><strong>Our Motto</strong><small>If others can, we can</small></span></div>
     </section>
 
-    <section class="section photo-gallery-section" id="gallery"><div class="section-heading"><p class="eyebrow">LIFE AT BRIGHT ANGELS</p><h2>Moments worth <span>sharing.</span></h2><p>See the learning, friendships and celebrations that make our school special.</p></div><div id="publicGallery" class="photo-gallery-grid"><p class="muted">School gallery photos will appear here.</p></div><p class="gallery-footnote">More memories from Bright Angels Junior School.</p></section>
+    <section class="section photo-gallery-section" id="gallery"><div class="section-heading"><p class="eyebrow">LIFE AT BRIGHT ANGELS</p><h2>Moments worth <span>sharing.</span></h2><p>See the learning, friendships and celebrations that make our school special.</p></div><div class="featured-carousel" id="featuredCarousel" aria-label="Featured school photographs" hidden>
+      <div class="featured-carousel-stage">
+        <img id="featuredCarouselImage" src="" alt="">
+        <div class="featured-carousel-caption"><span class="eyebrow">LIFE AT BRIGHT ANGELS</span><h3 id="featuredCarouselTitle">School moments</h3></div>
+        <button class="carousel-control carousel-prev" id="featuredCarouselPrev" type="button" aria-label="Previous featured photo">‹</button>
+        <button class="carousel-control carousel-next" id="featuredCarouselNext" type="button" aria-label="Next featured photo">›</button>
+      </div>
+      <div class="featured-carousel-footer"><span id="featuredCarouselCount" aria-live="polite"></span><div id="featuredCarouselDots" class="carousel-dots" aria-label="Choose featured photo"></div><button id="featuredCarouselPause" class="carousel-pause" type="button" aria-pressed="false">Pause</button></div>
+    </div>
+    <div id="publicGallery" class="photo-gallery-grid"><p class="muted">School gallery photos will appear here.</p></div><p class="gallery-footnote">More memories from Bright Angels Junior School.</p></section>
     <section class="section school-videos-section" id="school-videos"><div class="section-heading"><p class="eyebrow">WATCH BRIGHT ANGELS</p><h2>Our school <span>in motion.</span></h2></div><div id="publicVideos" class="school-video-grid"><p class="muted">School videos will appear here.</p></div></section>
 
     <section class="section learners-corner-section" id="learners-corner"><div class="section-heading"><p class="eyebrow">LEARNERS’ CORNER</p><h2>Little moments. <span>Big achievements.</span></h2><p>Discover the creativity, talents, projects and experiences of our learners.</p></div><div id="publicStories" class="school-stories-grid"><p class="muted">Learner stories and school highlights will appear here soon.</p></div></section>
@@ -235,13 +244,18 @@
 
   <a class="whatsapp-float" href="https://wa.me/256755660550?text=Hello%20Bright%20Angels%20Junior%20School.%20I%20would%20like%20to%20make%20an%20enquiry." target="_blank" rel="noopener noreferrer" aria-label="Chat with Bright Angels Junior School on WhatsApp"><span aria-hidden="true">☏</span><span>WhatsApp us</span></a>
 
+  <a class="floating-admissions-cta" href="#admissions"><span aria-hidden="true">✦</span> Admissions</a>
+
   <button class="back-to-top" id="backToTop" type="button" aria-label="Back to top" title="Back to top">↑</button>
 
-  <footer>
+  <footer class="site-footer">
     <div class="footer-inner">
-      <div class="footer-school"><img src="/school-logo.jpg" alt="Bright Angels logo"><div><a class="footer-brand" href="#home">Bright Angels Junior School</a><p>“If others can, we can”</p></div></div>
-      <div class="footer-links"><a href="#about">Our School</a><a href="#learners-corner">Learners’ Corner</a><a href="#programmes">Academics</a><a href="#admissions">Admissions</a><a href="#news">News & Updates</a><a href="#application-status">Parents</a><a href="#contact">Contact</a></div>
-      <div class="footer-bottom"><small>© <span id="year"></span> Bright Angels Junior School. All rights reserved.</small><a href="#home">Back to top ↑</a></div>
+      <div class="footer-main">
+        <div class="footer-school"><img src="/school-logo.jpg" alt="Bright Angels Junior School logo"><div><a class="footer-brand" href="#home">Bright Angels Junior School</a><p>“If others can, we can”</p><span class="footer-location">Lukwanga, Wakiso District, Uganda</span></div></div>
+        <div class="footer-column"><h3>Explore</h3><div class="footer-links"><a href="#about">Our School</a><a href="#learners-corner">Learners’ Corner</a><a href="#programmes">Academics</a><a href="#gallery">Photo Gallery</a><a href="#school-calendar">School Calendar</a></div></div>
+        <div class="footer-column"><h3>Get in touch</h3><div class="footer-contact"><a href="tel:+256755660550">+256 755 660 550</a><a href="mailto:brightangels26@gmail.com">brightangels26@gmail.com</a><a href="https://www.google.com/maps/search/?api=1&amp;query=Bright+Angels+Junior+School+Lukwanga+Wakiso" target="_blank" rel="noopener">Find us on Google Maps ↗</a><a href="https://wa.me/256755660550" target="_blank" rel="noopener noreferrer">WhatsApp the school ↗</a></div></div>
+      </div>
+      <div class="footer-bottom"><small>© <span id="year"></span> Bright Angels Junior School. All rights reserved.</small><div><a href="#admissions">Admission enquiries</a><a href="#home">Back to top ↑</a></div></div>
     </div>
   </footer>
 </body>
